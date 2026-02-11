@@ -7,16 +7,16 @@
   },
   "plugins": [
     {
-      "name": "agent-tools-tools",
+      "name": "dev-tools",
       "description": "General Developer Skills & Agents for Coding Agents",
       "version": "0.1.0",
       "author": {
         "name": "Stephen Sequenzia",
         "email": "sequenzia@gmail.com"
       },
-      "source": "./plugins/agent-tools/",
+      "source": "./plugins/dev-tools/",
       "category": "development",
-      "homepage": "https://github.com/sequenzia/agent-tools/tree/main/plugins/tools"
+      "homepage": "https://github.com/sequenzia/agent-tools/tree/main/plugins/dev-tools"
     }
   ]
 }

@@ -1,14 +1,14 @@
 {
-  "name": "agent-tools",
+  "name": "dev-tools",
   "version": "0.1.0",
-  "description": "Developer tools for working with Coding Agents",
+  "description": "Dev tools for working with Coding Agents",
   "author": {
     "name": "Stephen Sequenzia",
     "email": "sequenzia@gmail.com",
     "url": "https://sequenzia.com"
   },
-  "homepage": "https://github.com/sequenzia/agent-tools/tree/main/plugins/agent-tools",
-  "repository": "https://github.com/sequenzia/agent-tools/tree/main/plugins/agent-tools",
+  "homepage": "https://github.com/sequenzia/agent-tools/tree/main/plugins/dev-tools",
+  "repository": "https://github.com/sequenzia/agent-tools/tree/main/plugins/dev-tools",
   "license": "MIT",
   "keywords": [
     "claude-code",

@@ -49,7 +49,7 @@ For this to work, keep the skill directories as siblings under a common parent (
 
 ## Differences from Plugin Version
 
-These skills are adapted from the [Claude Alchemy Tools plugin](../plugins/tools/). Key differences:
+These skills are adapted from the Claude Alchemy Tools plugin. Key differences:
 
 - **No subagent dependencies** — All multi-agent orchestration is replaced with sequential single-context workflows
 - **No plugin-specific features** — No `${CLAUDE_PLUGIN_ROOT}`, `model`, `allowed-tools`, or `agent` frontmatter fields

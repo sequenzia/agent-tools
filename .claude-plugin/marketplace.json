@@ -1,0 +1,22 @@
+{
+  "name": "agent-tools",
+  "description": "Custom plugins for Coding Agents",
+  "owner": {
+    "name": "Stephen Sequenzia",
+    "email": "sequenzia@gmail.com"
+  },
+  "plugins": [
+    {
+      "name": "agent-tools-tools",
+      "description": "General Developer Skills & Agents for Coding Agents",
+      "version": "0.1.0",
+      "author": {
+        "name": "Stephen Sequenzia",
+        "email": "sequenzia@gmail.com"
+      },
+      "source": "./plugins/agent-tools/",
+      "category": "development",
+      "homepage": "https://github.com/sequenzia/agent-tools/tree/main/plugins/tools"
+    }
+  ]
+}

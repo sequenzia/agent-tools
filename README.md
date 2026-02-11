@@ -1,22 +1,32 @@
 # Agent Tools
 
-A collection of **Claude Alchemy Skills** — standalone, distributable AI agent skill definitions that work in both [Cline](https://github.com/cline/cline) and [Claude Code](https://docs.anthropic.com/en/docs/claude-code).
+A collection of **Claude Alchemy Skills** — standalone, distributable AI agent skill definitions packaged as a [Claude Code](https://docs.anthropic.com/en/docs/claude-code) plugin, also usable standalone with [Cline](https://github.com/cline/cline).
 
 No build system, no package manager, no tests. The deliverables are Markdown files (`SKILL.md`) with YAML frontmatter and optional `resources/` directories.
 
 ## Quick Start
 
-Copy the skills you want into your skills directory:
+### As a Claude Code Plugin (Recommended)
+
+Install the plugin directly from this repository:
 
 ```bash
-# Per-project (recommended)
-cp -r cline/skills/<skill-name> /path/to/your/project/.claude/skills/
-
-# Global
-cp -r cline/skills/<skill-name> ~/.claude/skills/
+claude plugin add sequenzia/agent-tools
 ```
 
-See [`cline/README.md`](cline/README.md) for full installation details and usage.
+### As Standalone Skills
+
+Copy individual skills into your skills directory:
+
+```bash
+# Per-project
+cp -r skills/<skill-name> /path/to/your/project/.claude/skills/
+
+# Global
+cp -r skills/<skill-name> ~/.claude/skills/
+```
+
+See [`skills/README.md`](skills/README.md) for standalone usage details.
 
 ## Skills at a Glance
 
@@ -50,7 +60,7 @@ All skills run as sequential workflows within a single conversation context — 
 
 ### Composable Skill Chains
 
-Skills load other skills at runtime via relative path references (`../sibling-skill/SKILL.md`). `deep-analysis` serves as the core building block:
+Skills load other skills at runtime via relative path references (`../sibling-skill/SKILL.md`). `deep-analysis` serves as the core reusable building block:
 
 ```
 feature-dev
@@ -65,19 +75,35 @@ codebase-analysis
 └── deep-analysis
     ├── project-conventions
     └── language-patterns
+
+docs-manager
+├── deep-analysis
+│   ├── project-conventions
+│   └── language-patterns
+└── changelog-format
 ```
 
-For cross-skill references to resolve, skill directories must remain as siblings under a common parent (e.g., `.claude/skills/`).
+For cross-skill references to resolve, skill directories must remain as siblings under a common parent.
 
 ## Repository Structure
 
 ```
-cline/
-  README.md                          # Installation and usage details
+plugins/agent-tools/                   # Claude Code plugin
+  .claude-plugin/
+    plugin.json                        # Plugin manifest (v0.1.0)
   skills/
     <skill-name>/
-      SKILL.md                       # Skill definition (frontmatter + workflow)
-      resources/                     # Optional templates/examples used at runtime
+      SKILL.md                         # Skill definition (frontmatter + workflow)
+      resources/                       # Optional templates/examples used at runtime
+
+.claude-plugin/
+  marketplace.json                     # Root marketplace manifest
+
+skills/                                # Standalone copies (Cline-compatible)
+  README.md                            # Installation and usage details
+  <skill-name>/
+    SKILL.md
+    resources/
 ```
 
 ## Contributing

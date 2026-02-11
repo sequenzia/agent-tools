@@ -4,16 +4,26 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What This Repository Is
 
-This is a collection of **Claude Alchemy Skills** — standalone, distributable AI agent skill definitions that work in both Cline and Claude Code. All content lives under `cline/skills/`. There is no build system, no package manager, no tests — the deliverables are Markdown files (SKILL.md) with YAML frontmatter and optional `resources/` directories.
+This is a collection of **Claude Alchemy Skills** — standalone, distributable AI agent skill definitions packaged as a Claude Code plugin. There is no build system, no package manager, no tests — the deliverables are Markdown files (SKILL.md) with YAML frontmatter and optional `resources/` directories.
 
 ## Repository Structure
 
 ```
-cline/
+plugins/agent-tools/               # Claude Code plugin
+  .claude-plugin/
+    plugin.json                    # Plugin manifest (v0.1.0)
   skills/
     <skill-name>/
-      SKILL.md           # Skill definition (frontmatter + workflow)
-      resources/          # Optional templates/examples used by the skill
+      SKILL.md                     # Skill definition (frontmatter + workflow)
+      resources/                   # Optional templates/examples used by the skill
+
+.claude-plugin/
+  marketplace.json                 # Root marketplace manifest
+
+skills/                            # Standalone skill copies (Cline-compatible)
+  <skill-name>/
+    SKILL.md
+    resources/
 ```
 
 ### Skill Categories
@@ -34,10 +44,12 @@ cline/
 
 ## Key Architectural Concepts
 
+- **Dual distribution.** Skills are packaged as a Claude Code plugin under `plugins/agent-tools/` and also available as standalone copies under `skills/` for Cline compatibility.
 - **No subagent dependencies.** All multi-agent orchestration from the original plugin is replaced with sequential single-context workflows.
 - **Cross-skill references use relative paths.** Skills reference siblings via `../sibling-skill/SKILL.md`. Skills must remain as siblings under a common parent directory for references to resolve.
 - **Universal frontmatter only.** Valid fields: `name`, `description`, `user-invocable`, `disable-model-invocation`, `argument-hint`. No plugin-specific fields (`${CLAUDE_PLUGIN_ROOT}`, `model`, `allowed-tools`, `agent`).
-- **Composable skill chains.** `feature-dev` loads `deep-analysis`, which loads `project-conventions` and `language-patterns`. `codebase-analysis` also chains through `deep-analysis`. `feature-dev` additionally loads `architecture-patterns`, `code-quality`, and `changelog-format`.
+- **Composable skill chains.** `feature-dev` loads `deep-analysis`, which loads `project-conventions` and `language-patterns`. `codebase-analysis` also chains through `deep-analysis`. `docs-manager` also chains through `deep-analysis` and loads `changelog-format`. `feature-dev` additionally loads `architecture-patterns`, `code-quality`, and `changelog-format`.
+- **`deep-analysis` is the core building block.** Used by `feature-dev`, `codebase-analysis`, and `docs-manager`.
 
 ## Editing Skills
 
@@ -47,3 +59,4 @@ When modifying a skill:
 - If a skill references another skill (e.g., `Read ../deep-analysis/SKILL.md`), verify the referenced skill still supports that usage
 - Resource files in `resources/` are templates loaded by skills at runtime — changes affect all skills that reference them
 - Skills that say "CRITICAL: Complete ALL N phases" enforce that the workflow must auto-continue without waiting for user input between phases (except where `AskUserQuestion` is explicitly called)
+- When editing skills in `plugins/agent-tools/skills/`, keep the standalone `skills/` copies in sync

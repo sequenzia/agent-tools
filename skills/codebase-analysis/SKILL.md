@@ -72,6 +72,7 @@ Execute a structured 3-phase codebase analysis workflow to gather insights.
    - **Save report as Markdown file** — Write the full report to a file
    - **Update README.md with analysis insights** — Add architecture/structure info to README
    - **Update CLAUDE.md with analysis insights** — Add patterns/conventions to CLAUDE.md
+   - **Update AGENTS.md with analysis insights** — Generate tool-neutral AI agent guidance
    - **Keep a condensed summary in memory** — Retain a quick-reference summary in conversation context
    - **Address actionable insights** — Fix challenges and implement recommendations from the report
 
@@ -81,37 +82,66 @@ Execute a structured 3-phase codebase analysis workflow to gather insights.
 
    ### Action: Save Report as Markdown File
 
-   - Check if a `docs/` directory exists in the project root
-     - If yes, suggest default path: `docs/codebase-analysis.md`
-     - If no, suggest default path: `codebase-analysis.md` in the project root
+   - Default path: `internal/docs/codebase-analysis-{yyyymmdd}.md` (replace `{yyyymmdd}` with current date)
+   - Create the `internal/docs/` directory silently if it does not exist
    - Use `AskUserQuestion` to let the user confirm or customize the file path
    - Write the full report content (same as Phase 2 output) to the confirmed path using the Write tool
    - Confirm the file was saved
 
    ### Action: Update README.md
 
+   - Load `resources/readme-template.md` for structure and guidelines
    - Read the existing README.md at the project root
-     - If no README.md exists, skip this action and inform the user
-   - Draft updates based on analysis insights — focus on:
+     - If no README.md exists, offer to create one using `AskUserQuestion`; if user declines, skip this action
+   - Draft updates following the template structure — focus on:
      - Architecture overview
-     - Project structure
+     - Project structure and directory layout
      - Tech stack summary
+     - Getting started commands
+   - For existing files, follow the template's Update Strategy: draft only NEW sections or substantive additions, never overwrite user-written content
    - Present the draft to the user for approval using `AskUserQuestion` with options:
      - **Apply** — Apply the drafted updates
      - **Modify** — Let the user describe what to change, then re-draft
      - **Skip** — Skip this action entirely
-   - If approved, apply updates using the Edit tool
+   - If approved, apply updates using the Edit tool (or Write tool if creating new)
 
    ### Action: Update CLAUDE.md
 
+   - Load `resources/claude-md-template.md` for structure and guidelines
    - Read the existing CLAUDE.md at the project root
      - If no CLAUDE.md exists, use `AskUserQuestion` to ask if one should be created
      - If user declines, skip this action
-   - Draft updates based on analysis insights — focus on:
+   - Draft updates following the template structure — focus on:
      - Key patterns and conventions discovered
      - Critical files and their roles
-     - Important dependencies
-     - Architectural decisions and constraints
+     - Build, test, and lint commands
+     - Important dependencies and architectural constraints
+   - For existing files, follow the template's Update Strategy: draft only NEW content, preserve user's existing instructions and overrides
+   - Present the draft to the user for approval using `AskUserQuestion` with options:
+     - **Apply** — Apply the drafted updates
+     - **Modify** — Let the user describe what to change, then re-draft
+     - **Skip** — Skip this action entirely
+   - If approved, apply updates using the Edit tool (or Write tool if creating new)
+
+   ### Action: Update AGENTS.md
+
+   - Load `resources/agents-md-template.md` for structure and guidelines
+   - **Symlink check:** If the user selected both "Update CLAUDE.md" and "Update AGENTS.md", present `AskUserQuestion` with options:
+     - **Generate separate AGENTS.md** — Proceed normally with dedicated content
+     - **Symlink CLAUDE.md to AGENTS.md** — Write AGENTS.md, then create a symlink (`ln -sf AGENTS.md CLAUDE.md`)
+     - **Skip AGENTS.md** — Keep CLAUDE.md as the sole agent guidance file
+   - Read the existing AGENTS.md at the project root
+     - If no AGENTS.md exists, use `AskUserQuestion` to ask if one should be created
+     - If user declines, skip this action
+   - Draft content following the template structure — focus on:
+     - Dev environment setup and prerequisites
+     - Build, test, and lint commands
+     - Architecture overview and key components
+     - Code style and naming conventions
+     - Security considerations
+     - Git workflow (branching, commits, PR process)
+   - For existing files, follow the template's Update Strategy: draft only NEW sections, never overwrite existing guidance
+   - Keep total content under 150 lines (per AGENTS.md best practice)
    - Present the draft to the user for approval using `AskUserQuestion` with options:
      - **Apply** — Apply the drafted updates
      - **Modify** — Let the user describe what to change, then re-draft
@@ -199,3 +229,6 @@ If any phase fails:
 
 - For report structure, see [resources/report-template.md](resources/report-template.md)
 - For actionable insights format, see [resources/actionable-insights-template.md](resources/actionable-insights-template.md)
+- For README.md generation, see [resources/readme-template.md](resources/readme-template.md)
+- For CLAUDE.md generation, see [resources/claude-md-template.md](resources/claude-md-template.md)
+- For AGENTS.md generation, see [resources/agents-md-template.md](resources/agents-md-template.md)

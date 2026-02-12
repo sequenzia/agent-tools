@@ -50,7 +50,7 @@ Four skills include `resources/` directories with templates and examples:
 | Skill | Resources |
 |-------|-----------|
 | `changelog-format` | `entry-examples.md` |
-| `codebase-analysis` | `report-template.md`, `actionable-insights-template.md` |
+| `codebase-analysis` | `report-template.md`, `actionable-insights-template.md`, `readme-template.md`, `claude-md-template.md`, `agents-md-template.md` |
 | `feature-dev` | `adr-template.md`, `changelog-entry-template.md` |
 | `docs-manager` | `mkdocs-config-template.md`, `markdown-file-templates.md`, `change-summary-templates.md` |
 

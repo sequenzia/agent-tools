@@ -1,0 +1,24 @@
+{
+  "id": "4",
+  "subject": "Write adaptive interview engine",
+  "description": "Write the core adaptive interview engine section of the skill. This is the most complex component — it conducts a multi-round conversation to gather all information needed for skill generation.\n\nThe interview engine must:\n\n1. **Question selection** — Define question categories covering:\n   - Target audience for the skill\n   - Main use cases and workflows\n   - Specific requirements and constraints\n   - Key features and capabilities\n   - Platform-specific considerations (initially OpenCode-focused)\n\n2. **Depth adaptation** — Adjust based on:\n   - Experience level (Beginner → more guidance/choices, Advanced → streamlined)\n   - Skill complexity (simple prompt-based → fewer questions, multi-step workflow → thorough interview)\n   - Response quality (terse → follow-up, detailed → skip redundant questions)\n\n3. **Conversational flow** — Instructions for:\n   - Building on previous answers (reference what user already said)\n   - Skipping irrelevant questions based on prior context\n   - Mix of structured choices and open-ended text inputs\n   - Early exit support if user signals completion\n   - Allow revisions to previous answers without restarting\n\n4. **Response handling** — Instructions for:\n   - Terse responses: ask targeted follow-ups\n   - Contradictory answers: flag inconsistency, ask for clarification\n   - Highly technical beginner: optionally adjust depth upward\n\n**Acceptance Criteria:**\n\n_Functional:_\n- [ ] Multi-round interview with adaptive question selection\n- [ ] Covers all required topics (audience, use cases, requirements, features, platform specifics)\n- [ ] Adapts depth based on experience level and skill complexity\n- [ ] Builds on previous answers intelligently\n- [ ] Supports early exit\n- [ ] Mix of structured choices and open-ended questions\n\n_Edge Cases:_\n- [ ] Terse responses trigger targeted follow-ups\n- [ ] Contradictory answers flagged with clarification request\n- [ ] Revision of previous answers supported without restart\n- [ ] Beginner with technical responses can have depth adjusted\n\n_Error Handling:_\n- [ ] Incomplete information gaps identified before proceeding to outline\n\n**Testing Requirements:**\n• Manual: Walk through interview as beginner with simple skill idea\n• Manual: Walk through as advanced user with complex multi-step skill\n• Manual: Test early exit, revision, and contradiction handling\n\nSource: internal/specs/create-skill-SPEC.md Section 5.3",
+  "activeForm": "Writing adaptive interview engine",
+  "status": "completed",
+  "blocks": [
+    "6"
+  ],
+  "blockedBy": [
+    "3"
+  ],
+  "metadata": {
+    "priority": "critical",
+    "complexity": "L",
+    "source_section": "5.3",
+    "spec_path": "internal/specs/create-skill-SPEC.md",
+    "feature_name": "Adaptive Interview Engine",
+    "task_uid": "internal/specs/create-skill-SPEC.md:adaptive-interview:logic:001",
+    "task_group": "create-skill",
+    "spec_phase": "1",
+    "spec_phase_name": "Foundation - OpenCode Skill Generation"
+  }
+}

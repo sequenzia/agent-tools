@@ -1,0 +1,26 @@
+{
+  "id": "10",
+  "subject": "Write embedded Generic Agent Skills platform knowledge",
+  "description": "Using the research findings from the GAS specification research task, write the embedded platform knowledge section for Generic Agent Skills (agentskills.io) within the skill file.\n\nThis section serves as the agent's built-in reference for GAS skill format and should include:\n\n1. **Format reference** — Complete GAS skill file structure:\n   - Required frontmatter fields with descriptions and valid values\n   - Section layout and ordering conventions\n   - File naming conventions\n\n2. **Key conventions** — GAS-specific idioms:\n   - How GAS skills differ from OpenCode and Codex\n   - Best practices for GAS skill content\n   - Portability considerations\n   - Common patterns in well-written GAS skills\n\n3. **Version metadata** — Track embedded knowledge currency:\n   - `spec_version` field (e.g., `2026-03`)\n   - Source URL (agentskills.io/specification)\n   - Date of last verification\n\n4. **Validation rules** — What makes a GAS skill structurally valid:\n   - Required fields checklist\n   - Format constraints\n   - Common mistakes to avoid\n\nFollow the same structure established in the OpenCode embedded knowledge section for consistency.\n\n**Acceptance Criteria:**\n\n_Functional:_\n- [ ] Complete GAS format reference with all required fields documented\n- [ ] Key conventions and best practices captured\n- [ ] Version metadata included with source URL\n- [ ] Validation rules defined for structural checking\n- [ ] Consistent structure with OpenCode knowledge section\n\n_Edge Cases:_\n- [ ] Optional fields clearly distinguished from required\n- [ ] Platform-specific nuances documented\n- [ ] Cross-platform differences highlighted\n\n_Error Handling:_\n- [ ] Note any gaps in documentation that may need dynamic fetching to fill\n\n**Testing Requirements:**\n• Manual: Cross-reference embedded knowledge against agentskills.io specification\n• Manual: Verify a sample skill generated from this knowledge would pass structural validation\n\nSource: internal/specs/create-skill-SPEC.md Section 9.2",
+  "activeForm": "Writing embedded Generic Agent Skills platform knowledge",
+  "status": "completed",
+  "blocks": [
+    "12",
+    "13"
+  ],
+  "blockedBy": [
+    "8"
+  ],
+  "metadata": {
+    "priority": "high",
+    "complexity": "M",
+    "source_section": "9.2",
+    "spec_path": "internal/specs/create-skill-SPEC.md",
+    "feature_name": "Embedded GAS Spec Knowledge",
+    "task_uid": "internal/specs/create-skill-SPEC.md:gas-knowledge:embedded:001",
+    "task_group": "create-skill",
+    "spec_phase": "2",
+    "spec_phase_name": "Platform Expansion - Generic Agent Skills & Codex",
+    "produces_for": "[13]"
+  }
+}

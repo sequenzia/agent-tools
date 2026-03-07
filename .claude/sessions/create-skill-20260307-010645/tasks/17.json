@@ -1,0 +1,24 @@
+{
+  "id": "17",
+  "subject": "Write structural validation engine",
+  "description": "Write the skill section that validates generated skill files against the target platform's specification before presenting them to the user.\n\nThe validation engine should:\n\n1. **Pre-output validation** — Before showing the generated skill to the user:\n   - Validate against target platform's required fields and structure\n   - Check for missing required sections\n   - Verify frontmatter fields are valid\n   - Check structural format compliance\n\n2. **Platform-specific validation rules** — For each platform:\n   - **OpenCode**: Required fields, section structure, naming conventions\n   - **GAS**: Required frontmatter, section layout, portability requirements\n   - **Codex**: Required fields, format constraints, environment compatibility\n\n3. **Auto-fix behavior** — If validation fails:\n   - Automatically fix structural issues where possible\n   - Re-validate after fixes\n   - If unfixable, present skill with clear warning\n\n4. **Validation report** — Present results to user:\n   - Pass/fail status with details\n   - List of any issues found and fixed\n   - Suggestions for optional fields that enhance quality (not marked as failures)\n\n**Acceptance Criteria:**\n\n_Functional:_\n- [ ] Validates against all three platform specs\n- [ ] Checks required sections, frontmatter fields, structural format\n- [ ] Auto-fixes structural issues and re-validates\n- [ ] Reports validation status with details\n- [ ] Suggests optional quality-enhancing fields\n\n_Edge Cases:_\n- [ ] Optional fields that enhance quality — suggested but not marked as failures\n- [ ] Unfixable validation issue — presents skill with clear warning\n- [ ] Platform spec has ambiguous requirements — validates conservatively\n\n_Error Handling:_\n- [ ] Validation failure doesn't block output — warns instead\n- [ ] Auto-fix that introduces new issues detected on re-validation\n\n**Testing Requirements:**\n• Manual: Generate intentionally invalid skill and verify validation catches issues\n• Manual: Verify auto-fix corrects common structural problems\n• Manual: Test validation for all three platforms\n\nSource: internal/specs/create-skill-SPEC.md Sections 5.7, 9.3",
+  "activeForm": "Writing structural validation engine",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": [
+    "12",
+    "13",
+    "14"
+  ],
+  "metadata": {
+    "priority": "high",
+    "complexity": "M",
+    "source_section": "5.7, 9.3",
+    "spec_path": "internal/specs/create-skill-SPEC.md",
+    "feature_name": "Structural Validation",
+    "task_uid": "internal/specs/create-skill-SPEC.md:structural-validation:logic:001",
+    "task_group": "create-skill",
+    "spec_phase": "3",
+    "spec_phase_name": "Research & Validation"
+  }
+}

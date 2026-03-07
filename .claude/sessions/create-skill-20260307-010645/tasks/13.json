@@ -1,0 +1,26 @@
+{
+  "id": "13",
+  "subject": "Write Generic Agent Skills file generation section",
+  "description": "Write the skill section that generates complete Generic Agent Skills (agentskills.io) format skill files from the approved outline.\n\nFollowing the same pattern established in the OpenCode generation section:\n\n1. **Platform-native rendering** — Generate a complete GAS skill file that:\n   - Conforms to agentskills.io specification format\n   - Uses GAS conventions and idioms\n   - Includes all required frontmatter fields\n   - Structures content following GAS section layout\n   - Supports skills of any complexity\n\n2. **Content mapping** — Map interview/outline data to GAS format:\n   - Skill name → GAS name field\n   - Description → GAS description field\n   - Features → Appropriate GAS sections\n   - Portability considerations → GAS-specific portability fields\n   - Tool integrations → GAS tool declaration format\n\n3. **GAS-specific features** — Leverage GAS capabilities:\n   - Portability across agent implementations\n   - Standard section structure\n   - Tool and MCP integration patterns\n\nUses the same output path handling written in Phase 1.\n\n**Acceptance Criteria:**\n\n_Functional:_\n- [ ] Generates complete, valid GAS skill file\n- [ ] Output follows agentskills.io conventions and idioms\n- [ ] All required frontmatter fields included\n- [ ] Supports simple and complex skill types\n- [ ] Reuses output path handling from Phase 1\n\n_Edge Cases:_\n- [ ] Skills with tool integrations generate proper GAS tool declarations\n- [ ] Very complex multi-step skills generate cleanly\n\n_Error Handling:_\n- [ ] Generation failure reported with actionable details\n\n**Testing Requirements:**\n• Manual: Generate GAS skill and validate against agentskills.io specification\n• Manual: Generate both simple and complex GAS skills\n• Manual: Compare GAS output quality to OpenCode output\n\nSource: internal/specs/create-skill-SPEC.md Section 9.2",
+  "activeForm": "Writing Generic Agent Skills file generation section",
+  "status": "completed",
+  "blocks": [
+    "15",
+    "16",
+    "17"
+  ],
+  "blockedBy": [
+    "10"
+  ],
+  "metadata": {
+    "priority": "high",
+    "complexity": "M",
+    "source_section": "9.2",
+    "spec_path": "internal/specs/create-skill-SPEC.md",
+    "feature_name": "Skill File Generation",
+    "task_uid": "internal/specs/create-skill-SPEC.md:skill-generation:gas:001",
+    "task_group": "create-skill",
+    "spec_phase": "2",
+    "spec_phase_name": "Platform Expansion - Generic Agent Skills & Codex"
+  }
+}

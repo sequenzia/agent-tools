@@ -1,0 +1,22 @@
+{
+  "id": "2",
+  "subject": "Create skill file structure and frontmatter",
+  "description": "Create the create-skill skill file in Generic Agent Skills (agentskills.io) format with proper structure and frontmatter.\n\nSet up:\n- Skill file with correct GAS frontmatter (name, description, version, author, triggers, etc.)\n- Top-level document structure with placeholder sections for all major components\n- Skill description that clearly communicates what the skill does and when to invoke it\n- Trigger patterns for skill invocation (e.g., \"create a skill\", \"new skill\", \"generate skill file\")\n\nThe skill file should be named appropriately and placed in the project's skill output location.\n\n**Acceptance Criteria:**\n\n_Functional:_\n- [ ] Skill file created with valid GAS-format frontmatter\n- [ ] Name set to \"create-skill\"\n- [ ] Description clearly explains the meta-skill purpose\n- [ ] Trigger patterns cover common invocation phrases\n- [ ] Document structure includes placeholder sections for all pipeline stages\n\n_Edge Cases:_\n- [ ] Frontmatter fields match latest GAS spec requirements\n\n_Error Handling:_\n- [ ] File path validated before writing\n\n**Testing Requirements:**\n• Manual: Verify frontmatter conforms to GAS specification\n• Manual: Verify trigger patterns match expected invocation phrases\n\nSource: internal/specs/create-skill-SPEC.md Sections 5.1, 6.2",
+  "activeForm": "Creating skill file structure and frontmatter",
+  "status": "completed",
+  "blocks": [
+    "3"
+  ],
+  "blockedBy": [],
+  "metadata": {
+    "priority": "critical",
+    "complexity": "S",
+    "source_section": "5.1",
+    "spec_path": "internal/specs/create-skill-SPEC.md",
+    "feature_name": "Initial Input Gathering",
+    "task_uid": "internal/specs/create-skill-SPEC.md:initial-input:structure:001",
+    "task_group": "create-skill",
+    "spec_phase": "1",
+    "spec_phase_name": "Foundation - OpenCode Skill Generation"
+  }
+}

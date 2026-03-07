@@ -1,0 +1,24 @@
+{
+  "id": "1",
+  "subject": "Research OpenCode skill specification",
+  "description": "Use Context7 MCP tools and web search to fetch and analyze the OpenCode skill specification documentation.\n\nGather:\n- Required file format and structure (frontmatter fields, section layout)\n- Required vs optional fields\n- Naming conventions and idioms\n- Example skill files\n- Version information for the spec\n\nStore findings in a structured format that can be referenced when writing the embedded OpenCode platform knowledge section.\n\n**Acceptance Criteria:**\n\n_Functional:_\n- [ ] OpenCode skill format fully documented (frontmatter, sections, structure)\n- [ ] Required fields identified and listed\n- [ ] Optional fields identified with descriptions\n- [ ] At least 2 example skills analyzed for patterns\n- [ ] Spec version captured\n\n_Edge Cases:_\n- [ ] Handle case where Context7 docs are incomplete — supplement with web search\n- [ ] Handle case where multiple spec versions exist — use latest\n\n_Error Handling:_\n- [ ] If Context7 is unavailable, fall back to web search\n- [ ] Document any gaps or uncertainties in findings\n\n**Testing Requirements:**\n• Manual: Verify all required fields are captured by cross-referencing official docs\n• Manual: Confirm example skills match documented format\n\nSource: internal/specs/create-skill-SPEC.md Section 9.1",
+  "activeForm": "Researching OpenCode skill specification",
+  "owner": "wave-lead",
+  "status": "completed",
+  "blocks": [
+    "5"
+  ],
+  "blockedBy": [],
+  "metadata": {
+    "priority": "critical",
+    "complexity": "M",
+    "source_section": "9.1",
+    "spec_path": "internal/specs/create-skill-SPEC.md",
+    "feature_name": "Embedded OpenCode Spec Knowledge",
+    "task_uid": "internal/specs/create-skill-SPEC.md:opencode-knowledge:research:001",
+    "task_group": "create-skill",
+    "spec_phase": "1",
+    "spec_phase_name": "Foundation - OpenCode Skill Generation",
+    "produces_for": "[5]"
+  }
+}

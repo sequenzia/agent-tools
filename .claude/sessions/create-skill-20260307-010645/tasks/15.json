@@ -1,0 +1,27 @@
+{
+  "id": "15",
+  "subject": "Write Context7 documentation fetching integration",
+  "description": "Write the skill section that integrates Context7 MCP tools for dynamic documentation fetching across all three target platforms.\n\nThe Context7 integration should:\n\n1. **Platform documentation lookup** — Instructions for using Context7 to fetch:\n   - Generic Agent Skills (agentskills.io) specification\n   - OpenCode skill documentation\n   - Codex skill documentation\n\n2. **When to invoke** — Define triggers for dynamic research:\n   - On-demand: User explicitly requests research\n   - Proactive: Agent detects uncertainty about platform-specific nuances\n   - Startup: Compare fetched docs against embedded knowledge versions (feeds into spec version tracking)\n\n3. **Tool usage instructions** — Specific Context7 MCP tool calls:\n   - `resolve-library-id` for finding correct library IDs\n   - `query-docs` with targeted keywords for pulling relevant snippets\n   - How to interpret and apply fetched documentation\n\n4. **Result integration** — How to use fetched docs:\n   - Supplement embedded knowledge with latest information\n   - Override embedded knowledge when fetched docs are more current\n   - Note any discrepancies between embedded and fetched versions\n\n**Acceptance Criteria:**\n\n_Functional:_\n- [ ] Context7 integration covers all three platforms\n- [ ] On-demand and proactive research triggers defined\n- [ ] Tool usage instructions are specific and actionable\n- [ ] Fetched results properly integrated with embedded knowledge\n- [ ] Startup version comparison flow defined\n\n_Edge Cases:_\n- [ ] Context7 unavailable — handled by fallback (separate task)\n- [ ] Fetched docs conflict with embedded — prefer fetched, note discrepancy\n\n_Error Handling:_\n- [ ] Context7 timeout or error handled gracefully\n- [ ] Research status clearly communicated to user during fetch\n\n**Testing Requirements:**\n• Manual: Invoke Context7 for each platform and verify useful docs returned\n• Manual: Test proactive research trigger during interview\n• Manual: Verify version comparison against embedded knowledge\n\nSource: internal/specs/create-skill-SPEC.md Sections 5.4, 9.3",
+  "activeForm": "Writing Context7 documentation fetching integration",
+  "status": "completed",
+  "blocks": [
+    "18",
+    "19"
+  ],
+  "blockedBy": [
+    "12",
+    "13",
+    "14"
+  ],
+  "metadata": {
+    "priority": "high",
+    "complexity": "M",
+    "source_section": "5.4, 9.3",
+    "spec_path": "internal/specs/create-skill-SPEC.md",
+    "feature_name": "Research Integration",
+    "task_uid": "internal/specs/create-skill-SPEC.md:research-integration:context7:001",
+    "task_group": "create-skill",
+    "spec_phase": "3",
+    "spec_phase_name": "Research & Validation"
+  }
+}

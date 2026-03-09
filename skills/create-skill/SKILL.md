@@ -1,17 +1,6 @@
 ---
 name: create-skill
-description: Create a new agent skill through an adaptive interview process that produces complete, platform-native skill files. Supports Generic Agent Skills (agentskills.io), OpenCode, and Codex platforms. Use when user says "create a skill", "new skill", "generate skill", "make a skill", "build a skill", "skill creator", or wants to author an agent skill file.
-argument-hint: "[context-file-or-text]"
-user-invocable: true
-disable-model-invocation: false
-allowed-tools: AskUserQuestion, Read, Write, Glob, Grep, Bash
-arguments:
-  - name: context
-    description: Optional context — a file path (.md, .txt) to read or inline text describing the skill to create
-    required: false
-  - name: platform
-    description: Target platform — gas, opencode, or codex. If omitted, user will be prompted to select.
-    required: false
+description: Create a new agent skill through an adaptive interview process that produces complete, platform-native skill files. Supports Generic Agent Skills, OpenCode, and Codex platforms. Use when user says "create a skill", "new skill", "generate skill", "make a skill", "build a skill", "skill creator", or wants to author an agent skill file.
 ---
 
 # Create Skill

@@ -4,6 +4,7 @@
 
 - `skills/` — Skill files in GAS (Generic Agent Skills) format
   - Each skill in `skills/{skill-name}/SKILL.md`
+  - Reference files in `skills/{skill-name}/references/` for on-demand loading
 - `internal/research/` — Platform specification research documents
 - `internal/specs/` — Feature specification documents
 - `internal/prompts/` — Original concept prompts
@@ -14,6 +15,7 @@
 - Required frontmatter fields: `name` (1-64 chars, lowercase alphanum + hyphens), `description` (1-1024 chars)
 - Skill sections use numbered subsections within stages (e.g., 2.1, 2.2)
 - Prompt examples formatted as blockquotes with experience-level variants
+- Subagent prompt templates use Handlebars-style `{{variable}}` syntax with `{{#if}}` conditionals
 - Internal checklists use `- [ ]` format
 
 ## Platform Notes

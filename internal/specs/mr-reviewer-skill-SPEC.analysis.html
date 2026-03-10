@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Spec Analysis Review</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0d1117;
+    --bg-surface: #161b22;
+    --bg-elevated: #1c2128;
+    --border: #30363d;
+    --border-active: #58a6ff;
+    --text: #e6edf3;
+    --text-muted: #8b949e;
+    --text-heading: #f0f6fc;
+    --amber: #d29922;
+    --amber-bg: rgba(210, 153, 34, 0.12);
+    --green: #3fb950;
+    --green-bg: rgba(63, 185, 80, 0.12);
+    --red: #f85149;
+    --red-bg: rgba(248, 81, 73, 0.12);
+    --purple: #bc8cff;
+    --purple-bg: rgba(188, 140, 255, 0.12);
+    --blue: #58a6ff;
+    --blue-bg: rgba(88, 166, 255, 0.12);
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  /* Header */
+  .header {
+    background: var(--bg-surface);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .header-left { display: flex; align-items: center; gap: 16px; }
+  .header h1 { font-size: 18px; color: var(--text-heading); font-weight: 600; }
+  .header-meta { display: flex; gap: 16px; font-size: 13px; color: var(--text-muted); }
+  .header-meta span { display: flex; align-items: center; gap: 4px; }
+
+  /* Dashboard */
+  .dashboard {
+    background: var(--bg-surface);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+  .stats { display: flex; gap: 24px; }
+  .stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+  }
+  .stat-value { font-size: 24px; font-weight: 700; }
+  .stat-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+  .stat-bar {
+    width: 100%;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    margin-top: 4px;
+    overflow: hidden;
+  }
+  .stat-bar-fill { height: 100%; border-radius: 2px; transition: width 0.3s; }
+
+  /* Filter bar */
+  .filters { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .filter-tabs { display: flex; gap: 2px; background: var(--bg); border-radius: 6px; padding: 2px; }
+  .filter-tab {
+    padding: 6px 14px;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 13px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.15s;
+    font-family: inherit;
+  }
+  .filter-tab:hover { color: var(--text); }
+  .filter-tab.active { background: var(--bg-elevated); color: var(--text); }
+  .filter-tab .count {
+    display: inline-block;
+    margin-left: 4px;
+    font-size: 11px;
+    background: var(--border);
+    padding: 0 6px;
+    border-radius: 10px;
+  }
+
+  select.severity-filter {
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--border);
+    padding: 6px 28px 6px 10px;
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+    font-family: inherit;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238b949e' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+  }
+
+  /* Main layout */
+  .main { display: flex; height: calc(100vh - 140px); overflow: hidden; }
+
+  /* Left panel -- spec content */
+  .spec-panel {
+    flex: 6;
+    overflow-y: auto;
+    padding: 24px;
+    border-right: 1px solid var(--border);
+  }
+  .spec-content {
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    font-size: 13px;
+    line-height: 1.8;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+  }
+  .spec-content h1, .spec-content h2, .spec-content h3, .spec-content h4 {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    color: var(--text-heading);
+    margin: 20px 0 8px;
+    line-height: 1.3;
+  }
+  .spec-content h1 { font-size: 22px; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+  .spec-content h2 { font-size: 18px; }
+  .spec-content h3 { font-size: 15px; }
+  .spec-content h4 { font-size: 14px; }
+  .spec-content strong { color: var(--text-heading); }
+  .spec-content code {
+    background: var(--bg-elevated);
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 12px;
+  }
+  .spec-content ul, .spec-content ol { padding-left: 24px; margin: 4px 0; }
+  .spec-content li { margin: 2px 0; }
+
+  /* Annotated section */
+  .annotated-line {
+    border-left: 3px solid transparent;
+    padding-left: 8px;
+    margin-left: -11px;
+    cursor: pointer;
+    transition: background 0.15s;
+    border-radius: 0 4px 4px 0;
+  }
+  .annotated-line:hover { background: var(--bg-elevated); }
+  .annotated-line.severity-warning { border-left-color: var(--amber); }
+  .annotated-line.severity-critical { border-left-color: var(--purple); }
+  .annotated-line.severity-suggestion { border-left-color: var(--blue); }
+  .annotated-line.status-approved { border-left-color: var(--green); }
+  .annotated-line.status-rejected { border-left-color: var(--red); }
+  .annotated-line.selected { background: var(--bg-elevated); }
+
+  .annotation-marker {
+    display: inline-block;
+    font-size: 10px;
+    padding: 1px 6px;
+    border-radius: 3px;
+    margin-left: 8px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    vertical-align: middle;
+    cursor: pointer;
+  }
+  .annotation-marker.severity-warning { background: var(--amber-bg); color: var(--amber); }
+  .annotation-marker.severity-critical { background: var(--purple-bg); color: var(--purple); }
+  .annotation-marker.severity-suggestion { background: var(--blue-bg); color: var(--blue); }
+
+  /* Editable blocks */
+  [contenteditable="true"] {
+    outline: none;
+    border: 1px dashed transparent;
+    padding: 2px 4px;
+    margin: -2px -4px;
+    border-radius: 3px;
+    transition: border-color 0.15s;
+  }
+  [contenteditable="true"]:focus {
+    border-color: var(--border-active);
+    background: var(--bg-elevated);
+  }
+
+  /* Right panel -- findings */
+  .findings-panel {
+    flex: 4;
+    overflow-y: auto;
+    padding: 16px;
+    background: var(--bg-surface);
+  }
+  .findings-list { display: flex; flex-direction: column; gap: 8px; }
+
+  .finding-card {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .finding-card:hover { border-color: var(--border-active); }
+  .finding-card.selected { border-color: var(--border-active); box-shadow: 0 0 0 1px var(--border-active); }
+  .finding-card.status-approved { border-left: 3px solid var(--green); }
+  .finding-card.status-rejected { border-left: 3px solid var(--red); }
+
+  .finding-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 8px;
+  }
+  .finding-id { font-size: 11px; color: var(--text-muted); font-weight: 600; }
+  .finding-title { font-size: 14px; font-weight: 600; color: var(--text-heading); margin-bottom: 4px; }
+
+  .badge {
+    display: inline-block;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 500;
+  }
+  .badge-critical { background: var(--purple-bg); color: var(--purple); }
+  .badge-warning { background: var(--amber-bg); color: var(--amber); }
+  .badge-suggestion { background: var(--blue-bg); color: var(--blue); }
+
+  .category-badge {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+  }
+
+  .finding-issue {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+    line-height: 1.5;
+  }
+
+  .finding-detail { margin-bottom: 10px; }
+  .finding-detail-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+  }
+  .finding-detail-text {
+    font-size: 13px;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    background: var(--bg-elevated);
+    padding: 8px 10px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    white-space: pre-wrap;
+    word-wrap: break-word;
+  }
+  .finding-detail-text.current { border-left: 3px solid var(--red); }
+  .finding-detail-text.proposed { border-left: 3px solid var(--green); }
+
+  .finding-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+    flex-wrap: wrap;
+  }
+
+  .btn {
+    padding: 6px 14px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+    font-family: inherit;
+    font-weight: 500;
+    transition: all 0.15s;
+    background: var(--bg-elevated);
+    color: var(--text);
+  }
+  .btn:hover { border-color: var(--text-muted); }
+  .btn-approve { border-color: var(--green); color: var(--green); }
+  .btn-approve:hover { background: var(--green-bg); }
+  .btn-reject { border-color: var(--red); color: var(--red); }
+  .btn-reject:hover { background: var(--red-bg); }
+  .btn-primary { background: var(--blue); color: #fff; border-color: var(--blue); }
+  .btn-primary:hover { opacity: 0.9; }
+
+  .comment-area {
+    width: 100%;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    padding: 8px 10px;
+    font-size: 13px;
+    font-family: inherit;
+    resize: vertical;
+    min-height: 60px;
+    margin-top: 8px;
+  }
+  .comment-area:focus { outline: none; border-color: var(--border-active); }
+
+  .status-badge {
+    display: inline-block;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 600;
+  }
+  .status-pending { background: var(--amber-bg); color: var(--amber); }
+  .status-approved { background: var(--green-bg); color: var(--green); }
+  .status-rejected { background: var(--red-bg); color: var(--red); }
+
+  .finding-location {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+  }
+
+  /* Prompt output panel */
+  .prompt-panel {
+    background: var(--bg-surface);
+    border-top: 1px solid var(--border);
+    padding: 16px 24px;
+  }
+  .prompt-panel.hidden { display: none; }
+  .prompt-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  .prompt-header h3 { font-size: 14px; color: var(--text-heading); }
+  .prompt-actions { display: flex; gap: 8px; }
+  .prompt-content {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px 14px;
+    font-size: 13px;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    max-height: 200px;
+    overflow-y: auto;
+    line-height: 1.6;
+  }
+
+  /* Notification toast */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--green);
+    color: var(--green);
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-size: 13px;
+    z-index: 1000;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: all 0.2s;
+    pointer-events: none;
+  }
+  .toast.show { opacity: 1; transform: translateY(0); }
+
+  /* Empty state */
+  .empty-state {
+    text-align: center;
+    padding: 60px 24px;
+    color: var(--text-muted);
+  }
+  .empty-state h3 { font-size: 16px; margin-bottom: 8px; color: var(--text); }
+
+  /* Responsive */
+  @media (max-width: 900px) {
+    .main { flex-direction: column; height: auto; }
+    .spec-panel { border-right: none; border-bottom: 1px solid var(--border); max-height: 50vh; }
+    .findings-panel { max-height: 50vh; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<header class="header">
+  <div class="header-left">
+    <h1 id="spec-name"></h1>
+  </div>
+  <div class="header-meta">
+    <span id="depth-level"></span>
+    <span id="analyzed-at"></span>
+  </div>
+</header>
+
+<!-- Dashboard -->
+<div class="dashboard">
+  <div class="stats" id="stats"></div>
+  <div class="filters">
+    <div class="filter-tabs" id="status-filters"></div>
+    <select class="severity-filter" id="severity-filter">
+      <option value="all">All Severities</option>
+      <option value="critical">Critical</option>
+      <option value="warning">Warning</option>
+      <option value="suggestion">Suggestion</option>
+    </select>
+  </div>
+</div>
+
+<!-- Main content -->
+<div class="main">
+  <div class="spec-panel">
+    <div class="spec-content" id="spec-content"></div>
+  </div>
+  <div class="findings-panel">
+    <div class="findings-list" id="findings-list"></div>
+  </div>
+</div>
+
+<!-- Prompt output -->
+<div class="prompt-panel hidden" id="prompt-panel">
+  <div class="prompt-header">
+    <h3>Prompt from Approved Changes (<span id="approved-count">0</span>)</h3>
+    <div class="prompt-actions">
+      <button class="btn btn-primary" onclick="copyPrompt()">Copy Prompt</button>
+      <button class="btn" onclick="downloadSpec()">Download Modified Spec</button>
+    </div>
+  </div>
+  <div class="prompt-content" id="prompt-content"></div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// === DATA INJECTION ===
+const SPEC_CONTENT = {"path":"/Users/sequenzia/dev/repos/agent-tools/internal/specs/mr-reviewer-skill-SPEC.md","name":"mr-reviewer-skill PRD","depthLevel":"Detailed","analyzedAt":"2026-03-10 14:00","content":"# mr-reviewer-skill PRD\n\n**Version**: 1.0\n**Author**: Stephen Sequenzia\n**Date**: 2026-03-10\n**Status**: Draft\n**Spec Type**: New feature\n**Spec Depth**: Detailed specifications\n**Description**: A skill that dispatches parallel subagents to perform deep MR reviews \u2014 analyzing codebase context, code quality, and git history \u2014 then compiles findings into structured review reports and/or GitLab line-level comments.\n\n---\n\n## 1. Executive Summary\n\nThe `mr-reviewer` skill automates comprehensive merge request reviews for GitLab projects by dispatching three parallel subagents: a codebase understanding agent, a code quality analysis agent, and a git history examination agent. Their findings are merged, deduplicated, and output as either a structured review report, line-level GitLab comments, or both. The skill targets Python and TypeScript/JavaScript codebases and integrates with GitLab via the `glab` CLI tool and the existing `glab` skill.\n\n## 2. Problem Statement\n\n### 2.1 The Problem\n\nMerge request reviews are a critical quality gate, but they suffer from three compounding issues:\n\n- **Lack of codebase context**: Reviewers often lack deep familiarity with the affected areas of the codebase, leading to surface-level feedback that misses architectural implications, convention violations, or subtle regressions.\n- **Time and effort cost**: Thorough manual reviews require significant time investment \u2014 reading the diff, understanding surrounding code, checking git history for context, and formulating actionable feedback.\n- **Inconsistent quality**: Review depth varies across reviewers and across reviews by the same person, depending on time pressure, familiarity, and attention. There is no baseline standard for what a \"good review\" covers.\n\n### 2.2 Current State\n\nDevelopers review MRs manually using the GitLab web UI or by checking out the branch locally. The quality of the review depends entirely on the reviewer's familiarity with the codebase, available time, and personal review habits. There is no automated assistance for understanding how changes fit the broader codebase or for checking git history context.\n\n### 2.3 Impact Analysis\n\nWithout automated review support:\n- Bugs and regressions slip through reviews and reach production\n- Developers spend disproportionate time on reviews relative to the feedback quality produced\n- New team members cannot provide meaningful reviews until they build deep codebase familiarity\n- Review bottlenecks form around senior developers who have the most context\n\n### 2.4 Business Value\n\nAutomated, context-aware MR reviews establish a consistent quality baseline for every review regardless of who initiates it. By handling the time-intensive work of codebase exploration, code analysis, and history examination, the skill frees developers to focus on higher-order concerns \u2014 architecture decisions, design trade-offs, and domain-specific logic \u2014 while ensuring no review falls below a minimum depth.\n\n## 3. Goals & Success Metrics\n\n### 3.1 Primary Goals\n\n1. Deliver balanced MR reviews covering bug detection, code quality, and contextual understanding\n2. Produce actionable, severity-categorized findings that developers can act on immediately\n3. Integrate seamlessly with GitLab via the `glab` CLI for both input (MR data) and output (comments)\n\n### 3.2 Success Metrics\n\n| Metric | Current Baseline | Target | Measurement Method | Timeline |\n|--------|------------------|--------|-------------------|----------|\n| Review coverage | Manual, inconsistent | All 3 analysis dimensions covered per review | Verify report sections are populated | Phase 1 |\n| Finding actionability | N/A | >80% of findings include specific file, line, and suggested action | Manual audit of generated reports | Phase 1 |\n| GitLab comment accuracy | N/A | Line-level comments land on correct diff positions | Verify comments appear on expected lines in GitLab UI | Phase 2 |\n| Subagent success rate | N/A | >95% of subagents complete without failure | Track retry/partial-result occurrences | Phase 1 |\n\n### 3.3 Non-Goals\n\n- Automatically generating fix patches for identified issues\n- Triggering reviews automatically from CI/CD pipeline events\n- Reviewing multiple MRs together or tracking review trends over time\n- Supporting languages beyond Python and TypeScript/JavaScript in the initial version\n\n## 4. User Research\n\n### 4.1 Target Users\n\n#### Primary Persona: Any Developer\n\n- **Role/Description**: Any developer on a team who needs to review merge requests, regardless of seniority or role\n- **Goals**: Produce thorough, context-aware MR reviews efficiently; catch bugs and quality issues without needing to manually trace through the codebase\n- **Pain Points**: Lacks time for deep reviews, unfamiliar with parts of the codebase being changed, inconsistent review quality across different MRs\n- **Context**: Working on a GitLab-hosted project with Python and/or TypeScript/JavaScript codebases; has `glab` CLI authenticated and available\n\n### 4.2 User Journey Map\n\n```mermaid\nflowchart LR\n    A[Developer receives MR]:::primary --> B[Invoke mr-reviewer skill]:::primary\n    B --> C{Select MR}:::neutral\n    C -->|URL/ID| D[Provide MR identifier]:::secondary\n    C -->|Browse| E[Select from open MRs list]:::secondary\n    D --> F[Optionally add review notes]:::secondary\n    E --> F\n    F --> G[Choose output action]:::neutral\n    G -->|Report| H[Receive structured markdown report]:::success\n    G -->|Comments| I[Comments posted to GitLab MR]:::success\n    G -->|Both| J[Report + GitLab comments]:::success\n\n    classDef primary fill:#dbeafe,stroke:#2563eb,color:#000\n    classDef secondary fill:#f3e8ff,stroke:#7c3aed,color:#000\n    classDef success fill:#dcfce7,stroke:#16a34a,color:#000\n    classDef neutral fill:#f3f4f6,stroke:#6b7280,color:#000\n```\n\n## 5. Functional Requirements\n\n### 5.1 Feature: MR Selection & Input\n\n**Priority**: P0 (Critical)\n\n#### User Stories\n\n**US-001**: As a developer, I want to specify an MR by URL or ID so that I can quickly start a review of a specific merge request.\n\n**US-002**: As a developer, I want to browse and select from open MRs in the current project so that I can choose which MR to review without leaving the terminal.\n\n**US-003**: As a developer, I want to provide optional review notes so that I can guide the review toward specific areas of concern.\n\n**Acceptance Criteria**:\n- [ ] Skill accepts MR URL, MR ID (numeric), or interactive selection\n- [ ] Interactive selection displays all open MRs in the current project via `glab mr list --output json`\n- [ ] User can provide optional free-text review notes to guide the review focus\n- [ ] Review notes are additive \u2014 the full review always runs, notes add extra attention to specified areas\n- [ ] Skill validates that the MR exists and is accessible before proceeding\n\n**Edge Cases**:\n- MR ID does not exist or user lacks access: Display clear error with `glab mr view` output\n- MR is already merged or closed: Warn user and ask whether to proceed anyway\n- No open MRs in project: Display informative message, skip selection\n\n---\n\n### 5.2 Feature: Output Action Selection\n\n**Priority**: P0 (Critical)\n\n#### User Stories\n\n**US-004**: As a developer, I want to choose between a review report, GitLab comments, or both so that I can control how the review findings are delivered.\n\n**Acceptance Criteria**:\n- [ ] User is presented with three options: \"Produce a detailed review report\", \"Create comments on the MR directly in GitLab\", or \"Both\"\n- [ ] Selection determines which output actions execute after subagent analysis completes\n- [ ] Both outputs can be produced in a single review session\n\n---\n\n### 5.3 Feature: Parallel Subagent Analysis\n\n**Priority**: P0 (Critical)\n\n#### User Stories\n\n**US-005**: As a developer, I want the skill to automatically analyze the codebase context, code quality, and git history of an MR so that I receive comprehensive, multi-dimensional review feedback.\n\n**Acceptance Criteria**:\n- [ ] Three subagents are dispatched in parallel: codebase understanding, code quality analysis, git history examination\n- [ ] Each subagent returns findings in a structured output schema (see Section 7.1)\n- [ ] Subagent findings are merged and deduplicated by file path + line range\n- [ ] Deduplication preserves the highest severity level and merges context from all sources\n- [ ] User-provided review notes are passed to all subagents to inform extra attention areas\n- [ ] Failed subagents are retried once; if still failing, review continues with partial results and gaps are noted in the output\n\n**Edge Cases**:\n- All three subagents fail: Report error to user with diagnostic information; do not produce empty review\n- One subagent produces no findings: Include it in the report as \"no issues found in this dimension\"\n- Subagent timeout: Treat as failure, apply retry-then-partial logic\n\n#### 5.3.1 Codebase Understanding Subagent\n\n**Responsibilities**:\n- Analyze files changed in the MR and their surrounding context (direct dependencies, callers, related modules)\n- Identify architectural patterns the changes interact with\n- Detect convention violations relative to the existing codebase\n- Flag integration risks where changes touch cross-cutting concerns\n\n**Depth Configuration**:\n- **MR-scoped**: Focus only on changed files and their direct dependencies/callers\n- **Feature-scoped** (default): Broader analysis of the feature area \u2014 related modules, test files, patterns\n- User selects depth per review; default is feature-scoped\n\n#### 5.3.2 Code Quality Analysis Subagent\n\n**Responsibilities**:\n- Analyze code changes for bugs, logic errors, and potential regressions\n- Assess code quality: readability, maintainability, naming, duplication\n- Check adherence to language-specific best practices (Python: PEP 8/ruff patterns, type hints; TypeScript: strict mode, type safety)\n- Identify missing error handling, edge cases, and boundary conditions\n\n#### 5.3.3 Git History Examination Subagent\n\n**Responsibilities**:\n- Examine git history of changed files to understand the evolution and context of modifications\n- Identify whether changes revert or conflict with recent work\n- Flag files with high churn rates or recent bug-fix history (higher risk areas)\n- Provide context on why existing code was written a certain way (referencing past commits)\n\n---\n\n### 5.4 Feature: Structured Review Report\n\n**Priority**: P0 (Critical)\n\n#### User Stories\n\n**US-006**: As a developer, I want a structured markdown review report with findings organized by severity so that I can quickly prioritize which issues to address.\n\n**Acceptance Criteria**:\n- [ ] Report includes: executive summary, findings by severity (Critical, High, Medium, Low), and recommendations\n- [ ] Each finding includes: file path, line range, severity, category, description, and suggested action\n- [ ] Findings are grouped by severity, then by file\n- [ ] Report includes a statistics section: total findings count by severity, files analyzed, subagent coverage\n- [ ] Report clearly indicates if any subagent produced partial results\n- [ ] Report incorporates user-provided review notes and highlights findings in noted areas\n\n**Edge Cases**:\n- No findings at all: Produce a \"clean review\" report confirming the MR was analyzed and no issues found\n- Very large number of findings (50+): Include a \"Top Issues\" summary section highlighting the most impactful findings\n\n---\n\n### 5.5 Feature: GitLab Comments\n\n**Priority**: P1 (High)\n\n#### User Stories\n\n**US-007**: As a developer, I want the skill to post line-level comments on specific code in the MR diff so that the MR author sees feedback directly in context.\n\n**US-008**: As a developer, I want a summary comment posted on the MR with an overview of the review so that the overall review status is visible at a glance.\n\n**Acceptance Criteria**:\n- [ ] Line-level diff discussions are posted via the GitLab Discussions API (`glab api POST /projects/:id/merge_requests/:iid/discussions`) with correct position data (file path, new/old line numbers, diff refs)\n- [ ] A summary note is posted via `glab mr note` with overall review statistics and top findings\n- [ ] Critical and High severity findings are always posted as individual line-level comments\n- [ ] Medium and Low severity findings are batched into the summary note to avoid comment noise\n- [ ] Comments include the severity tag, finding description, and suggested action\n- [ ] Skill confirms successful comment posting and reports any failures\n\n**Edge Cases**:\n- Line-level position data cannot be determined: Fall back to posting as a general MR note referencing the file and line\n- API rate limiting: Batch comments and retry with backoff\n- MR diff has changed since analysis (force push): Warn user that comments may land on wrong lines\n\n---\n\n### 5.6 Feature: Configurable Analysis Depth\n\n**Priority**: P2 (Medium)\n\n#### User Stories\n\n**US-009**: As a developer, I want to choose how deep the codebase analysis goes so that I can trade off between review thoroughness and speed.\n\n**Acceptance Criteria**:\n- [ ] User can select \"MR-scoped\" (fast, focused) or \"Feature-scoped\" (thorough, broader context) before the review starts\n- [ ] Default is \"Feature-scoped\" if not specified\n- [ ] Depth selection is passed to the codebase understanding subagent to control exploration breadth\n\n---\n\n### 5.7 Feature: Large MR Handling\n\n**Priority**: P2 (Medium)\n\n#### User Stories\n\n**US-010**: As a developer, I want the skill to warn me about very large MRs and offer to focus on high-impact files so that reviews remain useful even for oversized changesets.\n\n**Acceptance Criteria**:\n- [ ] MRs with 50+ changed files or 1000+ changed lines trigger a warning\n- [ ] Warning includes the MR size metrics and offers the user a choice: review all files or focus on high-impact files\n- [ ] \"High-impact\" prioritization considers: file complexity, number of changes, whether the file is a core module, and git history risk signals\n- [ ] If the user chooses to focus, the report clearly notes which files were analyzed and which were skipped\n\n## 6. Non-Functional Requirements\n\n### 6.1 Performance\n\n- Subagent analysis should complete within a reasonable time for typical MRs (under 20 changed files)\n- Parallel subagent execution is required to minimize wall-clock time\n- GitLab API calls should be batched where possible to reduce round-trips\n\n### 6.2 Security\n\n- The skill relies on the user's existing `glab` authentication; it does not store or manage credentials\n- No MR data is persisted beyond the current review session\n- Line-level comments are posted under the authenticated user's identity\n\n### 6.3 Reliability\n\n- Subagent failure handling: retry once, then continue with partial results\n- GitLab API errors: surface clear error messages with the HTTP status and response body\n- Network failures: fail gracefully with actionable error messages\n\n## 7. Technical Considerations\n\n### 7.1 Architecture Overview\n\nThe skill follows a dispatch-merge architecture:\n\n```mermaid\nflowchart TD\n    A[User invokes mr-reviewer]:::primary --> B[Fetch MR data via glab]:::primary\n    B --> C[Dispatch 3 parallel subagents]:::primary\n\n    subgraph agents[\"Parallel Subagents\"]\n        D[Codebase Understanding]:::secondary\n        E[Code Quality Analysis]:::secondary\n        F[Git History Examination]:::secondary\n    end\n    style agents fill:#f8fafc,stroke:#94a3b8,color:#000\n\n    C --> D\n    C --> E\n    C --> F\n\n    D --> G[Merge & Deduplicate Findings]:::primary\n    E --> G\n    F --> G\n\n    G --> H{Output Action}:::neutral\n    H -->|Report| I[Generate Structured Report]:::success\n    H -->|Comments| J[Post GitLab Comments]:::success\n    H -->|Both| K[Report + Comments]:::success\n\n    classDef primary fill:#dbeafe,stroke:#2563eb,color:#000\n    classDef secondary fill:#f3e8ff,stroke:#7c3aed,color:#000\n    classDef success fill:#dcfce7,stroke:#16a34a,color:#000\n    classDef neutral fill:#f3f4f6,stroke:#6b7280,color:#000\n```\n\n#### Subagent Output Schema\n\nAll three subagents must return findings in this consistent structure to enable reliable merging:\n\n```\nFinding:\n  file_path: string          # Relative path to the file\n  line_start: number         # Start line of the relevant range\n  line_end: number           # End line of the relevant range\n  severity: enum             # Critical | High | Medium | Low\n  category: string           # e.g., \"bug\", \"code-quality\", \"convention\", \"regression-risk\"\n  source: string             # Which subagent produced this finding\n  description: string        # What the issue is\n  context: string            # Why this is an issue (codebase context, history, etc.)\n  suggested_action: string   # What the author should do\n```\n\n#### Finding Deduplication\n\nWhen merging subagent results:\n1. Group findings by `file_path` + overlapping `line_start`/`line_end` ranges\n2. For overlapping findings, keep the highest `severity`\n3. Merge `description`, `context`, and `source` fields from all contributing findings\n4. Preserve all unique `suggested_action` values\n\n### 7.2 Tech Stack\n\n- **Skill format**: GAS (Generic Agent Skills) \u2014 YAML frontmatter + Markdown body\n- **CLI tool**: `glab` (GitLab CLI)\n- **Subagent platform**: Claude Code Agent Teams or background agents\n- **Target languages**: Python, TypeScript/JavaScript\n\n### 7.3 Integration Points\n\n| System | Integration Type | Purpose |\n|--------|-----------------|--------|\n| `glab` CLI | Shell command execution | Fetch MR data, post comments, list MRs |\n| `glab` skill (`@skills/glab`) | Skill reference | Provides glab command patterns and reference files |\n| GitLab Discussions API | REST API via `glab api` | Post line-level diff comments with position data |\n| Local git repository | Git CLI | Checkout MR branch, examine git history |\n\n### 7.4 Technical Constraints\n\n- Line-level comments require the GitLab Discussions API; `glab mr note` only supports general MR comments\n- Position data for diff discussions requires: `base_sha`, `head_sha`, `start_sha`, file paths, and line numbers \u2014 all obtainable from `glab mr view --output json`\n- The skill assumes `glab` is authenticated and the user has access to the target project\n- Git history examination requires the MR branch to be available locally (via `glab mr checkout`)\n\n### 7.5 Codebase Context\n\n#### Existing Architecture\n\nThis project is a Markdown-only skills repository using the GAS (Generic Agent Skills) format. Skills are stored in `skills/{skill-name}/SKILL.md` with optional `references/` subdirectories for detailed documentation. There is no application code, test suite, or build system.\n\n#### Integration Points\n\n| File/Module | Purpose | How This Feature Connects |\n|------------|---------|---------------------------|\n| `skills/glab/SKILL.md` | glab CLI reference skill | Primary dependency \u2014 provides all GitLab CLI patterns |\n| `skills/glab/references/merge-requests.md` | Detailed MR subcommand reference | Used by the skill for `mr view`, `mr diff`, `mr list`, `mr note`, `mr checkout` commands |\n| `skills/glab/references/api.md` | GitLab API reference | Used for line-level diff comments via Discussions API |\n\n#### Patterns to Follow\n\n- **GAS skill format**: YAML frontmatter with `name` and `description` fields, Markdown body with numbered sections \u2014 used in all existing skills\n- **Reference file structure**: `references/` subdirectory for detailed documentation that the main skill loads on demand \u2014 used in `skills/glab/`\n- **Subagent dispatch**: Multi-stage pipeline with agent delegation \u2014 pattern established in `skills/create-skill/`\n- **Skill cross-references**: `@skills/glab` syntax for referencing other skills\n\n#### Related Features\n\n- **`create-skill` skill**: Demonstrates the interview-then-generate pipeline pattern with subagent dispatch; provides a structural template for how complex skills are organized in this project\n\n## 8. Scope Definition\n\n### 8.1 In Scope\n\n- MR selection by URL, ID, or interactive browsing of open MRs\n- User-provided review notes for guiding review focus (additive)\n- Three parallel subagents: codebase understanding, code quality, git history\n- Configurable analysis depth (MR-scoped or feature-scoped)\n- Structured markdown review report with severity-categorized findings\n- GitLab line-level diff comments via Discussions API\n- GitLab summary comment via `glab mr note`\n- Finding deduplication across subagents\n- Large MR detection and prioritization\n- Error handling with retry-then-partial strategy\n- Python and TypeScript/JavaScript codebases\n\n### 8.2 Out of Scope\n\n- **Auto-fix patch generation**: Generating code fixes for identified issues \u2014 too high risk for automated suggestions without human validation\n- **CI/CD pipeline integration**: Triggering reviews from pipeline events \u2014 requires infrastructure beyond a skill file\n- **Multi-MR analysis**: Reviewing multiple MRs together or tracking trends \u2014 different product scope\n- **Additional language support**: Languages beyond Python and TypeScript/JavaScript \u2014 can be added incrementally in future phases\n\n### 8.3 Future Considerations\n\n- Support for additional languages (Go, Ruby, Java, etc.)\n- Review templates for different types of MRs (bug fix, feature, refactor)\n- Integration with CI/CD to auto-trigger reviews on MR creation\n- Review history tracking and trend analysis across MRs\n- Custom review rules and coding standards configuration\n\n## 9. Implementation Plan\n\n### 9.1 Phase 1: Core \u2014 MR Fetch + Subagents + Report\n\n**Completion Criteria**: Skill can accept an MR, dispatch three subagents, merge findings, and produce a structured markdown report.\n\n| Deliverable | Description | Dependencies |\n|-------------|-------------|--------------|\n| Skill file scaffold | `skills/mr-reviewer/SKILL.md` with GAS frontmatter, pipeline overview, and section structure | None |\n| MR input handling | Accept MR URL/ID or interactive selection; validate MR exists; fetch MR data via `glab mr view --output json` | `glab` skill |\n| Review notes input | Collect optional user review notes; pass to all subagents | MR input handling |\n| Codebase understanding subagent | Subagent spec with prompt template; analyzes changed files and surrounding context; returns structured findings | MR input handling |\n| Code quality analysis subagent | Subagent spec with prompt template; analyzes code changes for bugs, quality, and best practices; returns structured findings | MR input handling |\n| Git history examination subagent | Subagent spec with prompt template; examines git history of changed files; returns structured findings | MR input handling |\n| Finding merge & deduplication | Logic for merging parallel findings, deduplicating by file+line range, preserving highest severity | All 3 subagents |\n| Structured report generation | Produce markdown report: executive summary, findings by severity, statistics, recommendations | Finding merge |\n| Error handling | Retry-then-partial strategy for subagent failures | All 3 subagents |\n\n**Checkpoint Gate**: Verify that a sample MR produces a complete report with findings from all three subagent dimensions.\n\n---\n\n### 9.2 Phase 2: GitLab Commenting\n\n**Completion Criteria**: Skill can post line-level diff comments and a summary note on the MR in GitLab.\n\n| Deliverable | Description | Dependencies |\n|-------------|-------------|--------------|\n| Output action selection | User chooses between report, comments, or both | Phase 1 complete |\n| Line-level comment posting | Post Critical/High findings as diff discussions via `glab api` with position data | Phase 1 findings, GitLab Discussions API |\n| Summary note posting | Post overall review summary via `glab mr note` with statistics and Medium/Low findings | Phase 1 findings |\n| Comment error handling | Handle API failures, rate limiting, and position data issues with fallbacks | Line-level posting |\n\n**Checkpoint Gate**: Verify that comments appear correctly on MR diff lines in the GitLab UI.\n\n---\n\n### 9.3 Phase 3: Refinements \u2014 Configurable Depth & Large MR Handling\n\n**Completion Criteria**: Skill supports configurable analysis depth and handles large MRs gracefully.\n\n| Deliverable | Description | Dependencies |\n|-------------|-------------|--------------|\n| Depth configuration | User selects MR-scoped or feature-scoped analysis; passed to codebase subagent | Phase 1 complete |\n| Large MR detection | Detect MRs with 50+ files or 1000+ lines; warn user and offer prioritization | Phase 1 complete |\n| High-impact file prioritization | Rank files by complexity, change volume, core module status, and git risk signals | Large MR detection |\n| Reference documentation | `references/` files for subagent prompt details, finding schema, and API patterns | Phase 2 complete |\n\n## 10. Dependencies\n\n### 10.1 Technical Dependencies\n\n| Dependency | Owner | Status | Risk if Delayed |\n|------------|-------|--------|----------------|\n| `glab` CLI installed and authenticated | User | Required | Skill cannot function without GitLab access |\n| `glab` skill (`@skills/glab`) | This project | Available | Provides command patterns and references |\n| GitLab Discussions API access | GitLab instance | Required for Phase 2 | Line-level comments unavailable; can fall back to general notes |\n| Local git repository with MR branch access | User | Required | Git history subagent cannot analyze without local checkout |\n\n## 11. Risks & Mitigations\n\n| Risk | Impact | Likelihood | Mitigation Strategy |\n|------|--------|------------|---------------------|\n| GitLab Discussions API position data is complex and error-prone | High | Medium | Validate position data against MR diff before posting; fall back to general notes on failure |\n| Subagent analysis quality varies by codebase size/complexity | Medium | Medium | Configurable depth; large MR detection; clear reporting of coverage gaps |\n| Parallel subagent failures degrade review quality | Medium | Low | Retry-then-partial strategy; clear gap reporting in output |\n| `glab mr checkout` may fail if branch is deleted or rebased | Medium | Low | Detect failure early; fall back to diff-only analysis without local checkout |\n| Large MRs overwhelm subagent context windows | High | Medium | Large MR detection and file prioritization; warn user to break up large MRs |\n\n## 12. Open Questions\n\n| # | Question | Owner | Due Date | Resolution |\n|---|----------|-------|----------|------------|\n| \u2014 | No open questions | \u2014 | \u2014 | \u2014 |\n\n## 13. Appendix\n\n### 13.1 Glossary\n\n| Term | Definition |\n|------|------------|\n| MR | Merge Request \u2014 GitLab's term for a pull request |\n| glab | GitLab's official CLI tool for interacting with GitLab from the command line |\n| Discussions API | GitLab REST API endpoint for creating line-level diff comments on merge requests |\n| GAS | Generic Agent Skills \u2014 open specification format for portable AI agent skills |\n| Subagent | An autonomous agent spawned by the main skill to handle a specific analysis task |\n\n### 13.2 References\n\n- GitLab Discussions API: `POST /projects/:id/merge_requests/:iid/discussions`\n- glab CLI documentation: `skills/glab/SKILL.md`\n- glab MR commands reference: `skills/glab/references/merge-requests.md`\n- glab API reference: `skills/glab/references/api.md`\n- GAS format specification: agentskills.io\n- Existing skill pattern reference: `skills/create-skill/SKILL.md`\n\n---\n\n*Document generated by SDD Tools*"};
+const FINDINGS_DATA = [{"id":"FIND-001","title":"Vague Performance Target in NFR","category":"Ambiguities","severity":"warning","location":"Section 6.1 \"Performance\" (line 274)","lineNumber":274,"currentText":"Subagent analysis should complete within a reasonable time for typical MRs (under 20 changed files)","issue":"Uses the vague quantifier \"reasonable time\" without specifying a measurable target. Implementers and testers have no objective performance baseline to validate against.","impact":"\"Reasonable\" is subjective and untestable, making it impossible to verify whether the implementation meets requirements.","proposedText":"Subagent analysis must complete within 5 minutes for typical MRs (under 20 changed files)","status":"pending"},{"id":"FIND-002","title":"Inconsistent Requirement Language in NFRs","category":"Ambiguities","severity":"warning","location":"Section 6 \"Non-Functional Requirements\" (lines 274-288)","lineNumber":274,"currentText":null,"issue":"Section 6 uses \"should\" for all requirements, which in RFC 2119 terms makes them optional recommendations rather than hard requirements. This contrasts with the imperative checkbox format in Section 5 acceptance criteria.","impact":"Ambiguity around whether NFRs are strict requirements or aspirational goals could lead to inconsistent implementation prioritization.","proposedText":null,"status":"pending"},{"id":"FIND-003","title":"Undefined Prioritization Criteria for Large MRs","category":"Ambiguities","severity":"warning","location":"Section 5.7 \"Large MR Handling\" (line 267)","lineNumber":267,"currentText":"\"High-impact\" prioritization considers: file complexity, number of changes, whether the file is a core module, and git history risk signals","issue":"The terms \"file complexity\", \"core module\", and \"git history risk signals\" are used as prioritization factors but none are defined. Implementers would need to invent definitions.","impact":"Undefined criteria lead to potentially inconsistent or poorly-targeted prioritization logic across implementations.","proposedText":"\"High-impact\" prioritization considers: file complexity (measured by lines of code and import count), number of changes, whether the file is a core module (imported by 5+ other modules in the project), and git history risk signals (3+ bug-fix commits in the last 30 days)","status":"pending"},{"id":"FIND-004","title":"Duplicate Integration Points Sections","category":"Structure Issues","severity":"suggestion","location":"Section 7.3 (line 359) and Section 7.5 (line 382)","lineNumber":382,"currentText":null,"issue":"Two separate subsections define \"Integration Points\" -- Section 7.3 covers system-level integrations and Section 7.5 covers file-level project dependencies. Having two identically-titled sections is confusing.","impact":null,"proposedText":null,"status":"pending"},{"id":"FIND-005","title":"Performance Gap Between Typical and Large MRs","category":"Ambiguities","severity":"warning","location":"Section 6.1 \"Performance\" (line 274)","lineNumber":274,"currentText":null,"issue":"Performance expectation applies only to \"typical MRs (under 20 changed files)\" while Section 5.7 defines \"large\" as 50+ files. MRs with 20-50 files have no performance guidance at all.","impact":"The gap between typical (under 20) and large (50+) leaves a significant middle range without any performance expectations.","proposedText":null,"status":"pending"},{"id":"FIND-006","title":"Subagent Sections Lack Individual Acceptance Criteria","category":"Missing Information","severity":"suggestion","location":"Sections 5.3.1, 5.3.2, 5.3.3 (lines 163-190)","lineNumber":163,"currentText":null,"issue":"The three subagent subsections list responsibilities but rely entirely on the parent Section 5.3 acceptance criteria. There are no per-subagent criteria to verify each fulfills its specific responsibilities.","impact":null,"proposedText":null,"status":"pending"},{"id":"FIND-007","title":"No Edge Cases for Output Action Selection","category":"Missing Information","severity":"suggestion","location":"Section 5.2 \"Output Action Selection\" (line 127)","lineNumber":127,"currentText":null,"issue":"Section 5.2 defines the output action selection feature but does not include an Edge Cases subsection, unlike all other feature sections. Edge cases exist (e.g., GitLab API unavailable when \"Comments\" is selected).","impact":null,"proposedText":null,"status":"pending"},{"id":"FIND-008","title":"Generic User Persona Lacks Specificity","category":"Ambiguities","severity":"suggestion","location":"Section 4.1 \"Target Users\" (line 71)","lineNumber":71,"currentText":null,"issue":"The single persona \"Any Developer\" is deliberately broad, which limits its value as a design tool. Personas are most useful when they represent specific user archetypes with distinct needs.","impact":null,"proposedText":null,"status":"pending"},{"id":"FIND-009","title":"Configurable Depth Described in Two Separate Sections","category":"Inconsistencies","severity":"warning","location":"Section 5.3.1 (lines 171-174) and Section 5.6 (lines 241-253)","lineNumber":171,"currentText":null,"issue":"Depth configuration (MR-scoped vs. Feature-scoped) is described in Section 5.3.1 as part of the codebase subagent and again in Section 5.6 as its own P2 feature. It is unclear whether this is a P0 subagent responsibility (Phase 1) or a P2 feature (Phase 3).","impact":"Priority and phase mismatch could cause confusion during implementation planning -- the same capability appears to be in both Phase 1 and Phase 3.","proposedText":null,"status":"pending"},{"id":"FIND-010","title":"Empty Open Questions Section","category":"Structure Issues","severity":"suggestion","location":"Section 12 \"Open Questions\" (line 500)","lineNumber":500,"currentText":null,"issue":"The Open Questions section explicitly states \"No open questions.\" For a draft-status spec, some acknowledged unknowns are expected and healthy -- e.g., subagent token budgets, merge conflict handling, custom review checklists.","impact":null,"proposedText":null,"status":"pending"}];
+
+// === STATE ===
+const STATE = {
+  findings: [],
+  selectedId: null,
+  statusFilter: 'all',
+  severityFilter: 'all',
+  comments: {}
+};
+
+function init() {
+  STATE.findings = FINDINGS_DATA.map(f => ({
+    ...f,
+    status: f.status || 'pending'
+  }));
+  renderHeader();
+  renderStats();
+  renderFilters();
+  renderSpec();
+  renderFindings();
+  updatePromptPanel();
+}
+
+// === RENDERING ===
+
+function renderHeader() {
+  document.getElementById('spec-name').textContent = SPEC_CONTENT.name || 'Spec Analysis';
+  document.getElementById('depth-level').textContent = SPEC_CONTENT.depthLevel || '';
+  document.getElementById('analyzed-at').textContent = SPEC_CONTENT.analyzedAt || '';
+  document.title = `Review: ${SPEC_CONTENT.name || 'Spec Analysis'}`;
+}
+
+function renderStats() {
+  const counts = { total: STATE.findings.length, critical: 0, warning: 0, suggestion: 0, pending: 0, approved: 0, rejected: 0 };
+  STATE.findings.forEach(f => {
+    counts[f.severity]++;
+    counts[f.status]++;
+  });
+
+  const el = document.getElementById('stats');
+  el.innerHTML = [
+    statHTML('Total', counts.total, ''),
+    statHTML('Critical', counts.critical, 'var(--purple)'),
+    statHTML('Warning', counts.warning, 'var(--amber)'),
+    statHTML('Suggestion', counts.suggestion, 'var(--blue)'),
+    statHTML('Pending', counts.pending, 'var(--amber)'),
+    statHTML('Approved', counts.approved, 'var(--green)'),
+    statHTML('Rejected', counts.rejected, 'var(--red)')
+  ].join('');
+}
+
+function statHTML(label, value, color) {
+  const pct = STATE.findings.length ? (value / STATE.findings.length * 100) : 0;
+  return `<div class="stat">
+    <div class="stat-value" style="color:${color || 'var(--text)'}">${value}</div>
+    <div class="stat-label">${label}</div>
+    <div class="stat-bar"><div class="stat-bar-fill" style="width:${pct}%;background:${color || 'var(--border)'}"></div></div>
+  </div>`;
+}
+
+function renderFilters() {
+  const counts = { all: STATE.findings.length, pending: 0, approved: 0, rejected: 0 };
+  STATE.findings.forEach(f => counts[f.status]++);
+
+  const tabs = [
+    { key: 'all', label: 'All' },
+    { key: 'pending', label: 'Pending' },
+    { key: 'approved', label: 'Approved' },
+    { key: 'rejected', label: 'Rejected' }
+  ];
+
+  document.getElementById('status-filters').innerHTML = tabs.map(t =>
+    `<button class="filter-tab${STATE.statusFilter === t.key ? ' active' : ''}"
+      onclick="setStatusFilter('${t.key}')">${t.label}<span class="count">${counts[t.key]}</span></button>`
+  ).join('');
+}
+
+function renderSpec() {
+  const content = SPEC_CONTENT.content || '';
+  const el = document.getElementById('spec-content');
+  const lines = content.split('\n');
+  const findingsByLine = {};
+  STATE.findings.forEach(f => {
+    if (f.lineNumber) {
+      if (!findingsByLine[f.lineNumber]) findingsByLine[f.lineNumber] = [];
+      findingsByLine[f.lineNumber].push(f);
+    }
+  });
+
+  let html = '';
+  lines.forEach((line, i) => {
+    const lineNum = i + 1;
+    const findings = findingsByLine[lineNum];
+    if (findings) {
+      const f = findings[0];
+      const statusClass = f.status !== 'pending' ? ` status-${f.status}` : '';
+      const selectedClass = f.id === STATE.selectedId ? ' selected' : '';
+      const markers = findings.map(ff =>
+        `<span class="annotation-marker severity-${ff.severity}" onclick="selectFinding('${ff.id}')" title="${escapeAttr(ff.title)}">${ff.id}</span>`
+      ).join('');
+      html += `<div class="annotated-line severity-${f.severity}${statusClass}${selectedClass}" data-finding-id="${f.id}" onclick="selectFinding('${f.id}')">${renderMarkdownLine(line)}${markers}</div>`;
+    } else {
+      html += `<div>${renderMarkdownLine(line)}</div>`;
+    }
+  });
+
+  el.innerHTML = html;
+}
+
+function renderFindings() {
+  const filtered = STATE.findings.filter(f => {
+    if (STATE.statusFilter !== 'all' && f.status !== STATE.statusFilter) return false;
+    if (STATE.severityFilter !== 'all' && f.severity !== STATE.severityFilter) return false;
+    return true;
+  });
+
+  const el = document.getElementById('findings-list');
+
+  if (filtered.length === 0) {
+    el.innerHTML = `<div class="empty-state"><h3>No findings match filters</h3><p>Try changing the status or severity filter.</p></div>`;
+    return;
+  }
+
+  el.innerHTML = filtered.map(f => {
+    const isSelected = f.id === STATE.selectedId;
+    const comment = STATE.comments[f.id] || '';
+    return `
+    <div class="finding-card${isSelected ? ' selected' : ''} status-${f.status}" onclick="selectFinding('${f.id}')">
+      <div class="finding-header">
+        <div>
+          <span class="finding-id">${esc(f.id)}</span>
+          <span class="badge badge-${f.severity}">${esc(f.severity)}</span>
+          <span class="status-badge status-${f.status}">${esc(f.status)}</span>
+        </div>
+      </div>
+      <div class="finding-title">${esc(f.title)}</div>
+      <div class="category-badge">${esc(f.category)}</div>
+      <div class="finding-location">${esc(f.location)}</div>
+      <div class="finding-issue">${esc(f.issue)}</div>
+      ${f.impact ? `<div class="finding-issue" style="font-style:italic">${esc(f.impact)}</div>` : ''}
+      ${isSelected ? `
+        ${f.currentText ? `
+          <div class="finding-detail" onclick="event.stopPropagation()">
+            <div class="finding-detail-label">Current</div>
+            <div class="finding-detail-text current">${esc(f.currentText)}</div>
+          </div>` : ''}
+        ${f.proposedText ? `
+          <div class="finding-detail" onclick="event.stopPropagation()">
+            <div class="finding-detail-label">Proposed</div>
+            <div class="finding-detail-text proposed">${esc(f.proposedText)}</div>
+          </div>` : ''}
+        <textarea class="comment-area" placeholder="Add a comment (optional)..." oninput="setComment('${f.id}', this.value)" onclick="event.stopPropagation()" onmousedown="event.stopPropagation()">${esc(comment)}</textarea>
+        <div class="finding-actions">
+          ${f.status === 'pending' ? `
+            <button class="btn btn-approve" onclick="event.stopPropagation(); setStatus('${f.id}', 'approved')">Approve</button>
+            <button class="btn btn-reject" onclick="event.stopPropagation(); setStatus('${f.id}', 'rejected')">Reject</button>
+          ` : `
+            <button class="btn" onclick="event.stopPropagation(); setStatus('${f.id}', 'pending')">Reset to Pending</button>
+          `}
+        </div>
+      ` : ''}
+    </div>`;
+  }).join('');
+}
+
+// === MINIMAL MARKDOWN RENDERER ===
+
+function renderMarkdownLine(line) {
+  if (/^#### (.+)/.test(line)) return `<h4>${esc(RegExp.$1)}</h4>`;
+  if (/^### (.+)/.test(line)) return `<h3>${esc(RegExp.$1)}</h3>`;
+  if (/^## (.+)/.test(line)) return `<h2>${esc(RegExp.$1)}</h2>`;
+  if (/^# (.+)/.test(line)) return `<h1>${esc(RegExp.$1)}</h1>`;
+  if (/^[-*] (.+)/.test(line)) return `<li>${inlineMarkdown(RegExp.$1)}</li>`;
+  if (/^\d+\. (.+)/.test(line)) return `<li>${inlineMarkdown(RegExp.$1)}</li>`;
+  if (line.trim() === '') return '<br>';
+  return inlineMarkdown(line);
+}
+
+function inlineMarkdown(text) {
+  let s = esc(text);
+  s = s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  s = s.replace(/`(.+?)`/g, '<code>$1</code>');
+  return s;
+}
+
+// === STATE MUTATIONS ===
+
+function selectFinding(id) {
+  STATE.selectedId = STATE.selectedId === id ? null : id;
+  updateAll();
+}
+
+function setStatusFilter(filter) {
+  STATE.statusFilter = filter;
+  STATE.selectedId = null;
+  updateAll();
+}
+
+function setStatus(id, status) {
+  const f = STATE.findings.find(x => x.id === id);
+  if (f) f.status = status;
+  updateAll();
+  showToast(`${id} ${status}`);
+}
+
+function setComment(id, text) {
+  STATE.comments[id] = text;
+}
+
+function updateAll() {
+  renderStats();
+  renderFilters();
+  renderSpec();
+  renderFindings();
+  updatePromptPanel();
+}
+
+// === PROMPT GENERATION ===
+
+function updatePromptPanel() {
+  const approved = STATE.findings.filter(f => f.status === 'approved');
+  const panel = document.getElementById('prompt-panel');
+  const countEl = document.getElementById('approved-count');
+
+  countEl.textContent = approved.length;
+
+  if (approved.length === 0) {
+    panel.classList.add('hidden');
+    return;
+  }
+
+  panel.classList.remove('hidden');
+
+  const prompt = generatePrompt(approved);
+  document.getElementById('prompt-content').textContent = prompt;
+}
+
+function generatePrompt(approved) {
+  const lines = [`Apply these changes to the spec at: ${SPEC_CONTENT.path}\n`];
+
+  approved.forEach((f, i) => {
+    lines.push(`${i + 1}. ${f.title}`);
+    lines.push(`   Location: ${f.location}`);
+    if (f.currentText && f.proposedText) {
+      lines.push(`   Change: "${f.currentText}" \u2192 "${f.proposedText}"`);
+    } else if (f.proposedText) {
+      lines.push(`   Add: "${f.proposedText}"`);
+    } else {
+      lines.push(`   Issue: ${f.issue}`);
+    }
+    const comment = STATE.comments[f.id];
+    if (comment) {
+      lines.push(`   Note: ${comment}`);
+    }
+    lines.push('');
+  });
+
+  return lines.join('\n');
+}
+
+function copyPrompt() {
+  const approved = STATE.findings.filter(f => f.status === 'approved');
+  const prompt = generatePrompt(approved);
+  navigator.clipboard.writeText(prompt).then(() => {
+    showToast('Prompt copied to clipboard');
+  }).catch(() => {
+    const el = document.getElementById('prompt-content');
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    window.getSelection().removeAllRanges();
+    window.getSelection().addRange(range);
+    showToast('Select All applied -- press Cmd/Ctrl+C');
+  });
+}
+
+function downloadSpec() {
+  const content = SPEC_CONTENT.content || '';
+  let modified = content;
+
+  const approved = STATE.findings.filter(f => f.status === 'approved' && f.currentText && f.proposedText);
+  approved.forEach(f => {
+    modified = modified.replace(f.currentText, f.proposedText);
+  });
+
+  const blob = new Blob([modified], { type: 'text/markdown' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const baseName = (SPEC_CONTENT.path || 'spec').split('/').pop().replace(/\.md$/, '');
+  a.download = `${baseName}.modified.md`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('Modified spec downloaded');
+}
+
+// === HELPERS ===
+
+function esc(str) {
+  if (!str) return '';
+  const d = document.createElement('div');
+  d.textContent = String(str);
+  return d.innerHTML;
+}
+
+function escapeAttr(str) {
+  return esc(str).replace(/"/g, '&quot;');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+// === SEVERITY FILTER ===
+document.getElementById('severity-filter').addEventListener('change', function() {
+  STATE.severityFilter = this.value;
+  STATE.selectedId = null;
+  updateAll();
+});
+
+// === INIT ===
+init();
+</script>
+</body>
+</html>

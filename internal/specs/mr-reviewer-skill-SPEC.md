@@ -358,10 +358,12 @@ When merging subagent results:
 
 ### 7.3 Integration Points
 
-| System | Integration Type | Purpose |
-|--------|-----------------|---------|
-| `glab` CLI | Shell command execution | Fetch MR data, post comments, list MRs |
+| Integration | Type | Purpose |
+|-------------|------|---------|
+| `glab` CLI | Shell command | Fetch MR data, post comments, list MRs |
 | `glab` skill (`@skills/glab`) | Skill reference | Provides glab command patterns and reference files |
+| `skills/glab/references/merge-requests.md` | Skill reference | MR subcommand reference for `mr view`, `mr diff`, `mr list`, `mr note`, `mr checkout` |
+| `skills/glab/references/api.md` | Skill reference | GitLab API patterns for line-level diff comments via Discussions API |
 | GitLab Discussions API | REST API via `glab api` | Post line-level diff comments with position data |
 | Local git repository | Git CLI | Checkout MR branch, examine git history |
 
@@ -377,14 +379,6 @@ When merging subagent results:
 #### Existing Architecture
 
 This project is a Markdown-only skills repository using the GAS (Generic Agent Skills) format. Skills are stored in `skills/{skill-name}/SKILL.md` with optional `references/` subdirectories for detailed documentation. There is no application code, test suite, or build system.
-
-#### Integration Points
-
-| File/Module | Purpose | How This Feature Connects |
-|------------|---------|---------------------------|
-| `skills/glab/SKILL.md` | glab CLI reference skill | Primary dependency — provides all GitLab CLI patterns |
-| `skills/glab/references/merge-requests.md` | Detailed MR subcommand reference | Used by the skill for `mr view`, `mr diff`, `mr list`, `mr note`, `mr checkout` commands |
-| `skills/glab/references/api.md` | GitLab API reference | Used for line-level diff comments via Discussions API |
 
 #### Patterns to Follow
 

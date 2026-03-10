@@ -178,7 +178,7 @@ When the user selects Codex as the target platform, ask the shared questions fro
 
 **Description-as-trigger optimization** — Codex uses the `description` field as the primary mechanism for implicit invocation. Does the user want help crafting a description optimized for Codex's semantic matching? Surface this as a recommendation, especially for skills that should be auto-activated.
 
-*Beginner prompt example (structured):*
+*Prompt example:*
 > A few questions about how your skill will work in Codex:
 > 1. Should Codex automatically activate this skill when it recognizes a matching prompt, or should users need to type `$skill-name` to use it?
 >    - **Automatic** — Codex decides when to use it based on my description (recommended for most skills)
@@ -189,19 +189,10 @@ When the user selects Codex as the target platform, ask the shared questions fro
 > 3. Will the skill instructions be short (under a page) or long and detailed?
 >    - Short: everything goes in one file
 >    - Long: we can split detailed references into separate files the agent loads on demand
-> 4. Should this skill appear in the Codex app's skill list with a custom name, description, and color?
+> 4. Should this skill appear in the Codex app's skill list with a custom name, description, and color? Most Codex skills include an `agents/openai.yaml` for UI metadata and invocation policy.
 >    - Yes — I'd like it to look polished in the UI
 >    - No — keep it simple
-
-*Intermediate prompt example (mixed):*
-> Some Codex-specific considerations:
-> - Do you want an `agents/openai.yaml` file for UI metadata (display name, icon, brand color) and invocation policy? Most Codex skills include one.
-> - Should the skill support implicit invocation (auto-activated by prompt matching), or explicit only (`$skill-name`)?
-> - Any MCP tool dependencies to declare?
-> - Does the skill's workflow work in Codex's async sandbox model, or does it need live user interaction?
-
-*Advanced prompt example (open-ended):*
-> Codex considerations: `agents/openai.yaml` config (interface, policy, MCP deps), implicit vs explicit invocation, sandbox compatibility, description optimization for semantic matching?
+> 5. Does the skill's workflow work in Codex's async sandbox model, or does it need live user interaction?
 
 ## Codex Rendering Specifics
 
@@ -271,7 +262,6 @@ dependencies:
 
 ## Output Path Prompts
 
-*Beginner:*
 > Your skill file is ready! Where would you like me to save it?
 >
 > I need a directory path. The skill will be saved as `{skill-name}/SKILL.md` (and `{skill-name}/agents/openai.yaml` if configured) inside the directory you specify. For example:
@@ -279,13 +269,6 @@ dependencies:
 > - `~/.agents/skills` — makes it available globally for all your projects
 >
 > Enter the directory path, or press Enter for the default: `.agents/skills`
-
-*Intermediate / Advanced:*
-> Where should I save the skill? Provide the parent directory path (the skill will be written to `{skill-name}/SKILL.md` and `{skill-name}/agents/openai.yaml` within it).
->
-> Common paths: `.agents/skills` (project), `~/.agents/skills` (user global)
->
-> Default: `.agents/skills`
 
 **Default path:** `.agents/skills`
 

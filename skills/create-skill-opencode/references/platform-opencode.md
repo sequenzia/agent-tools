@@ -44,7 +44,6 @@ When the user selects OpenCode as the target platform, the shared questions from
 
 ## Output Path Prompts
 
-*Beginner:*
 > Your skill file is ready! Where would you like me to save it?
 >
 > I need a directory path. The skill will be saved as `{skill-name}/SKILL.md` inside the directory you specify. For example:
@@ -53,13 +52,6 @@ When the user selects OpenCode as the target platform, the shared questions from
 > - `~/.config/opencode/skills` — makes it available globally for all OpenCode projects
 >
 > Enter the directory path, or press Enter for the default: `.opencode/skills`
-
-*Intermediate / Advanced:*
-> Where should I save the skill? Provide the parent directory path (the skill will be written to `{skill-name}/SKILL.md` within it).
->
-> Common paths: `.opencode/skills`, `.claude/skills`, `~/.config/opencode/skills`
->
-> Default: `.opencode/skills`
 
 **Default path:** `.opencode/skills`
 

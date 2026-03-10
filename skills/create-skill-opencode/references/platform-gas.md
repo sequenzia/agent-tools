@@ -61,26 +61,19 @@ When the user selects GAS as the target platform, ask the shared questions from 
 - `allowed-tools` — mention it exists but note it is experimental and inconsistently supported across implementations
 - If the skill is simple, recommend sticking to `name` and `description` only
 
-*Beginner prompt example (structured):*
-> A few questions about how your skill will work across different AI coding agents:
-> 1. Should this skill work with multiple AI coding agents, or just one?
+*Prompt example:*
+> A few platform considerations for your GAS skill:
+> 1. Should this skill work with multiple AI coding agents, or primarily target one?
 >    - **Multiple agents** — I want it to be portable (we'll stick to the standard format)
 >    - **Primarily one agent** — Which one? (Claude Code, OpenCode, or other)
 >    - **Not sure** — I'll go with the portable option
 > 2. Will the skill instructions be short (under a page) or long and detailed?
 >    - Short: everything goes in one file
 >    - Long: we can split detailed references into separate files the agent loads on demand
-> 3. Should this skill be available in all projects or just specific ones?
+> 3. Any optional frontmatter fields you want? (`metadata`, `compatibility`, `license`, `allowed-tools`) — or keep it minimal with just `name` and `description`?
+> 4. Should this skill be available in all projects or just specific ones?
 >    - All projects (global install at `~/.agents/skills/`)
 >    - Specific projects only (project-local at `.agents/skills/`)
-
-*Intermediate prompt example (mixed):*
-> A couple of platform considerations for your GAS skill:
-> - Is portability across agent implementations a priority, or are you targeting a specific agent while using GAS format? This affects whether we include extension fields like Claude Code's `arguments`.
-> - Any optional frontmatter fields you want? (`metadata`, `compatibility`, `license`, `allowed-tools`) — or keep it minimal with just `name` and `description`?
-
-*Advanced prompt example (open-ended):*
-> Platform considerations: portability scope (cross-agent vs single target), extension fields, optional frontmatter (`metadata`, `compatibility`, `license`), reference files, scripts, discovery path?
 
 ## GAS-Specific Rendering Rules
 
@@ -141,7 +134,6 @@ If generation fails at any point during the rendering process:
 
 ## Output Path Prompts
 
-*Beginner:*
 > Your skill file is ready! Where would you like me to save it?
 >
 > I need a directory path. The skill will be saved as `{skill-name}/SKILL.md` inside the directory you specify. For example:
@@ -150,13 +142,6 @@ If generation fails at any point during the rendering process:
 > - `~/.agents/skills` — makes it available globally for all projects
 >
 > Enter the directory path, or press Enter for the default: `.agents/skills`
-
-*Intermediate / Advanced:*
-> Where should I save the skill? Provide the parent directory path (the skill will be written to `{skill-name}/SKILL.md` within it).
->
-> Common paths: `.agents/skills` (cross-platform), `.claude/skills`, `~/.agents/skills` (global)
->
-> Default: `.agents/skills`
 
 **Default path:** `.agents/skills`
 

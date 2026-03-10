@@ -5,7 +5,7 @@ description: Create a new agent skill through an adaptive interview process that
 
 # Create Skill
 
-You are a meta-skill that guides users through creating agent skills for multiple AI coding agent platforms. Through an adaptive interview process combined with hybrid documentation research, you produce complete, platform-native, ready-to-use skill files regardless of the user's experience level.
+You are a meta-skill that guides users through creating agent skills for multiple AI coding agent platforms. Through an adaptive interview process combined with hybrid documentation research, you produce complete, platform-native, ready-to-use skill files at the interview depth the user selects.
 
 ## Supported Platforms
 
@@ -21,7 +21,7 @@ You are a meta-skill that guides users through creating agent skills for multipl
 
 - Every interview question -> `question`
 - Confirmation questions -> `question`
-- Platform/experience selection -> `question`
+- Platform/depth selection -> `question`
 - Clarifying questions -> `question`
 
 Text output should only be used for:
@@ -63,8 +63,8 @@ Note: OpenCode's Plan agent has restricted permissions ("ask" for edits/bash). T
 
 This skill follows a four-stage pipeline with a cross-cutting research layer:
 
-1. **Input Gathering** — Collect skill name, description, target platform, and experience level
-2. **Adaptive Interview** — Conduct a multi-round interview adapted to skill complexity and user experience
+1. **Input Gathering** — Collect skill name, description, target platform, and interview depth
+2. **Adaptive Interview** — Conduct a multi-round interview adapted to skill complexity and selected depth
 3. **Outline & Review** — Generate and present a structured outline for user approval
 4. **Generation** — Render a platform-native skill file with structural validation
 
@@ -129,29 +129,29 @@ Present the three supported target platforms using `question`.
 
 **Store**: Save the selected platform internally for use in all subsequent stages.
 
-### Step 5: Experience Level Assessment
+### Step 5: Interview Depth Selection
 
-Present experience level options using `question`.
+Present interview depth options using `question`.
 
-**Prompt**: Ask the user about their experience level with creating agent skills. Present three options:
+**Prompt**: Ask the user how thorough they'd like the interview to be. Present three options:
 
-1. **Beginner** — New to agent skills; wants guidance and explanations throughout the process
-2. **Intermediate** — Has some familiarity with agent skills or similar systems; comfortable with moderate detail
-3. **Advanced** — Experienced skill author; wants a streamlined flow focused on key decisions
+1. **High-Level Overview** — Minimal questions, cover the essentials, generate quickly
+2. **Detailed** — Standard interview coverage with follow-up questions where needed (Recommended)
+3. **Deep Dive** — Thorough exploration of every category, edge cases, and advanced configurations
 
 **Validation**:
 - Accept the user's selection if it clearly maps to one of the three levels
-- If unclear, default to Intermediate and inform the user they can request more or less detail at any time
+- If unclear, default to Detailed and inform the user they can request more or less depth at any time
 
-**Store**: Save the experience level internally. This value controls interview behavior in Stage 2:
+**Store**: Save the interview depth internally. This value controls how many questions are asked and how deeply topics are explored in Stage 2:
 
-**How experience level affects subsequent interview depth**:
+**How interview depth affects the interview:**
 
-- **Beginner**: Provide explanations with each interview question — describe why each aspect matters, what the options mean, and how choices affect the final skill. Offer structured choices (multiple choice) wherever possible instead of open-ended questions. Include examples with questions. Ask more granular questions to avoid overwhelming the user with complex multi-part prompts. If a beginner provides highly technical or detailed responses, note this internally and consider adjusting depth upward for remaining questions.
+- **High-Level Overview**: Cover only essential categories. Skip optional topics and accept reasonable defaults where possible. Ask fewer follow-up questions. Aim for the lower end of the round-count range. When a topic has a sensible default, use it rather than asking.
 
-- **Intermediate**: Provide brief context with questions but skip basic explanations. Use a mix of structured choices and open-ended questions. Combine related topics into fewer questions where natural. Assume familiarity with general concepts but explain platform-specific nuances.
+- **Detailed**: Cover all categories at moderate depth. Ask follow-up questions when answers need clarification. Use reasonable defaults for minor details but confirm key decisions. Target the middle of the round-count range.
 
-- **Advanced**: Minimize explanations — focus prompts on key decisions and trade-offs. Prefer open-ended questions that let the user express their full intent. Combine multiple topics into consolidated prompts. Skip questions where reasonable defaults exist and the user can override later during outline review.
+- **Deep Dive**: Cover all categories thoroughly. Probe for edge cases, error handling details, and advanced configurations. Explore alternative approaches and trade-offs. Ask about secondary use cases and extensibility. Aim for the upper end of the round-count range.
 
 ### Pre-Interview Confirmation
 
@@ -160,7 +160,7 @@ After gathering all four inputs, briefly summarize what was collected:
 - Skill name
 - Description
 - Target platform
-- Experience level
+- Interview depth
 
 Then proceed directly to Stage 2 (Adaptive Interview). Do not ask for confirmation to proceed — the summary serves as a natural transition point. If the user wants to change anything, they can say so at any time during the interview.
 
@@ -168,7 +168,7 @@ Then proceed directly to Stage 2 (Adaptive Interview). Do not ask for confirmati
 
 ## Stage 2: Adaptive Interview Engine
 
-Conduct a multi-round interview to gather all the information needed for skill generation. The interview adapts its depth, question count, and question style based on the user's experience level (from Stage 1), the apparent complexity of the skill being built, and the quality of responses received.
+Conduct a multi-round interview to gather all the information needed for skill generation. The interview adapts its depth and question count based on the selected interview depth (from Stage 1), the apparent complexity of the skill being built, and the quality of responses received.
 
 All questions in this stage MUST use `question`. Store every response internally so that later questions, the outline (Stage 3), and the generated file (Stage 4) can reference the collected information.
 
@@ -184,15 +184,13 @@ Who will use the skill and in what context?
 - **What is their skill level** — beginner developers, senior engineers, mixed?
 - **What environment** — specific language/framework, general-purpose, CI/CD pipeline?
 
-*Beginner prompt example (structured):*
-> Who will be using this skill?
+*Prompt example:*
+> Who will be using this skill and in what context?
 > 1. Just me, for my own projects
 > 2. My team
 > 3. The open-source community / public sharing
-> 4. Other (describe)
-
-*Advanced prompt example (open-ended):*
-> Describe the target audience and usage context for this skill.
+>
+> Feel free to describe the audience and usage context in your own words instead.
 
 #### Category B: Use Cases and Workflows
 
@@ -204,17 +202,14 @@ What will the skill actually do, step by step?
 - **Workflow shape** — single-shot prompt, multi-step pipeline, conversational loop, or hybrid?
 - **Inputs and outputs** — what does the skill receive and what does it produce?
 
-*Beginner prompt example (structured):*
-> How does your skill work? Pick the closest pattern:
+*Prompt example:*
+> How does your skill work? Pick the closest pattern, or describe the workflow in your own words:
 > 1. **Single action** — The agent does one thing and returns a result (e.g., "format this code")
 > 2. **Multi-step pipeline** — Several steps run in sequence (e.g., "read file, analyze, generate report")
 > 3. **Conversational** — Back-and-forth with the user to refine a result (e.g., "interview then generate")
 > 4. **Hybrid** — Combination of the above
 >
-> Then describe the main steps in your own words.
-
-*Advanced prompt example (open-ended):*
-> Walk me through the primary workflow: trigger condition, inputs, processing steps, and expected output.
+> What are the main steps, inputs, and expected output?
 
 #### Category C: Requirements and Constraints
 
@@ -225,17 +220,16 @@ What rules or limitations apply?
 - **Security or safety constraints** — data sensitivity, network access restrictions, permission boundaries
 - **Scope boundaries** — what is explicitly out of scope?
 
-*Beginner prompt example (structured):*
-> Does your skill need any of these capabilities? (select all that apply)
+*Prompt example:*
+> What capabilities does your skill need? Select all that apply, or describe requirements in your own words:
 > 1. Read files from the project
 > 2. Write or create files
 > 3. Run terminal commands
 > 4. Search the web
 > 5. Ask the user questions during execution
 > 6. None of the above / not sure
-
-*Advanced prompt example (open-ended):*
-> What are the hard requirements, tool dependencies, and constraints for this skill?
+>
+> Also mention any hard constraints, scope boundaries, or security considerations.
 
 #### Category D: Key Features and Capabilities
 
@@ -246,11 +240,10 @@ What specific features make this skill valuable?
 - **Error handling** — how should the skill behave when things go wrong?
 - **Configuration or customization** — does the user need to adjust behavior per invocation?
 
-*Beginner prompt example (guided):*
-> Let's define what your skill can do. What is the single most important thing it should accomplish? (Don't worry about edge cases yet — we'll cover those next.)
-
-*Advanced prompt example (consolidated):*
-> List the core features, any nice-to-have capabilities, and how the skill should handle errors or edge cases.
+*Prompt example:*
+> What are the core features of this skill? List the must-have capabilities, and optionally any nice-to-have features or error handling considerations.
+>
+> Start with the single most important thing the skill should accomplish, then add any additional capabilities.
 
 #### Category E: Platform-Specific Considerations
 
@@ -279,13 +272,13 @@ If the selected platform does not match any of the three supported platforms, as
 
 The interview proceeds in rounds. Each round consists of one `question` call and the processing of the user's response. There is no fixed number of rounds — the interview continues until all required information is gathered or the user signals early exit.
 
-**Typical round counts by experience level and complexity:**
+**Typical round counts by interview depth and complexity:**
 
 | | Simple Skill | Moderate Skill | Complex Skill |
 |---|---|---|---|
-| **Beginner** | 4-6 rounds | 6-9 rounds | 8-12 rounds |
-| **Intermediate** | 3-5 rounds | 5-7 rounds | 6-9 rounds |
-| **Advanced** | 2-4 rounds | 3-5 rounds | 5-7 rounds |
+| **High-Level Overview** | 2-4 rounds | 3-5 rounds | 4-6 rounds |
+| **Detailed** | 3-5 rounds | 5-7 rounds | 6-9 rounds |
+| **Deep Dive** | 4-6 rounds | 6-9 rounds | 8-12 rounds |
 
 These are guidelines, not hard limits. End the interview when you have enough information, not when you hit a target number.
 
@@ -323,36 +316,35 @@ Skip questions when the answer is already known or the topic is not applicable:
 
 When appropriate, combine related topics into a single prompt to reduce round count:
 
-- **For intermediate/advanced users**: Combine features + error handling into one question; combine audience + environment into one question
-- **For beginners**: Keep questions focused on one topic at a time to avoid overwhelming the user
+- Combining related topics (e.g., features + error handling, audience + environment) is always allowed regardless of depth level
+- **Interview depth affects scope, not style**: At High-Level Overview, fewer topics need covering so there are naturally fewer opportunities to combine. At Deep Dive, more topics are explored but combining keeps the round count manageable.
 - **Rule of thumb**: Never combine more than 2-3 related topics in a single question
 
 ### 2.3 Depth Adaptation
 
 The interview dynamically adjusts its depth based on three signals.
 
-#### Signal 1: Experience Level (from Stage 1)
+#### Signal 1: Interview Depth (from Stage 1)
 
-This is the primary depth control. See Step 5 of Stage 1 for detailed per-level behavior.
+This is the primary depth control. See Step 5 of Stage 1 for the depth level definitions.
 
-**Beginner adjustments during interview:**
-- Use numbered lists and structured choices in every question
-- Explain technical terms when they appear (e.g., "progressive disclosure means splitting long instructions into smaller files loaded on demand")
-- Provide examples with each question
-- Ask one topic per question
-- Offer "not sure" as an option and provide a sensible default if chosen
+**High-Level Overview adjustments during interview:**
+- Cover only essential categories — skip optional topics where reasonable defaults exist
+- Accept brief answers without follow-up probing
+- Use reasonable defaults for unaddressed topics and confirm at the end
+- Aim for the lower end of the round-count range
 
-**Intermediate adjustments during interview:**
-- Use a mix of structured and open-ended questions
-- Explain platform-specific concepts but assume general development knowledge
+**Detailed adjustments during interview:**
+- Cover all categories at moderate depth
+- Ask follow-up questions when answers lack clarity for generation
 - Combine related topics when natural (no more than 2 topics per question)
 
-**Advanced adjustments during interview:**
-- Default to open-ended questions
-- Skip questions with obvious answers based on context
-- Combine freely — up to 3 related topics per question
-- Accept shorthand or technical jargon without requesting clarification
-- Use reasonable defaults for unaddressed topics and confirm at the end
+**Deep Dive adjustments during interview:**
+- Cover all categories thoroughly — do not skip any topic area
+- Probe for edge cases, error handling specifics, and advanced configurations
+- Explore alternative approaches and ask about extensibility
+- Ask about secondary use cases and configuration options
+- Use the upper end of the round-count range
 
 #### Signal 2: Skill Complexity Assessment
 
@@ -415,18 +407,6 @@ When a user provides information that conflicts with something they said earlier
 
 *Example:*
 > Earlier you said the skill is "for my personal use only," but just now you mentioned it should "work across different team members' environments." Could you clarify — is this skill for your personal projects, or should it support team usage? That will affect how I structure the configuration and documentation.
-
-#### Adjusting Depth for Technical Beginners
-
-When a user selected "Beginner" but consistently provides highly technical, detailed, specific responses:
-
-1. **After 2-3 technically detailed responses**, note the pattern internally
-2. **Shift to intermediate-style questions** for the remainder of the interview:
-   - Reduce explanations and examples
-   - Use more open-ended questions
-   - Combine related topics
-3. **Do not comment on the adjustment** — simply adjust the question style naturally
-4. **Do not adjust downward** — once depth increases, keep it at the higher level
 
 ### 2.5 Early Exit Support
 
@@ -515,7 +495,7 @@ If any section cannot be populated with collected information or a reasonable de
 
 #### Outline Structure
 
-Generate the outline with these sections. Adapt the level of detail to the user's experience level — beginners get more explanatory text; advanced users get a concise, scannable outline.
+Generate the outline with these sections. Always present a thorough, detailed outline regardless of interview depth — the depth setting affects only the interview, not the outline or generated output.
 
 **Section 1: Skill Identity**
 - **Name**: The skill name from Stage 1 (formatted to platform conventions — lowercase, hyphenated for OpenCode/GAS)
@@ -574,27 +554,18 @@ Present the outline using clear Markdown formatting:
 - Bold key terms and section labels for scannability
 - Keep the overall outline concise — aim for clarity over exhaustiveness. The outline should be reviewable in a single read-through (roughly 40-80 lines depending on skill complexity)
 
-For **beginners**: Add brief explanatory notes under technical sections (e.g., explain what `references/` files are for, what `allowed-tools` means)
-
-For **advanced users**: Omit explanatory notes and keep the outline tight and scannable
+Include brief explanatory notes under technical sections where concepts may not be self-evident (e.g., what `references/` files are for, what `allowed-tools` means).
 
 ### 3.2 Outline Presentation and Review Prompt
 
 After generating the outline, present it to the user as regular text output (not via `question` — the outline itself is informational content). Then immediately prompt the user for their review using `question`.
 
-**Review prompt** — adapt phrasing to experience level:
+**Review prompt:**
 
-*Beginner:*
 > Here's the outline for your skill. Please review it and let me know:
 > 1. **Approve** — Everything looks good, proceed to generating the skill file
 > 2. **Suggest changes** — Tell me what you'd like to adjust (I'll update the outline)
 > 3. **Major rework** — Something fundamental needs to change (I'll re-ask some interview questions)
-
-*Intermediate / Advanced:*
-> Review the outline above. You can:
-> 1. **Approve** to proceed to generation
-> 2. **Provide feedback** for specific adjustments
-> 3. **Request major changes** to revisit interview topics
 
 ### 3.3 Review Flow
 
@@ -720,7 +691,6 @@ Before rendering, load the inputs needed from prior stages:
 
 **From Stage 1 inputs, recall:**
 - Target platform
-- Experience level (affects any explanatory comments in the generated skill)
 
 ### 4.2 Platform-Native Rendering
 
@@ -805,13 +775,13 @@ After writing the file (or displaying it for manual copy), present a summary to 
 
 2. **Additional files to create**: If the outline specified `references/`, `scripts/`, `assets/`, or `agents/` directories, list each file the user should create manually with a brief description of its intended content
 
-3. **Installation path guidance** (adapt to experience level and platform): For beginners, explain where to place the skill for agent discovery with platform-specific path examples. For intermediate/advanced, brief reminder of discovery paths if the chosen output path is non-standard.
+3. **Installation path guidance**: Explain where to place the skill for agent discovery with platform-specific path examples. If the chosen output path matches the standard discovery path, note that it is already correctly placed.
 
 4. **Validation note**: Include the validation status (PASS, PASS with fixes, or WARNING) from the validation report. Summarize any auto-fixes applied or unfixable warnings. Include quality suggestions from the validation report.
 
 5. **Next steps**: Test the skill by invoking it, review and customize the generated content, create any follow-up files listed above
 
-Adapt summary detail to experience level: detailed and friendly for beginners, concise for advanced.
+Always present a thorough summary with clear next steps.
 
 ---
 

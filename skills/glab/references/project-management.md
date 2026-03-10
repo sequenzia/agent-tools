@@ -15,7 +15,7 @@ Manage CI/CD variables used in pipelines. Variables can be set at project or gro
 | `set` | Create or update a variable |
 | `list` | List all variables |
 | `get` | Get a specific variable |
-| `export` | Export variables (KEY=VALUE format) |
+| `export` | Export variables (default: JSON format) |
 | `update` | Update an existing variable |
 | `delete` | Delete a variable |
 
@@ -34,6 +34,7 @@ Create or update a CI/CD variable.
 | `--masked` | Mask value in job logs | — |
 | `--raw` | Don't expand variable references | — |
 | `--group` | Set at group level | `my-team` |
+| `--description` | Variable description | `"Deploy URL for staging"` |
 
 #### Examples
 
@@ -65,6 +66,9 @@ glab variable list --group my-team
 
 # JSON output
 glab variable list --output json
+
+# List instance-level variables (admin)
+glab variable list --instance
 ```
 
 ### get
@@ -80,11 +84,17 @@ glab variable get DB_HOST --scope production
 ### export
 
 ```bash
-# Export all variables in KEY=VALUE format (useful for .env files)
+# Export all variables (default: JSON format)
 glab variable export
 
-# Export to a file
-glab variable export > .env.ci
+# Export in env file format
+glab variable export --output env
+
+# Export in KEY=VALUE export format
+glab variable export --output export > .env.ci
+
+# Export scoped to an environment
+glab variable export --scope production
 ```
 
 ### update
@@ -136,6 +146,10 @@ glab label create "type::bug" --color "#D32F2F" --description "Bug reports"
 glab label create "good first issue" --color "#7057FF"
 ```
 
+Labels can also be created with `--name` flag: `glab label create --name "priority::high" --color "#FF0000"`
+
+Use `--priority` to set label priority for ordering in lists.
+
 ### list
 
 ```bash
@@ -157,13 +171,16 @@ glab label get "priority::high"
 
 ```bash
 # Rename a label
-glab label edit "bug" --name "type::bug"
+glab label edit "bug" --new-name "type::bug"
 
-# Change color
+# Change color (use --label-id or label name as positional arg)
 glab label edit "priority::high" --color "#B71C1C"
 
 # Update description
 glab label edit "type::bug" --description "Confirmed bug reports"
+
+# Update priority
+glab label edit "type::bug" --priority 1
 ```
 
 ### delete
@@ -201,6 +218,10 @@ glab milestone create --title "Sprint 5" \
   --start-date "2025-06-01" \
   --due-date "2025-06-14" \
   --description "Auth improvements sprint"
+
+# Create a group-level milestone
+glab milestone create --title "Q3 Goals" \
+  --group my-team --due-date "2025-09-30"
 ```
 
 ### list
@@ -214,6 +235,15 @@ glab milestone list --state all
 
 # JSON output
 glab milestone list --output json
+
+# Search milestones by title
+glab milestone list --search "Sprint"
+
+# List milestones with IDs shown
+glab milestone list --show-id
+
+# List group milestones including ancestors
+glab milestone list --group my-team --include-ancestors
 ```
 
 ### get

@@ -26,13 +26,11 @@ List runners available to the current project.
 
 | Flag | Description | Example |
 |------|-------------|---------|
-| `--status` | Filter by status (online/offline/stale/never_contacted) | `online` |
-| `--type` | Filter by type (instance_type/group_type/project_type) | `project_type` |
-| `--tag` | Filter by tag | `docker` |
-| `--all` | List all runners (admin only) | — |
-| `--output` | Output format (text/json) | `json` |
-| `--per-page` | Results per page | `50` |
-| `--page` | Page number | `2` |
+| `--group` | List runners for a group | `my-team` |
+| `--instance` | List all runners available to the user (instance scope) | — |
+| `--output` | Output format (text/json, default "text") | `json` |
+| `--per-page` | Items per page (default 30) | `50` |
+| `--page` | Page number (default 1) | `2` |
 
 #### Examples
 
@@ -40,17 +38,14 @@ List runners available to the current project.
 # List all runners for the current project
 glab runner list
 
-# List only online runners
-glab runner list --status online
-
-# List runners with a specific tag
-glab runner list --tag docker
-
 # JSON output for scripting
 glab runner list --output json
 
-# List all runners (admin)
-glab runner list --all
+# List runners for a specific group
+glab runner list --group my-team
+
+# List all instance runners (admin)
+glab runner list --instance
 ```
 
 ### assign
@@ -76,34 +71,38 @@ glab runner unassign 12345
 
 ### update
 
-Update runner configuration.
+Pause or resume a runner.
 
 #### Key Flags
 
-| Flag | Description | Example |
-|------|-------------|---------|
-| `--description` | Runner description | `"Docker builder"` |
-| `--active` | Set runner active state | `true` |
-| `--locked` | Lock runner to current projects | `true` |
-| `--run-untagged` | Allow untagged jobs | `false` |
-| `--tag-list` | Runner tags (comma-separated) | `"docker,linux"` |
-| `--access-level` | Access level (not_protected/ref_protected) | `ref_protected` |
-| `--maximum-timeout` | Max job timeout in seconds | `3600` |
+| Flag | Description |
+|------|-------------|
+| `--pause` | Pause the runner (stops accepting new jobs) |
+| `--unpause` | Resume a paused runner |
 
 #### Examples
 
 ```bash
-# Update runner description and tags
-glab runner update 12345 --description "Docker builder" --tag-list "docker,linux,amd64"
+# Pause a runner
+glab runner update 12345 --pause
+
+# Resume a paused runner
+glab runner update 12345 --unpause
+```
+
+For advanced runner configuration (tags, description, access level, locking), use `glab api` with the Runners API:
+
+```bash
+# Update runner tags and description via API
+glab api runners/12345 -X PUT \
+  -f "description=Docker builder" \
+  -f "tag_list=docker,linux,amd64"
 
 # Lock runner to current projects
-glab runner update 12345 --locked true
-
-# Set runner to only run tagged jobs
-glab runner update 12345 --run-untagged false
+glab api runners/12345 -X PUT -f "locked=true"
 
 # Restrict to protected branches
-glab runner update 12345 --access-level ref_protected
+glab api runners/12345 -X PUT -f "access_level=ref_protected"
 ```
 
 ### delete
@@ -143,7 +142,7 @@ Create a new pipeline schedule.
 | `--description` | Schedule description (required) | `"Nightly build"` |
 | `--ref` | Branch or tag to run on (required) | `main` |
 | `--variable` | Schedule variables (KEY:VALUE, repeatable) | `"ENV:staging"` |
-| `--cron-timezone` | Timezone for cron expression | `"America/New_York"` |
+| `--cronTimeZone` | Timezone for cron expression (default "UTC") | `"America/New_York"` |
 | `--active` | Whether the schedule is active | `true` |
 
 #### Examples
@@ -156,7 +155,7 @@ glab schedule create --cron "0 2 * * *" --description "Nightly build" --ref main
 glab schedule create --cron "0 6 * * 1-5" \
   --description "Weekday morning deploy" \
   --ref main \
-  --cron-timezone "America/New_York" \
+  --cronTimeZone "America/New_York" \
   --variable "DEPLOY_ENV:staging"
 
 # Create inactive schedule (for testing)
@@ -187,6 +186,19 @@ glab schedule run 42
 
 Update an existing schedule.
 
+#### Key Flags
+
+| Flag | Description | Example |
+|------|-------------|---------|
+| `--cron` | Cron interval pattern | `"0 3 * * *"` |
+| `--description` | Schedule description | `"Updated nightly"` |
+| `--ref` | Target branch or tag | `develop` |
+| `--cronTimeZone` | Timezone for cron expression | `"America/New_York"` |
+| `--active` | Whether the schedule is active | `false` |
+| `--create-variable` | Add new variables (KEY:VALUE, repeatable) | `"DEBUG:true"` |
+| `--update-variable` | Update existing variables (KEY:VALUE, repeatable) | `"ENV:production"` |
+| `--delete-variable` | Delete variables (KEY, repeatable) | `"OLD_VAR"` |
+
 ```bash
 # Update cron expression
 glab schedule update 42 --cron "0 3 * * *"
@@ -197,8 +209,14 @@ glab schedule update 42 --ref develop
 # Disable a schedule
 glab schedule update 42 --active false
 
-# Update description and add variable
-glab schedule update 42 --description "Updated nightly" --variable "DEBUG:true"
+# Add a new variable to an existing schedule
+glab schedule update 42 --description "Updated nightly" --create-variable "DEBUG:true"
+
+# Update an existing variable
+glab schedule update 42 --update-variable "DEPLOY_ENV:production"
+
+# Delete a variable
+glab schedule update 42 --delete-variable "OLD_VAR"
 ```
 
 ### delete
@@ -222,26 +240,31 @@ Manage CI/CD job artifacts.
 
 ### artifact
 
-Download artifacts from a CI/CD job.
+Download artifacts from the most recent successful pipeline. Takes a branch/tag ref and job name (not a job ID).
+
+**Syntax:** `glab job artifact <refName> <jobName> [flags]`
 
 #### Key Flags
 
 | Flag | Description | Example |
 |------|-------------|---------|
-| `--path` | Path within the artifact archive to download | `"coverage/"` |
-| `--list-paths` | List available paths in the artifact archive | — |
+| `--path` | Path to download the artifact files (default "./") | `"coverage/"` |
+| `--list-paths` | Print the paths of downloaded artifacts | — |
 
 #### Examples
 
 ```bash
-# Download artifacts from a job by job ID
-glab job artifact 123456
+# Download artifacts from a job on main branch
+glab job artifact main build
 
 # List available artifact paths
-glab job artifact 123456 --list-paths
+glab job artifact main build --list-paths
 
-# Download a specific path from artifacts
-glab job artifact 123456 --path "coverage/report.html"
+# Download artifacts to a specific directory
+glab job artifact main test --path "coverage/"
+
+# Download from a specific branch
+glab job artifact feature/auth deploy
 ```
 
 ---
@@ -271,27 +294,27 @@ glab ci status --live
 # 1. List available runners
 glab runner list
 
-# 2. Check which are online
-glab runner list --status online
+# 2. List runners for a group
+glab runner list --group my-team
 
-# 3. Update tags for a runner
-glab runner update 12345 --tag-list "docker,linux,deploy"
+# 3. Pause a runner for maintenance
+glab runner update 12345 --pause
 
-# 4. Lock runner to this project
-glab runner update 12345 --locked true
+# 4. Resume the runner
+glab runner update 12345 --unpause
 ```
 
 ### Download Job Artifacts
 
 ```bash
-# 1. Find the job ID from the pipeline
+# 1. Find the job name from the pipeline
 glab ci view
 
 # 2. List available artifact paths
-glab job artifact 123456 --list-paths
+glab job artifact main build --list-paths
 
 # 3. Download specific artifacts
-glab job artifact 123456 --path "build/output"
+glab job artifact main build --path "build/output"
 ```
 
 ### Schedule with Environment-Specific Variables
@@ -314,6 +337,6 @@ glab schedule create --cron "0 22 * * 0" \
 - Cron expressions use standard 5-field format: `minute hour day month weekday`. Use [crontab.guru](https://crontab.guru) to verify expressions.
 - Schedule variables are passed to the pipeline as CI/CD variables, supplementing (not replacing) project-level variables.
 - `glab schedule run` triggers the pipeline immediately but does not change the next scheduled run time.
-- Runner tags control which jobs a runner picks up. A job with `tags: [docker]` only runs on runners that have the `docker` tag.
-- Locked runners (`--locked true`) cannot be assigned to other projects — useful for dedicated build infrastructure.
-- Use `--access-level ref_protected` on runners that should only execute jobs on protected branches.
+- Runner tags control which jobs a runner picks up. A job with `tags: [docker]` only runs on runners that have the `docker` tag. Use `glab api` to update runner tags.
+- `glab runner update` only supports `--pause` and `--unpause`. For other runner configuration (tags, locking, access level), use `glab api runners/<id> -X PUT` with the appropriate fields.
+- `glab job artifact` takes a ref name and job name (not a job ID). It downloads artifacts from the most recent successful pipeline on that ref.

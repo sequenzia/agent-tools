@@ -85,7 +85,6 @@ List merge requests with extensive filtering.
 
 | Flag | Description | Example |
 |------|-------------|---------|
-| `--state` | Filter by state (opened/closed/merged/all) | `opened` |
 | `--assignee` | Filter by assignee | `@me` |
 | `--author` | Filter by author | `alice` |
 | `--reviewer` | Filter by reviewer | `bob` |
@@ -94,6 +93,14 @@ List merge requests with extensive filtering.
 | `--milestone` | Filter by milestone | `"v2.0"` |
 | `--source-branch` | Filter by source branch | `feature/auth` |
 | `--target-branch` | Filter by target branch | `main` |
+| `--closed` | Show only closed MRs | — |
+| `--merged` | Show only merged MRs | — |
+| `--all` | Retrieve all MRs | — |
+| `--order` | Sort by field (created_at, updated_at, merged_at, title, priority) | `created_at` |
+| `--sort` | Sort direction (asc/desc) | `desc` |
+| `--page` | Page number (default 1) | `2` |
+| `--created-after` | Filter MRs created after date (ISO 8601) | `"2025-01-01T00:00:00Z"` |
+| `--created-before` | Filter MRs created before date (ISO 8601) | `"2025-12-31T00:00:00Z"` |
 | `--draft` | Show only draft MRs | — |
 | `--not-draft` | Exclude draft MRs | — |
 | `--search` | Search in title and description | `"OAuth"` |
@@ -111,16 +118,16 @@ glab mr list --assignee=@me
 glab mr list --reviewer=@me
 
 # Search for MRs by keyword
-glab mr list --search "database migration" --state opened
+glab mr list --search "database migration"
 
 # MRs with specific label, JSON output
 glab mr list --label "needs-review" --output json
 
 # All merged MRs targeting main
-glab mr list --state merged --target-branch main --per-page 20
+glab mr list --merged --target-branch main --per-page 20
 
 # MRs across a group
-glab mr list --group my-team --state opened
+glab mr list --group my-team
 ```
 
 ## view

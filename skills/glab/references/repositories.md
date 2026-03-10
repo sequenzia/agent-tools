@@ -200,17 +200,20 @@ glab repo transfer my-team/project --target-namespace other-team
 
 ## update
 
-Update project settings.
+Update project settings. Only supports `--archive`, `--defaultBranch`, and `--description`.
 
 ```bash
 # Update project description
 glab repo update --description "Updated description"
 
-# Change visibility
-glab repo update --visibility private
-
 # Update default branch
-glab repo update --default-branch main
+glab repo update --defaultBranch main
+
+# Archive a project
+glab repo update --archive
+
+# Change visibility (not available via glab repo update — use API)
+glab api projects/:id -X PUT -f visibility=private
 ```
 
 ## mirror

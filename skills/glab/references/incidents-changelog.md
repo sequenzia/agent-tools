@@ -28,7 +28,6 @@ List incidents with filters.
 
 | Flag | Description | Example |
 |------|-------------|---------|
-| `--state` | Filter by state (opened/closed/all) | `opened` |
 | `--assignee` | Filter by assignee | `@me` |
 | `--author` | Filter by author | `alice` |
 | `--label` | Filter by label (repeatable) | `--label severity::1` |
@@ -36,7 +35,14 @@ List incidents with filters.
 | `--order` | Order by (created_at/updated_at) | `updated_at` |
 | `--sort` | Sort direction (asc/desc) | `desc` |
 | `--output` | Output format (text/json) | `json` |
-| `--per-page` | Results per page | `50` |
+| `--closed` | Show only closed incidents | — |
+| `--all` | Retrieve all incidents | — |
+| `--milestone` | Filter by milestone | `"v2.0"` |
+| `--not-label` | Exclude labels (repeatable) | `--not-label wontfix` |
+| `--not-assignee` | Exclude by assignee | `bot-user` |
+| `--confidential` | Filter by confidential incidents | — |
+| `--page` | Page number (default 1) | `2` |
+| `--per-page` | Items per page (default 30) | `50` |
 
 #### Examples
 
@@ -45,13 +51,13 @@ List incidents with filters.
 glab incident list
 
 # List incidents assigned to you
-glab incident list --assignee=@me --state opened
+glab incident list --assignee=@me
 
 # Search for incidents by keyword
 glab incident list --search "database timeout"
 
 # List critical incidents
-glab incident list --label "severity::1" --state opened
+glab incident list --label "severity::1"
 
 # JSON output for scripting
 glab incident list --output json
@@ -160,7 +166,7 @@ glab changelog generate --version "1.5.0" --trailer "Changelog"
 
 ```bash
 # 1. Check for open incidents
-glab incident list --state opened
+glab incident list
 
 # 2. View incident details
 glab incident view 42
@@ -192,10 +198,10 @@ glab release create v2.0.0 --notes "$(glab changelog generate --version '2.0.0')
 
 ```bash
 # List recently updated incidents
-glab incident list --state opened --order updated_at --sort desc
+glab incident list --order updated_at --sort desc
 
 # Export incident data for reporting
-glab incident list --state all --output json > incidents-report.json
+glab incident list --all --output json > incidents-report.json
 ```
 
 ## Tips

@@ -19,19 +19,22 @@ Manage personal, project, and group access tokens.
 
 ### create
 
-Create a new access token.
+Create a new access token. Name is a positional argument.
+
+**Syntax:** `glab token create <name> [flags]`
 
 #### Key Flags
 
 | Flag | Description | Example |
 |------|-------------|---------|
-| `--name` | Token name (required) | `"deploy-token"` |
-| `--scope` | Token scopes (repeatable) | `--scope api --scope read_registry` |
+| `--scope` | Token scopes (repeatable or comma-separated) | `--scope api --scope read_registry` |
 | `--access-level` | Access level (guest/reporter/developer/maintainer/owner) | `developer` |
-| `--duration` | Token duration | `"30d"` |
+| `--duration` | Token duration (days: 30d, weeks: 4w, hours: 24h) | `"90d"` |
 | `--expires-at` | Exact expiry date (YYYY-MM-DD) | `"2026-12-31"` |
+| `--description` | Token description | `"CI deploy token"` |
 | `--group` | Create group access token | `my-team` |
-| `--user` | Create user token (admin only) | `alice` |
+| `--user` | Create user token (@me for self, admin for others) | `@me` |
+| `--output` | Output format (text/json) | `json` |
 
 #### Token Scopes
 
@@ -50,19 +53,19 @@ Create a new access token.
 
 ```bash
 # Create a project access token with API scope
-glab token create --name "ci-deploy" --scope api --access-level developer --duration "90d"
+glab token create ci-deploy --scope api --access-level developer --duration "90d"
 
 # Create token with multiple scopes
-glab token create --name "registry-bot" \
+glab token create registry-bot \
   --scope read_registry --scope write_registry \
   --access-level developer --expires-at "2026-12-31"
 
 # Create a group access token
-glab token create --name "group-ci" --scope api \
+glab token create group-ci --scope api \
   --access-level maintainer --group my-team --duration "60d"
 
 # Create token with read-only API access
-glab token create --name "monitoring" --scope read_api \
+glab token create monitoring --scope read_api \
   --access-level reporter --duration "365d"
 ```
 
@@ -118,23 +121,29 @@ Manage SSH deploy keys for repository access.
 
 ### add
 
+Add a deploy key by providing a key file as a positional argument, or pipe key content via stdin.
+
+**Syntax:** `glab deploy-key add [key-file] [flags]`
+
 #### Key Flags
 
 | Flag | Description | Example |
 |------|-------------|---------|
 | `--title` | Key title (required) | `"CI deploy key"` |
-| `--key` | Public key content (required) | `"ssh-ed25519 AAAA..."` |
 | `--can-push` | Allow push access | — |
+| `--expires-at` | Expiration date (ISO 8601: YYYY-MM-DDTHH:MM:SSZ) | `"2026-12-31T00:00:00Z"` |
 
 #### Examples
 
 ```bash
-# Add a read-only deploy key
-glab deploy-key add --title "CI read access" --key "$(cat ~/.ssh/deploy_key.pub)"
+# Add a read-only deploy key from a file
+glab deploy-key add ~/.ssh/deploy_key.pub --title "CI read access"
 
 # Add a deploy key with push access
-glab deploy-key add --title "CI deploy" \
-  --key "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5..." --can-push
+glab deploy-key add ~/.ssh/deploy_key.pub --title "CI deploy" --can-push
+
+# Add a deploy key from stdin
+cat ~/.ssh/deploy_key.pub | glab deploy-key add --title "CI deploy" -
 ```
 
 ### list
@@ -173,9 +182,21 @@ Manage SSH keys for your GitLab user account.
 | `list` | List your SSH keys |
 | `delete` | Delete an SSH key |
 
+**Syntax:** `glab ssh-key add [key-file] [flags]`
+
+| Flag | Description | Example |
+|------|-------------|---------|
+| `--title` | Key title (required) | `"Work laptop"` |
+| `--expires-at` | Expiration date (ISO 8601: YYYY-MM-DDTHH:MM:SSZ) | `"2026-12-31T00:00:00Z"` |
+| `--usage-type` | Usage scope (auth/signing/auth_and_signing) | `auth_and_signing` |
+
 ```bash
-# Add an SSH key
-glab ssh-key add --title "Work laptop" --key "$(cat ~/.ssh/id_ed25519.pub)"
+# Add an SSH key from file
+glab ssh-key add ~/.ssh/id_ed25519.pub --title "Work laptop"
+
+# Add with expiration and usage type
+glab ssh-key add ~/.ssh/id_ed25519.pub --title "Deploy key" \
+  --expires-at "2026-12-31T00:00:00Z" --usage-type signing
 
 # List SSH keys
 glab ssh-key list
@@ -218,7 +239,7 @@ glab gpg-key delete 42
 ssh-keygen -t ed25519 -f deploy_key -N "" -C "ci-deploy"
 
 # 2. Add the public key to the project
-glab deploy-key add --title "CI deploy" --key "$(cat deploy_key.pub)" --can-push
+glab deploy-key add deploy_key.pub --title "CI deploy" --can-push
 
 # 3. Store the private key as a CI variable (file type)
 glab variable set DEPLOY_SSH_KEY --value "$(cat deploy_key)" --type file --masked
@@ -244,7 +265,7 @@ glab variable update DEPLOY_TOKEN --value "$NEW_TOKEN"
 
 ```bash
 # 1. Create a group token for CI/CD
-glab token create --name "group-ci" --scope api \
+glab token create group-ci --scope api \
   --access-level maintainer --group my-team --duration "90d"
 
 # 2. List group tokens

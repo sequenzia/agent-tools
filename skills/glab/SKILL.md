@@ -77,17 +77,17 @@ glab api projects/:id/merge_requests           # REST API call
 
 ```bash
 glab runner list                               # List project runners
-glab schedule create --cron "0 2 * * *" --description "Nightly" --ref main  # Create schedule
+glab schedule create --cron "0 2 * * *" --description "Nightly" --ref main   # Create schedule
 glab schedule run 42                           # Trigger schedule now
-glab job artifact 123456                       # Download job artifacts
+glab job artifact main build                    # Download job artifacts
 ```
 
 ### Tokens & Keys
 
 ```bash
-glab token create --name "ci" --scope api --duration "90d"  # Create access token
+glab token create ci --scope api --duration "90d"            # Create access token
 glab token list                                # List project tokens
-glab deploy-key add --title "CI" --key "$(cat key.pub)"     # Add deploy key
+glab deploy-key add key.pub --title "CI"                     # Add deploy key
 glab deploy-key list                           # List deploy keys
 ```
 

@@ -75,24 +75,27 @@ List issues with comprehensive filtering.
 
 | Flag | Description | Example |
 |------|-------------|---------|
-| `--state` | Filter by state (opened/closed/all) | `opened` |
+| `--closed` | Show only closed issues | — |
+| `--all` | Retrieve all issues | — |
 | `--assignee` | Filter by assignee | `@me` |
 | `--author` | Filter by author | `alice` |
 | `--label` | Filter by label (repeatable) | `--label bug` |
 | `--not-label` | Exclude labels | `--not-label wontfix` |
-| `--not-assignee` | Exclude assignees | `--not-assignee bot` |
+| `--not-assignee` | Exclude issues by assignee | `bot-user` |
+| `--not-author` | Exclude issues by author | `bot-user` |
 | `--milestone` | Filter by milestone | `"v2.0"` |
 | `--epic` | Filter by epic | `5` |
+| `--iteration` | Filter by iteration ID | `5` |
 | `--search` | Search title and description | `"timeout"` |
 | `--in` | Search scope (title/description) | `title` |
 | `--confidential` | Show only confidential issues | — |
 | `--issue-type` | Filter by type (issue/incident/test_case) | `issue` |
-| `--order` | Order by (created_at/updated_at/priority/weight) | `updated_at` |
+| `--order` | Sort by field (created_at, updated_at, priority, due_date, weight) | `created_at` |
 | `--sort` | Sort direction (asc/desc) | `desc` |
+| `--page` | Page number (default 1) | `2` |
+| `--per-page` | Items per page (default 30) | `50` |
 | `--output` | Output format (text/json) | `json` |
-| `--per-page` | Results per page | `50` |
 | `--group` | List across a group | `my-team` |
-| `--all` | List across all projects you have access to | — |
 
 ### Examples
 
@@ -101,7 +104,7 @@ List issues with comprehensive filtering.
 glab issue list --assignee=@me
 
 # Search for issues by keyword
-glab issue list --search "timeout" --state opened
+glab issue list --search "timeout"
 
 # Bugs without the "triaged" label
 glab issue list --label bug --not-label triaged
@@ -110,7 +113,7 @@ glab issue list --label bug --not-label triaged
 glab issue list --milestone "v2.0" --output json
 
 # All issues across a group
-glab issue list --group backend-team --state opened
+glab issue list --group backend-team
 
 # All issues you created across all projects
 glab issue list --all --author=@me
@@ -221,7 +224,7 @@ glab issue unsubscribe 15    # Stop notifications
 
 ```bash
 # 1. List untriaged issues
-glab issue list --not-label triaged --state opened
+glab issue list --not-label triaged
 
 # 2. View each issue
 glab issue view 15
@@ -253,7 +256,7 @@ glab issue close 20
 
 ```bash
 # Get all open bug issue IDs
-glab issue list --label bug --state opened --output json | jq '.[].iid'
+glab issue list --label bug --output json | jq '.[].iid'
 
 # Export issues to JSON for processing
 glab issue list --milestone "v2.0" --output json > sprint-issues.json

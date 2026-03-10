@@ -29,7 +29,9 @@ The endpoint is relative to `/api/v4/`. The `:id` placeholder is automatically r
 | `--paginate` | Auto-paginate results | — |
 | `--per-page` | Results per page | `100` |
 | `--hostname` | Target a specific host | `gitlab.example.com` |
-| `--output` | Output format (text/json) | `json` |
+| `--output` | Output format (json/ndjson, default "json") | `json` |
+| `--include` | Include HTTP response headers in output | — |
+| `--silent` | Suppress response body output | — |
 
 ### GET Requests
 
@@ -229,6 +231,7 @@ glab api projects/:id/pipelines/12345/test_report
 - `:id` is automatically substituted with the current project's numeric ID when run from within a git repo that has a GitLab remote.
 - For endpoints not under `/api/v4/`, you can use a full URL.
 - `-f` fields are sent as JSON in the request body for POST/PUT. For GET requests, they become query parameters.
-- `--jq` runs server-side-like filtering on the response — it's a built-in jq implementation, so you don't need `jq` installed separately.
+- `--jq` applies a jq expression to the response — it's a built-in jq implementation, so you don't need `jq` installed separately.
+- `--output ndjson` is useful for large datasets — it outputs newline-delimited JSON, one object per line, which is more memory-efficient than a single large JSON array.
 - GraphQL is better for complex queries that would require multiple REST calls — e.g., getting MR details with author, pipeline status, and approval state in a single request.
 - Rate limits apply. If you get 429 responses, reduce request frequency. `--paginate` handles rate limits automatically with backoff.

@@ -152,6 +152,8 @@ Environment variables override config file values and stored credentials.
 | `VISUAL` | Override visual editor |
 | `EDITOR` | Override text editor |
 | `GLAB_CHECK_UPDATE` | Set to `0` to disable update checks |
+| `GLAB_CONFIG_DIR` | Override config directory path (default: `~/.config/glab-cli`) |
+| `GLAB_SEND_TELEMETRY` | Set to `0` to disable telemetry |
 | `GLAB_ENABLE_CI_AUTOLOGIN` | Set to `true` for experimental CI auto-login |
 
 ## Global Flags

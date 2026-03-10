@@ -40,6 +40,7 @@ Create a new issue in the current project.
 | `--linked-issues` | Link related issues | `12,15` |
 | `--linked-mr` | Link related MR | `42` |
 | `--link-type` | Relationship type | `relates_to` |
+| `--recover` | Recover a draft issue from a previous failed creation | — |
 | `--web` | Open in browser after creation | — |
 | `--yes` | Skip confirmation | — |
 | `--no-editor` | Skip opening editor | — |

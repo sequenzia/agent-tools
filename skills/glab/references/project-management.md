@@ -256,6 +256,7 @@ Create code snippets on GitLab.
 | `--filename` | File name for syntax highlighting | `"backup.sh"` |
 | `--description` | Snippet description | `"Weekly backup script"` |
 | `--visibility` | Visibility (private/internal/public) | `private` |
+| `--personal` | Create as a personal snippet (not project-scoped) | — |
 
 ```bash
 # Create snippet from stdin
@@ -265,6 +266,10 @@ echo "SELECT * FROM users;" | glab snippet create \
 # Create from a file
 cat backup.sh | glab snippet create \
   --title "Backup script" --filename "backup.sh" --visibility internal
+
+# Create a personal snippet (not tied to a project)
+echo "useful one-liner" | glab snippet create \
+  --title "Handy script" --filename "script.sh" --personal
 ```
 
 ---

@@ -2,12 +2,15 @@
 name: glab
 description: >-
   Interact with GitLab through the glab CLI tool. Covers merge requests, issues,
-  CI/CD pipelines, repositories, releases, API requests, variables, labels,
-  milestones, and snippets. Use when the user needs to create or manage merge
-  requests, check CI pipeline status, manage GitLab issues, create releases,
-  query the GitLab API, or perform any GitLab operation from the command line.
-  Trigger on mentions of glab, GitLab CLI, merge requests, MR workflows,
-  CI pipelines, GitLab issues, or GitLab API.
+  CI/CD pipelines, runners, pipeline schedules, repositories, releases, API
+  requests, variables, labels, milestones, snippets, access tokens, deploy keys,
+  incidents, and changelogs. Use when the user needs to create or manage merge
+  requests, check CI pipeline status, manage runners or schedules, manage GitLab
+  issues or incidents, create releases, generate changelogs, manage access tokens
+  or deploy keys, query the GitLab API, or perform any GitLab operation from the
+  command line. Trigger on mentions of glab, GitLab CLI, merge requests, MR
+  workflows, CI pipelines, runners, pipeline schedules, access tokens, deploy
+  keys, incidents, GitLab issues, or GitLab API.
 ---
 
 # glab CLI Reference
@@ -68,6 +71,24 @@ glab ci run -b main                            # Trigger a pipeline on main
 glab repo clone namespace/project              # Clone a repo
 glab repo view                                 # View current project info
 glab api projects/:id/merge_requests           # REST API call
+```
+
+### Runners & Schedules
+
+```bash
+glab runner list                               # List project runners
+glab schedule create --cron "0 2 * * *" --description "Nightly" --ref main  # Create schedule
+glab schedule run 42                           # Trigger schedule now
+glab job artifact 123456                       # Download job artifacts
+```
+
+### Tokens & Keys
+
+```bash
+glab token create --name "ci" --scope api --duration "90d"  # Create access token
+glab token list                                # List project tokens
+glab deploy-key add --title "CI" --key "$(cat key.pub)"     # Add deploy key
+glab deploy-key list                           # List deploy keys
 ```
 
 ## Cross-Cutting Patterns
@@ -131,6 +152,9 @@ Some commands have aliases for convenience:
 | `glab issue list` | `glab issue ls` |
 | `glab mr list` | `glab mr ls` |
 | `glab repo` | `glab project` |
+| `glab runner list` | `glab runner ls` |
+| `glab schedule list` | `glab schedule ls` |
+| `glab incident list` | `glab incident ls` |
 
 ## Command Reference Index
 
@@ -146,10 +170,39 @@ Load the relevant reference file when a task requires flags, workflows, or subco
 | Release management | [references/releases.md](references/releases.md) | `release create`, `release download`, `release upload` |
 | GitLab API (REST and GraphQL) | [references/api.md](references/api.md) | `api` with REST paths or GraphQL queries |
 | Variables, labels, milestones, snippets | [references/project-management.md](references/project-management.md) | `variable set`, `label create`, `milestone create`, `snippet create` |
+| Runners, schedules, job artifacts | [references/runners-schedules.md](references/runners-schedules.md) | `runner list`, `schedule create`, `job artifact` |
+| Access tokens, deploy keys, SSH/GPG keys | [references/tokens-keys.md](references/tokens-keys.md) | `token create`, `token rotate`, `deploy-key add` |
+| Incidents, changelog generation | [references/incidents-changelog.md](references/incidents-changelog.md) | `incident list`, `incident close`, `changelog generate` |
+
+## Additional Commands
+
+These commands have smaller surface areas or are experimental. They are not covered in dedicated reference files.
+
+| Command | Status | Description |
+|---------|--------|-------------|
+| `glab duo` | Stable | GitLab Duo AI features (ask, chat) |
+| `glab alias` | Stable | Create command shortcuts |
+| `glab user` | Stable | View user profiles and activity |
+| `glab ssh-key` | Stable | Manage account SSH keys (see tokens-keys.md) |
+| `glab gpg-key` | Stable | Manage account GPG keys (see tokens-keys.md) |
+| `glab completion` | Stable | Generate shell completion scripts (bash/zsh/fish/powershell) |
+| `glab check-update` | Stable | Check for glab updates |
+| `glab cluster` | Stable | Manage Kubernetes cluster integrations |
+| `glab securefile` | Stable | Manage CI/CD secure files |
+| `glab iteration` | Stable | Manage group iterations |
+| `glab work-items` | Stable | Manage work items |
+| `glab mcp` | Stable | Model Context Protocol server for GitLab |
+| `glab opentofu` | Stable | OpenTofu state management |
+| `glab stack` | Experimental | Manage stacked diffs |
+| `glab attestation` | Experimental | Verify artifact attestations |
+| `glab runner-controller` | Experimental | Self-hosted runner controller management |
 
 ## When to Load References
 
 - **Simple tasks**: If the command matches a Quick Pattern above, execute directly.
 - **Complex tasks**: Load the relevant reference file when the task involves flags, multi-step workflows, or subcommands not listed above.
 - **Auth issues**: Load `references/auth-config.md` if `glab auth status` shows no authenticated host or if commands fail with 401/403 errors.
+- **Infrastructure tasks**: Load `references/runners-schedules.md` for runner management, pipeline schedules, or job artifact downloads.
+- **Security & credentials**: Load `references/tokens-keys.md` for access token management, deploy keys, or SSH/GPG key operations.
+- **Incident response**: Load `references/incidents-changelog.md` for incident management or changelog generation.
 - **Multiple areas**: Load only the reference files needed — avoid loading all references at once.

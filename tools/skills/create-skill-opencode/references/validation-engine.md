@@ -222,11 +222,11 @@ The validation engine is invoked at a specific point in the Stage 4 pipeline:
 
 1. **4.2 / 4.X: Rendering** — Generate the skill content
 2. **Structural Validation** — Run the validation engine on the rendered content
-3. **4.3: Output Path Selection** — Prompt for the output path (user sees validation results here)
-4. **4.4: File Writing** — Write the validated (and possibly auto-fixed) content
-5. **4.5: Post-Generation Summary** — Include validation status in the summary
+3. **4.4: Output Path Selection** — Prompt for the output path (user sees validation results here)
+4. **4.5: File Writing** — Write the validated (and possibly auto-fixed) content
+5. **4.6: Post-Generation Summary** — Include validation status in the summary
 
-The validation report is presented immediately after rendering and before the output path prompt, giving the user visibility into the structural quality of the skill before deciding where to save it. The post-generation summary (4.5) references the validation status in its "Validation note" section.
+The validation report is presented immediately after rendering and before the output path prompt, giving the user visibility into the structural quality of the skill before deciding where to save it. The post-generation summary (4.6) references the validation status in its "Validation note" section.
 
 ## Validation Failure Does Not Block Output
 

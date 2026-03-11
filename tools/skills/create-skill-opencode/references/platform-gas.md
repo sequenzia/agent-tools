@@ -134,16 +134,20 @@ If generation fails at any point during the rendering process:
 
 ## Output Path Prompts
 
-> Your skill file is ready! Where would you like me to save it?
->
-> I need a directory path. The skill will be saved as `{skill-name}/SKILL.md` inside the directory you specify. For example:
-> - `.agents/skills` — makes it available in this project for any compatible agent (recommended for portability)
-> - `.claude/skills` — makes it available in this project for Claude Code and OpenCode
-> - `~/.agents/skills` — makes it available globally for all projects
->
-> Enter the directory path, or press Enter for the default: `.agents/skills`
+Present the output path selection using `question` with structured options:
 
-**Default path:** `.agents/skills`
+```
+question:
+  header: "Output Path"
+  text: "Where should I save the skill? It will be written as {skill-name}/SKILL.md inside the directory you choose."
+  options:
+    - label: "~/.agents/skills — Available globally for all projects and all compatible agents (Recommended)"
+    - label: ".agents/skills — Available only in this project for any compatible agent"
+    - label: ".claude/skills — Available only in this project for Claude Code and OpenCode"
+  custom: true
+```
+
+**Default path:** `~/.agents/skills`
 
 ## GAS-Specific Validation Rules
 

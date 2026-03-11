@@ -262,15 +262,20 @@ dependencies:
 
 ## Output Path Prompts
 
-> Your skill file is ready! Where would you like me to save it?
->
-> I need a directory path. The skill will be saved as `{skill-name}/SKILL.md` (and `{skill-name}/agents/openai.yaml` if configured) inside the directory you specify. For example:
-> - `.agents/skills` — makes it available in this project for Codex
-> - `~/.agents/skills` — makes it available globally for all your projects
->
-> Enter the directory path, or press Enter for the default: `.agents/skills`
+Present the output path selection using `question` with structured options:
 
-**Default path:** `.agents/skills`
+```
+question:
+  header: "Output Path"
+  text: "Where should I save the skill? It will be written as {skill-name}/SKILL.md (and {skill-name}/agents/openai.yaml if configured) inside the directory you choose."
+  options:
+    - label: "~/.agents/skills — Available globally for all your projects (Recommended)"
+    - label: ".agents/skills — Available only in this project"
+    - label: "$REPO_ROOT/.agents/skills — Available at the repository root for all modules"
+  custom: true
+```
+
+**Default path:** `~/.agents/skills`
 
 ## Codex-Specific Validation Rules
 

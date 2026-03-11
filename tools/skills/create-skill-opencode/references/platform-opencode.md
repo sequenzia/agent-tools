@@ -44,16 +44,20 @@ When the user selects OpenCode as the target platform, the shared questions from
 
 ## Output Path Prompts
 
-> Your skill file is ready! Where would you like me to save it?
->
-> I need a directory path. The skill will be saved as `{skill-name}/SKILL.md` inside the directory you specify. For example:
-> - `.opencode/skills` — makes it available in this project for OpenCode
-> - `.claude/skills` — makes it available in this project for Claude Code and OpenCode
-> - `~/.config/opencode/skills` — makes it available globally for all OpenCode projects
->
-> Enter the directory path, or press Enter for the default: `.opencode/skills`
+Present the output path selection using `question` with structured options:
 
-**Default path:** `.opencode/skills`
+```
+question:
+  header: "Output Path"
+  text: "Where should I save the skill? It will be written as {skill-name}/SKILL.md inside the directory you choose."
+  options:
+    - label: "~/.agents/skills — Available globally for all projects (Recommended)"
+    - label: "~/.config/opencode/skills — Available globally via the OpenCode-native discovery path"
+    - label: ".agents/skills — Available only in this project"
+  custom: true
+```
+
+**Default path:** `~/.agents/skills`
 
 ## OpenCode-Specific Validation Rules
 

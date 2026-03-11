@@ -114,13 +114,13 @@ Prompt the user for a description of what the skill does using `question`.
 
 ### Step 4: Target Platform Selection
 
-Present the three supported target platforms using `question`.
+Present the three supported target platforms using `question` with `custom: false` (only these three platforms are valid).
 
 **Prompt**: Ask the user which platform they are building the skill for. Present the options clearly:
 
-1. **Generic Agent Skills** (agentskills.io) — Open specification for portable agent skills; works across any compatible agent
-2. **OpenCode** — AI coding agent with its own skill format and conventions
-3. **Codex** — OpenAI's coding agent platform with its own skill specification
+1. **Generic Agent Skills (GAS)** — Portable across Claude Code, OpenCode, Codex, and future agents (Recommended if unsure)
+2. **OpenCode** — Optimized for OpenCode with native discovery paths and permissions
+3. **Codex** — Optimized for Codex with agents/openai.yaml UI metadata and implicit invocation
 
 **Validation**:
 - Accept the user's selection if it clearly maps to one of the three platforms (accept variations like "gas", "opencode", "codex", platform numbers, or full names)
@@ -131,7 +131,7 @@ Present the three supported target platforms using `question`.
 
 ### Step 5: Interview Depth Selection
 
-Present interview depth options using `question`.
+Present interview depth options using `question` with `custom: false` (only these three depth levels are valid).
 
 **Prompt**: Ask the user how thorough they'd like the interview to be. Present three options:
 
@@ -692,20 +692,27 @@ Before rendering, load the inputs needed from prior stages:
 **From Stage 1 inputs, recall:**
 - Target platform
 
+**Load all references for Stage 4:**
+
+1. Read [references/platform-base.md](references/platform-base.md) — shared format, field definitions, and validation rules
+2. Read the platform-specific reference based on the target platform:
+   - OpenCode: [references/platform-opencode.md](references/platform-opencode.md)
+   - GAS: [references/platform-gas.md](references/platform-gas.md)
+   - Codex: [references/platform-codex.md](references/platform-codex.md)
+3. Read [references/generation-templates.md](references/generation-templates.md) — body templates, content mapping, and complexity adaptation rules
+4. Read [references/validation-engine.md](references/validation-engine.md) — validation flow, platform-specific rules, auto-fix behavior, and report formats
+
 ### 4.2 Platform-Native Rendering
-
-**Load reference**: Read [references/platform-base.md](references/platform-base.md) for shared format, field definitions, and validation rules.
-
-**Load platform reference**: Based on the target platform, read the corresponding file:
-- OpenCode: [references/platform-opencode.md](references/platform-opencode.md)
-- GAS: [references/platform-gas.md](references/platform-gas.md)
-- Codex: [references/platform-codex.md](references/platform-codex.md)
-
-**Load reference**: Read [references/generation-templates.md](references/generation-templates.md) for body templates, content mapping, and complexity adaptation rules.
 
 #### Rendering Pipeline
 
 1. **Generate frontmatter**: Build the YAML frontmatter block per platform conventions and the field definitions from the platform references. Normalize the skill name to match the validation regex. Incorporate trigger scenarios into the description for discoverability. Apply platform-specific field rules (Codex: only `name` + `description` with quoted values; GAS: core fields only for portable skills; OpenCode: include relevant optional fields).
+
+1b. **Confirm description**: Present the generated description to the user via `question` with `custom: false`:
+    - **Approve** — The description looks good
+    - **Edit** — I'd like to modify the description
+
+    If the user selects Edit, accept their revised description and incorporate it before proceeding. The description is the primary discoverability mechanism and the most impactful field to get right.
 
 2. **Generate body content**: Select the appropriate body template from generation-templates.md based on skill complexity (simple/moderate/complex) and target platform. Map outline sections to body sections — the workflow overview drives the body structure. Write as agent instructions using imperative directives. Respect the token budget (<5000 tokens for body content). Handle "[Default — please review]" items by using default values and removing markers.
 
@@ -713,24 +720,62 @@ Before rendering, load the inputs needed from prior stages:
 
 ### 4.3 Structural Validation
 
-**Load reference**: Read [references/validation-engine.md](references/validation-engine.md) for the complete validation flow, platform-specific rules, auto-fix behavior, and report formats.
-
 Run the full validation pass on the rendered content before prompting for the output path. Apply auto-fixes where possible. Present the validation report to the user alongside the generated skill content. Validation failures never block output — they inform the user of issues.
 
 ### 4.4 Output Path Selection
 
 After rendering and validation, prompt the user for the output location using `question`.
 
-**Load platform reference**: For platform-specific output path prompts and defaults, consult the relevant platform reference file's "Output Path Prompts" section.
+**Platform-specific prompts:** Present a structured `question` with platform-appropriate options. The global path (`~/.agents/skills`) is the default for all platforms and listed first as `(Recommended)`.
 
-**Platform-specific defaults:**
-- **OpenCode**: `.opencode/skills`
-- **GAS**: `.agents/skills`
-- **Codex**: `.agents/skills`
+**OpenCode:**
+
+```
+question:
+  header: "Output Path"
+  text: "Where should I save the skill? It will be written as {skill-name}/SKILL.md inside the directory you choose."
+  options:
+    - label: "~/.agents/skills — Available globally for all projects (Recommended)"
+    - label: "~/.config/opencode/skills — Available globally via the OpenCode-native discovery path"
+    - label: ".agents/skills — Available only in this project"
+  custom: true
+```
+
+**GAS:**
+
+```
+question:
+  header: "Output Path"
+  text: "Where should I save the skill? It will be written as {skill-name}/SKILL.md inside the directory you choose."
+  options:
+    - label: "~/.agents/skills — Available globally for all projects and all compatible agents (Recommended)"
+    - label: ".agents/skills — Available only in this project for any compatible agent"
+    - label: ".claude/skills — Available only in this project for Claude Code and OpenCode"
+  custom: true
+```
+
+**Codex:**
+
+```
+question:
+  header: "Output Path"
+  text: "Where should I save the skill? It will be written as {skill-name}/SKILL.md (and {skill-name}/agents/openai.yaml if configured) inside the directory you choose."
+  options:
+    - label: "~/.agents/skills — Available globally for all your projects (Recommended)"
+    - label: ".agents/skills — Available only in this project"
+    - label: "$REPO_ROOT/.agents/skills — Available at the repository root for all modules"
+  custom: true
+```
+
+**Platform-specific defaults (all global):**
+- **OpenCode**: `~/.agents/skills`
+- **GAS**: `~/.agents/skills`
+- **Codex**: `~/.agents/skills`
 
 **Handling the response:**
-- If the user provides a path, use it as the parent directory
-- If the user provides an empty response or says "default", use the platform-specific default path relative to the current working directory
+- If the user selects a predefined option, extract the path portion (everything before the ` — ` delimiter) and use it as the parent directory
+- If the user provides a custom path, use it as the parent directory
+- If the path starts with `~`, expand it to the user's home directory
 - If the user provides a full file path ending in `SKILL.md` or `.md`, extract the directory portion and use that
 - If the user provides a path that already includes the skill name directory, detect this and do not double-nest (e.g., if they provide `.agents/skills/my-skill`, write to `.agents/skills/my-skill/SKILL.md`, not `.agents/skills/my-skill/my-skill/SKILL.md`)
 

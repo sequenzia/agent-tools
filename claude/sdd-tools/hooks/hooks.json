@@ -1,0 +1,49 @@
+{
+  "description": "SDD execution quality gates and auto-approvals",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/auto-approve-session.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "TaskCompleted": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/verify-task-completion.sh",
+            "timeout": 120
+          }
+        ]
+      }
+    ],
+    "TeammateIdle": [
+      {
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "Before going idle, check if your role is to implement a specific task (you are a task executor). If so, verify: 1) Have you sent a TASK RESULT message to the wave-lead with your task's status (PASS/PARTIAL/FAIL)? 2) Have you sent a CONTEXT CONTRIBUTION message to the context manager with any learnings? If either is missing, send it now. If you are NOT a task executor (e.g., you are a context manager or wave-lead), this check does not apply to you."
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/resolve-cross-plugins.sh ${CLAUDE_PLUGIN_ROOT}",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

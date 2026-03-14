@@ -88,7 +88,7 @@ Execute these phases in order, completing ALL of them:
 
 2. **Launch code-architect subagents:**
 
-   Spawn 2-3 subagents using the code-architect instructions from `../agents/code-architect.md` with different approaches:
+   Spawn 2-3 subagents using the code-architect instructions from `../../agents/code-architect.md` with different approaches:
    ```
    Agent 1: Design a minimal, focused approach prioritizing simplicity
    Agent 2: Design a flexible, extensible approach prioritizing future changes
@@ -170,7 +170,7 @@ Execute these phases in order, completing ALL of them:
 
 2. **Launch code-reviewer subagents:**
 
-   Spawn 3 subagents using the code-reviewer instructions from `../agents/code-reviewer.md` with different focuses:
+   Spawn 3 subagents using the code-reviewer instructions from `../../agents/code-reviewer.md` with different focuses:
    ```
    Agent 1: Review for correctness and edge cases
    Agent 2: Review for security and error handling

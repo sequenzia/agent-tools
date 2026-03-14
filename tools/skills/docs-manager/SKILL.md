@@ -184,7 +184,7 @@ After deep-analysis, additionally:
 ### For change-summary path (instead of deep-analysis)
 
 1. Run `git log --oneline [range]` and `git diff --stat [range]`
-2. Spawn a subagent using the code-explorer instructions from `../agents/code-explorer.md` to analyze the changed files:
+2. Spawn a subagent using the code-explorer instructions from `../../agents/code-explorer.md` to analyze the changed files:
    ```
    Analysis context: Change summary for [range]
    Focus area: These files changed in the specified range:
@@ -250,7 +250,7 @@ Ask the user:
 
 ### Step 3 — Launch docs-writer agents
 
-Spawn subagents using the docs-writer instructions from `../agents/docs-writer.md`. Use a high-capability model for content generation.
+Spawn subagents using the docs-writer instructions from `../../agents/docs-writer.md`. Use a high-capability model for content generation.
 
 Launch independent pages/files in parallel, then sequential for dependent ones (include generated content from independent pages in the prompt context).
 

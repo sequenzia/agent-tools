@@ -207,8 +207,8 @@ For each item:
 
 2. **Plan the fix:**
    - Simple: Read the target file, propose changes directly
-   - Complex (architectural): Spawn a subagent using the code-architect instructions from `../agents/code-architect.md` with context: the item title, severity, description, the relevant report section text (copy the specific Challenges/Recommendations entry), and any files or components mentioned. The subagent designs the fix and returns a proposal.
-   - Complex (needs investigation): Spawn a subagent using the code-explorer instructions from `../agents/code-explorer.md` with context: the item title, description, suspected files/components, and what needs investigation. The subagent explores and returns findings for you to formulate a fix proposal.
+   - Complex (architectural): Spawn a subagent using the code-architect instructions from `../../agents/code-architect.md` with context: the item title, severity, description, the relevant report section text (copy the specific Challenges/Recommendations entry), and any files or components mentioned. The subagent designs the fix and returns a proposal.
+   - Complex (needs investigation): Spawn a subagent using the code-explorer instructions from `../../agents/code-explorer.md` with context: the item title, description, suspected files/components, and what needs investigation. The subagent explores and returns findings for you to formulate a fix proposal.
    - If a subagent launch fails, fall back to direct investigation using Read/Glob/Grep and propose a simpler fix based on available information.
 
 3. **Present proposal:** Show files to modify, specific changes, and rationale
@@ -263,8 +263,8 @@ If a code-architect or code-explorer subagent fails during actionable insight pr
 Exploration and synthesis coordination is handled by the `deep-analysis` skill in Phase 1, which uses a hub-and-spoke subagent model. The orchestrator performs reconnaissance, composes a team plan (auto-approved when invoked by another skill), spawns subagents for parallel exploration and synthesis, and manages their lifecycle. See the deep-analysis skill for subagent setup, approval flow, model tiers, and failure handling details.
 
 For actionable insight processing in Phase 3, subagents are spawned individually as needed:
-- **code-architect** subagent (from `../agents/code-architect.md`) -- designs fixes for architectural issues
-- **code-explorer** subagent (from `../agents/code-explorer.md`) -- investigates complex issues requiring deeper exploration
+- **code-architect** subagent (from `../../agents/code-architect.md`) -- designs fixes for architectural issues
+- **code-explorer** subagent (from `../../agents/code-explorer.md`) -- investigates complex issues requiring deeper exploration
 
 ---
 

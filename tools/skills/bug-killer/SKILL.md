@@ -137,7 +137,7 @@ For deep-track bugs, use parallel exploration agents:
 
 2. **Launch code-explorer subagents:**
 
-   Spawn 2-3 subagents using the code-explorer instructions from `../agents/code-explorer.md`
+   Spawn 2-3 subagents using the code-explorer instructions from `../../agents/code-explorer.md`
 
    Prompt for each subagent:
    - Bug context: [description of the bug and error]
@@ -196,7 +196,7 @@ For deep-track bugs:
 
 2. **Launch bug-investigator subagents:**
 
-   Spawn 1-3 subagents using the bug-investigator instructions from `../agents/bug-investigator.md`
+   Spawn 1-3 subagents using the bug-investigator instructions from `../../agents/bug-investigator.md`
 
    Prompt for each subagent:
    - Bug context: [description of the bug and error]
@@ -425,13 +425,13 @@ The hypothesis journal is the core artifact of this workflow. Maintain it throug
 
 ### Code Explorers (Phase 2, deep track)
 
-Spawn subagents using the code-explorer instructions from `../agents/code-explorer.md`
+Spawn subagents using the code-explorer instructions from `../../agents/code-explorer.md`
 
 These are standard-capability read-only subagents that explore codebase areas. Give each a distinct focus area related to the bug. They report structured findings.
 
 ### Bug Investigators (Phase 3, deep track)
 
-Spawn subagents using the bug-investigator instructions from `../agents/bug-investigator.md`
+Spawn subagents using the bug-investigator instructions from `../../agents/bug-investigator.md`
 
 These are standard-capability subagents with Bash access for running tests and git commands, but no Write/Edit — they investigate and report evidence, they don't fix code. Give each a specific hypothesis to test.
 

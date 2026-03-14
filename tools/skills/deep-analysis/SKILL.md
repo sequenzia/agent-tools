@@ -142,7 +142,7 @@ If cycles are exhausted, offer "Approve current plan" or "Abort analysis".
 
 ### Step 1: Spawn Explorers
 
-For each focus area in the approved plan, spawn a subagent using the code-explorer instructions from `../agents/code-explorer.md`. Each explorer receives:
+For each focus area in the approved plan, spawn a subagent using the code-explorer instructions from `../../agents/code-explorer.md`. Each explorer receives:
 
 - The focus area assignment (label, directories, starting files, search patterns)
 - The codebase path
@@ -173,7 +173,7 @@ Wait for all explorer subagents to complete and collect their structured finding
 
 ### Step 1: Launch Synthesizer
 
-Spawn a subagent using the code-synthesizer instructions from `../agents/code-synthesizer.md`. Provide it with:
+Spawn a subagent using the code-synthesizer instructions from `../../agents/code-synthesizer.md`. Provide it with:
 
 - All explorer findings collected in Phase 2
 - The reconnaissance summary from Phase 1

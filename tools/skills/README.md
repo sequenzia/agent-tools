@@ -37,7 +37,7 @@ Reusable skills and agents for codebase analysis, feature development, debugging
 ## Directory Structure
 
 ```
-skills/
+tools/
 ├── agents/
 │   ├── code-architect.md
 │   ├── code-explorer.md
@@ -46,20 +46,21 @@ skills/
 │   ├── bug-investigator.md
 │   ├── changelog-manager.md
 │   └── docs-writer.md
-├── codebase-analysis/
-├── deep-analysis/
-├── language-patterns/
-├── project-conventions/
-├── technical-diagrams/
-├── architecture-patterns/
-├── bug-killer/
-├── changelog-format/
-├── code-quality/
-├── docs-manager/
-├── document-changes/
-├── feature-dev/
-├── project-learnings/
-├── release-python-package/
-├── git-commit/
-└── README.md
+└── skills/
+    ├── codebase-analysis/
+    ├── deep-analysis/
+    ├── language-patterns/
+    ├── project-conventions/
+    ├── technical-diagrams/
+    ├── architecture-patterns/
+    ├── bug-killer/
+    ├── changelog-format/
+    ├── code-quality/
+    ├── docs-manager/
+    ├── document-changes/
+    ├── feature-dev/
+    ├── project-learnings/
+    ├── release-python-package/
+    ├── git-commit/
+    └── README.md
 ```

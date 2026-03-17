@@ -103,7 +103,7 @@ Options:
 
 **If user selects "Yes":**
 
-Spawn a subagent using the changelog-manager instructions from `../../agents/changelog-manager.md`:
+Spawn a subagent using the changelog-manager instructions from `agents/changelog-manager.md`:
 - Prompt: "Analyze commits since the last release and update the CHANGELOG.md [Unreleased] section"
 - The agent will analyze commits, suggest entries, and update CHANGELOG.md after user approval
 - Wait for the agent to complete before proceeding
@@ -269,6 +269,22 @@ Next steps:
 - GitHub/GitLab will create a release from the tag
 - Publish to PyPI if configured in CI
 ```
+
+---
+
+## Agents
+
+This skill uses the following agents:
+
+| Agent | File | Dependencies |
+|-------|------|--------------|
+| changelog-manager | `agents/changelog-manager.md` | none |
+
+## Execution Strategy
+
+**If subagent dispatch is available:** Dispatch the changelog-manager as a subagent in Step 5, passing the contents of `agents/changelog-manager.md` as the task instructions. Wait for the agent to complete before proceeding to Step 6.
+
+**If subagent dispatch is not available:** Read `agents/changelog-manager.md` and follow its instructions directly in Step 5. Complete all changelog updates before proceeding to Step 6.
 
 ---
 

@@ -184,7 +184,7 @@ After deep-analysis, additionally:
 ### For change-summary path (instead of deep-analysis)
 
 1. Run `git log --oneline [range]` and `git diff --stat [range]`
-2. Spawn a subagent using the code-explorer instructions from `../../agents/code-explorer.md` to analyze the changed files:
+2. Invoke the `code-exploration` skill by reading `../code-exploration/SKILL.md` and following its workflow to analyze the changed files:
    ```
    Analysis context: Change summary for [range]
    Focus area: These files changed in the specified range:
@@ -250,7 +250,7 @@ Ask the user:
 
 ### Step 3 — Launch docs-writer agents
 
-Spawn subagents using the docs-writer instructions from `../../agents/docs-writer.md`. Use a high-capability model for content generation.
+Spawn subagents using the docs-writer instructions from `agents/docs-writer.md`. Use a high-capability model for content generation.
 
 Launch independent pages/files in parallel, then sequential for dependent ones (include generated content from independent pages in the prompt context).
 
@@ -388,10 +388,30 @@ If the project is not a git repository:
 
 ---
 
+## Agents
+
+This skill uses the following agents directly:
+
+| Agent | File | Dependencies |
+|-------|------|--------------|
+| docs-writer | `agents/docs-writer.md` | none |
+
+Additionally, this skill invokes the following skills for agent access:
+- `deep-analysis` — for codebase exploration and synthesis (Phase 3)
+- `code-exploration` — for focused file analysis in change-summary path (Phase 3)
+
+## Execution Strategy
+
+Execute agents respecting their dependency graph.
+
+**If subagent dispatch is available:** Dispatch docs-writer agents in parallel for independent pages/files (Phase 5), passing the contents of `agents/docs-writer.md` as the task instructions. Dispatch dependent pages sequentially after their dependencies complete.
+
+**If subagent dispatch is not available:** Read `agents/docs-writer.md` and follow its instructions sequentially for each page/file. Write all outputs before proceeding to the next.
+
 ## Agent Coordination
 
-- **Phase 3**: Exploration and synthesis handled by the deep-analysis skill, which spawns parallel explorer subagents and a synthesizer subagent. When invoked by this skill, the deep-analysis plan is auto-approved.
-- **Phase 5**: docs-writer subagents spawned with a high-capability model for quality content generation. Launch independent pages in parallel, dependent pages sequentially.
+- **Phase 3**: Exploration and synthesis handled by the deep-analysis skill (auto-approved when skill-invoked). Change-summary path uses the code-exploration skill for focused file analysis.
+- **Phase 5**: docs-writer subagents from `agents/docs-writer.md` spawned with a high-capability model for quality content generation. Launch independent pages in parallel, dependent pages sequentially.
 
 ---
 

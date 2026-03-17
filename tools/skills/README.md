@@ -2,65 +2,120 @@
 
 Reusable skills and agents for codebase analysis, feature development, debugging, documentation, and git workflows.
 
+## Architecture
+
+Agents are nested inside the skills that own them. Each skill with agents has an `agents/` subdirectory containing the agent markdown files and a corresponding **Agents** table and **Execution Strategy** section in its SKILL.md.
+
+**Shared agents** are wrapped in dedicated skills rather than duplicated. Skills that need a shared agent invoke the wrapper skill, which handles dispatch. This keeps a single source of truth for each agent while enabling cross-skill reuse.
+
+### Execution Strategy Pattern
+
+Every skill that uses agents includes capability-aware execution instructions:
+
+- **If subagent dispatch is available** (e.g., Claude Code): dispatch agents in parallel as subagents
+- **If subagent dispatch is not available**: execute agents sequentially, reading each agent file and following its instructions inline
+
+This makes skills portable across harnesses with different capabilities.
+
 ## Skills
+
+### Orchestrator Skills (use agents via subskills or directly)
+
+| Skill | Agents Owned | Skills Invoked | Description |
+|-------|-------------|----------------|-------------|
+| `deep-analysis` | code-synthesizer | code-exploration | Hub-and-spoke analysis with dynamic planning. Spawns explorers via code-exploration skill, synthesizes findings. |
+| `feature-dev` | code-reviewer | deep-analysis, code-architecture | 7-phase feature development: Discovery, Exploration, Questions, Architecture, Implementation, Review, Summary. |
+| `bug-killer` | bug-investigator | code-exploration | Hypothesis-driven debugging: Triage, Investigation, Root Cause, Fix & Verify, Wrap-up. Supports `--deep` flag. |
+| `docs-manager` | docs-writer | deep-analysis, code-exploration | Documentation management with MkDocs integration. Generates markdown files, updates navigation, handles change summaries. |
+| `codebase-analysis` | _(none)_ | deep-analysis, code-exploration, code-architecture | Structured 3-phase workflow: deep analysis, reporting, and post-analysis actions. |
+| `release-python-package` | changelog-manager | _(none)_ | Python package release automation workflow. |
+
+### Wrapper Skills (shared agent access)
+
+| Skill | Agent Wrapped | Used By |
+|-------|--------------|---------|
+| `code-exploration` | code-explorer | deep-analysis, bug-killer, docs-manager, codebase-analysis |
+| `code-architecture` | code-architect | feature-dev, codebase-analysis |
+
+### Knowledge Skills (no agents)
 
 | Skill | Description |
 |-------|-------------|
-| `deep-analysis` | Hub-and-spoke analysis with dynamic planning. Performs reconnaissance, spawns explorer subagents, and synthesizes findings. |
-| `codebase-analysis` | Structured 3-phase workflow: deep analysis, reporting, and post-analysis actions (save report, update docs, address insights). |
-| `feature-dev` | 7-phase feature development: Discovery, Exploration, Questions, Architecture, Implementation, Review, Summary. |
-| `bug-killer` | Hypothesis-driven debugging: Triage & Reproduction, Investigation, Root Cause Analysis, Fix & Verify, Wrap-up & Report. Supports `--deep` flag. |
-| `docs-manager` | Documentation management with MkDocs integration. Generates markdown files, updates navigation, handles change summaries. |
-| `document-changes` | Generate a markdown report documenting session changes -- files affected, change details, and commit history. |
-| `release-python-package` | Python package release automation workflow. |
-| `git-commit` | Automates git commits following Conventional Commits format. |
 | `language-patterns` | TypeScript, Python, and React patterns, idioms, and best practices. |
 | `project-conventions` | Discovers and applies project-specific conventions (naming, structure, patterns). |
 | `technical-diagrams` | Mermaid diagram syntax, styling, and best practices for flowcharts, sequence, class, state, ER, and C4 diagrams. |
 | `architecture-patterns` | Design patterns and architectural approaches. |
 | `code-quality` | Quality criteria and review guidelines. |
-| `project-learnings` | Captures project-specific patterns and anti-patterns into the project's AGENTS.md. |
 | `changelog-format` | Keep a Changelog format guidelines with entry examples. |
+
+### Utility Skills (standalone workflows, no agents)
+
+| Skill | Description |
+|-------|-------------|
+| `document-changes` | Generate a markdown report documenting session changes. |
+| `git-commit` | Automates git commits following Conventional Commits format. |
+| `project-learnings` | Captures project-specific patterns and anti-patterns into the project's AGENTS.md. |
 
 ## Agents
 
-| Agent | Purpose |
-|-------|---------|
-| `code-explorer` | Focused area exploration worker. Reads files, searches patterns, produces structured reports. |
-| `code-synthesizer` | Merges exploration findings into unified analysis. Has bash access for git history, dependency trees, and static analysis. |
-| `code-architect` | Designs implementation blueprints with minimal, flexible, and project-aligned approaches. |
-| `code-reviewer` | Quality review with confidence-scored findings. |
-| `bug-investigator` | Diagnostic investigation agent for testing debugging hypotheses. |
-| `changelog-manager` | Manages CHANGELOG.md entries following Keep a Changelog format. |
-| `docs-writer` | Generates and updates documentation files. |
+All agents live inside the skill that owns them:
+
+| Agent | Location | Purpose |
+|-------|----------|---------|
+| `code-explorer` | `code-exploration/agents/` | Focused area exploration worker. Reads files, searches patterns, produces structured reports. |
+| `code-architect` | `code-architecture/agents/` | Designs implementation blueprints with minimal, flexible, and project-aligned approaches. |
+| `code-synthesizer` | `deep-analysis/agents/` | Merges exploration findings into unified analysis. Has bash access for git history and dependency analysis. |
+| `code-reviewer` | `feature-dev/agents/` | Quality review with confidence-scored findings. |
+| `bug-investigator` | `bug-killer/agents/` | Diagnostic investigation agent for testing debugging hypotheses. |
+| `docs-writer` | `docs-manager/agents/` | Generates and updates documentation files in MkDocs or basic markdown format. |
+| `changelog-manager` | `release-python-package/agents/` | Manages CHANGELOG.md entries following Keep a Changelog format. |
 
 ## Directory Structure
 
 ```
-tools/
-├── agents/
-│   ├── code-architect.md
-│   ├── code-explorer.md
-│   ├── code-synthesizer.md
-│   ├── code-reviewer.md
-│   ├── bug-investigator.md
-│   ├── changelog-manager.md
-│   └── docs-writer.md
-└── skills/
-    ├── codebase-analysis/
-    ├── deep-analysis/
-    ├── language-patterns/
-    ├── project-conventions/
-    ├── technical-diagrams/
-    ├── architecture-patterns/
-    ├── bug-killer/
-    ├── changelog-format/
-    ├── code-quality/
-    ├── docs-manager/
-    ├── document-changes/
-    ├── feature-dev/
-    ├── project-learnings/
-    ├── release-python-package/
-    ├── git-commit/
-    └── README.md
+tools/skills/
+├── code-exploration/              (wrapper: code-explorer)
+│   ├── SKILL.md
+│   └── agents/
+│       └── code-explorer.md
+├── code-architecture/             (wrapper: code-architect)
+│   ├── SKILL.md
+│   └── agents/
+│       └── code-architect.md
+├── deep-analysis/
+│   ├── SKILL.md
+│   └── agents/
+│       └── code-synthesizer.md
+├── feature-dev/
+│   ├── SKILL.md
+│   ├── agents/
+│   │   └── code-reviewer.md
+│   └── references/
+├── bug-killer/
+│   ├── SKILL.md
+│   ├── agents/
+│   │   └── bug-investigator.md
+│   └── references/
+├── docs-manager/
+│   ├── SKILL.md
+│   ├── agents/
+│   │   └── docs-writer.md
+│   └── references/
+├── codebase-analysis/
+│   ├── SKILL.md
+│   └── references/
+├── release-python-package/
+│   ├── SKILL.md
+│   └── agents/
+│       └── changelog-manager.md
+├── architecture-patterns/
+├── changelog-format/
+├── code-quality/
+├── document-changes/
+├── git-commit/
+├── language-patterns/
+├── project-conventions/
+├── project-learnings/
+├── technical-diagrams/
+└── README.md
 ```

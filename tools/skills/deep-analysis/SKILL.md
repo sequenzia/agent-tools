@@ -142,7 +142,7 @@ If cycles are exhausted, offer "Approve current plan" or "Abort analysis".
 
 ### Step 1: Spawn Explorers
 
-For each focus area in the approved plan, spawn a subagent using the code-explorer instructions from `../../agents/code-explorer.md`. Each explorer receives:
+For each focus area in the approved plan, invoke the `code-exploration` skill by reading `../code-exploration/SKILL.md` and following its workflow. Each explorer receives:
 
 - The focus area assignment (label, directories, starting files, search patterns)
 - The codebase path
@@ -173,7 +173,7 @@ Wait for all explorer subagents to complete and collect their structured finding
 
 ### Step 1: Launch Synthesizer
 
-Spawn a subagent using the code-synthesizer instructions from `../../agents/code-synthesizer.md`. Provide it with:
+Spawn a subagent using the code-synthesizer instructions from `agents/code-synthesizer.md`. Provide it with:
 
 - All explorer findings collected in Phase 2
 - The reconnaissance summary from Phase 1
@@ -234,10 +234,30 @@ If any phase fails:
 
 ---
 
+## Agents
+
+This skill uses the following agents directly:
+
+| Agent | File | Dependencies |
+|-------|------|--------------|
+| code-synthesizer | `agents/code-synthesizer.md` | code-explorer (via code-exploration skill) |
+
+Additionally, this skill invokes the following skills for agent access:
+- `code-exploration` — dispatches code-explorer agents for focused area investigation
+
+## Execution Strategy
+
+Execute agents respecting their dependency graph.
+
+**If subagent dispatch is available:** Dispatch each code-exploration invocation as a parallel subagent via the code-exploration skill. Once all explorers complete, dispatch the code-synthesizer as a subagent, passing the contents of `agents/code-synthesizer.md` as the task instructions along with all explorer findings. Wait for synthesis to complete before returning results.
+
+**If subagent dispatch is not available:** For each focus area, read `../code-exploration/SKILL.md` and follow its workflow sequentially, writing findings to output before proceeding to the next area. After all exploration is complete, read `agents/code-synthesizer.md` and follow its instructions to merge all findings into a unified analysis.
+
 ## Agent Coordination
 
 - The lead (you) acts as the planner: performs recon, composes the plan, handles approval
 - Explorer subagents work independently — no cross-explorer communication (hub-and-spoke topology)
+- Explorers are dispatched via the `code-exploration` skill, not directly
 - The synthesizer investigates gaps directly using its own tools rather than messaging explorers
 - The synthesizer has bash access for deep investigation (git history, dependency trees, static analysis)
 - Handle subagent failures gracefully — continue with partial results when possible

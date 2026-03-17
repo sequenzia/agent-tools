@@ -88,14 +88,14 @@ Execute these phases in order, completing ALL of them:
 
 2. **Launch code-architect subagents:**
 
-   Spawn 2-3 subagents using the code-architect instructions from `../../agents/code-architect.md` with different approaches:
+   Invoke the `code-architecture` skill by reading `../code-architecture/SKILL.md` and following its workflow. Spawn 2-3 instances with different approaches:
    ```
    Agent 1: Design a minimal, focused approach prioritizing simplicity
    Agent 2: Design a flexible, extensible approach prioritizing future changes
    Agent 3: Design an approach optimized for the project's existing patterns (if applicable)
    ```
 
-   For each approach, spawn a subagent with the code-architect instructions and the specific design brief:
+   For each approach, invoke the code-architecture skill with the specific design brief:
    ```
    Feature: [feature description]
    Design approach: [specific approach for this agent]
@@ -170,14 +170,14 @@ Execute these phases in order, completing ALL of them:
 
 2. **Launch code-reviewer subagents:**
 
-   Spawn 3 subagents using the code-reviewer instructions from `../../agents/code-reviewer.md` with different focuses:
+   Spawn 3 subagents using the code-reviewer instructions from `agents/code-reviewer.md` with different focuses:
    ```
    Agent 1: Review for correctness and edge cases
    Agent 2: Review for security and error handling
    Agent 3: Review for maintainability and code quality
    ```
 
-   For each review focus, spawn a subagent with the code-reviewer instructions and the specific review brief:
+   For each review focus, spawn a subagent with the code-reviewer instructions from `agents/code-reviewer.md` and the specific review brief:
    ```
    Review focus: [specific focus for this agent]
 
@@ -258,16 +258,35 @@ If any phase fails:
 
 ---
 
+## Agents
+
+This skill uses the following agents directly:
+
+| Agent | File | Dependencies |
+|-------|------|--------------|
+| code-reviewer | `agents/code-reviewer.md` | none |
+
+Additionally, this skill invokes the following skills for agent access:
+- `deep-analysis` — for codebase exploration and synthesis (Phase 2)
+- `code-architecture` — for architectural design via code-architect agents (Phase 4)
+
+## Execution Strategy
+
+Execute agents respecting their dependency graph.
+
+**If subagent dispatch is available:** Dispatch code-architecture invocations in parallel for different design approaches (Phase 4). Dispatch code-reviewer agents in parallel with different review focuses (Phase 6), passing the contents of `agents/code-reviewer.md` as the task instructions. Wait for all subagents to complete before proceeding.
+
+**If subagent dispatch is not available:** For Phase 4, invoke the code-architecture skill sequentially for each design approach. For Phase 6, read `agents/code-reviewer.md` and follow its instructions sequentially for each review focus. Write outputs before proceeding to the next review.
+
 ## Agent Coordination
 
-Exploration and synthesis agent coordination is handled by the `deep-analysis` skill in Phase 2. Deep-analysis performs reconnaissance, composes a team plan (auto-approved when invoked by another skill), and manages the exploration/synthesis lifecycle. See that skill for setup, approval flow, and failure handling details.
-
-When launching parallel subagents (code-architect, code-reviewer):
+- Exploration and synthesis are handled by the `deep-analysis` skill in Phase 2 (auto-approved when skill-invoked)
+- Architectural design is handled by the `code-architecture` skill in Phase 4
+- Code review uses this skill's own `agents/code-reviewer.md` in Phase 6
 - Give each subagent a distinct focus area
 - Wait for all subagents to complete before proceeding
 - Handle subagent failures gracefully (continue with partial results)
-
-Spawn subagents using their instruction files. Use a high-capability model for architecture design and code review. Exploration and synthesis are handled by the deep-analysis skill.
+- Use a high-capability model for architecture design and code review
 
 ## Additional Resources
 

@@ -137,7 +137,7 @@ For deep-track bugs, use parallel exploration agents:
 
 2. **Launch code-explorer subagents:**
 
-   Spawn 2-3 subagents using the code-explorer instructions from `../../agents/code-explorer.md`
+   Invoke the `code-exploration` skill by reading `../code-exploration/SKILL.md` and following its workflow. Spawn 2-3 instances
 
    Prompt for each subagent:
    - Bug context: [description of the bug and error]
@@ -196,7 +196,7 @@ For deep-track bugs:
 
 2. **Launch bug-investigator subagents:**
 
-   Spawn 1-3 subagents using the bug-investigator instructions from `../../agents/bug-investigator.md`
+   Spawn 1-3 subagents using the bug-investigator instructions from `agents/bug-investigator.md`
 
    Prompt for each subagent:
    - Bug context: [description of the bug and error]
@@ -423,17 +423,34 @@ The hypothesis journal is the core artifact of this workflow. Maintain it throug
 
 ## Agent Coordination
 
+## Agents
+
+This skill uses the following agents directly:
+
+| Agent | File | Dependencies |
+|-------|------|--------------|
+| bug-investigator | `agents/bug-investigator.md` | none |
+
+Additionally, this skill invokes the following skills for agent access:
+- `code-exploration` — dispatches code-explorer agents for focused investigation (Phase 2, deep track)
+
+## Execution Strategy
+
+Execute agents respecting their dependency graph.
+
+**If subagent dispatch is available:** Dispatch code-exploration invocations in parallel for independent focus areas (Phase 2). Dispatch bug-investigator agents in parallel for independent hypotheses (Phase 3), passing the contents of `agents/bug-investigator.md` as the task instructions. Wait for all subagents to complete before proceeding.
+
+**If subagent dispatch is not available:** For Phase 2, invoke the code-exploration skill sequentially for each focus area. For Phase 3, read `agents/bug-investigator.md` and follow its instructions sequentially for each hypothesis. Write outputs before proceeding to the next.
+
 ### Code Explorers (Phase 2, deep track)
 
-Spawn subagents using the code-explorer instructions from `../../agents/code-explorer.md`
-
-These are standard-capability read-only subagents that explore codebase areas. Give each a distinct focus area related to the bug. They report structured findings.
+Invoke the `code-exploration` skill for each focus area. These are read-only exploration tasks. Give each a distinct focus area related to the bug. They report structured findings.
 
 ### Bug Investigators (Phase 3, deep track)
 
-Spawn subagents using the bug-investigator instructions from `../../agents/bug-investigator.md`
+Spawn subagents using the bug-investigator instructions from `agents/bug-investigator.md`.
 
-These are standard-capability subagents with Bash access for running tests and git commands, but no Write/Edit — they investigate and report evidence, they don't fix code. Give each a specific hypothesis to test.
+These are subagents with Bash access for running tests and git commands, but no Write/Edit — they investigate and report evidence, they don't fix code. Give each a specific hypothesis to test.
 
 ### Error Handling
 

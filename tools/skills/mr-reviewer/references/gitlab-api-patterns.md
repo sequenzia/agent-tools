@@ -1,6 +1,6 @@
 # GitLab API Patterns for MR Commenting
 
-Patterns for posting line-level diff comments and summary notes on GitLab merge requests using `glab api` and `glab mr note`. For general `glab api` usage, see `@skills/glab/references/api.md`. For MR subcommand reference, see `@skills/glab/references/merge-requests.md`.
+Patterns for posting line-level diff comments and summary notes on GitLab merge requests using `glab api` and `glab mr note`. For general `glab api` usage, see `../glab/references/api.md`. For MR subcommand reference, see `../glab/references/merge-requests.md`.
 
 ## Discussions API Overview
 

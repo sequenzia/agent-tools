@@ -29,6 +29,7 @@ This makes skills portable across harnesses with different capabilities.
 | `docs-manager` | docs-writer | deep-analysis, code-exploration | Documentation management with MkDocs integration. Generates markdown files, updates navigation, handles change summaries. |
 | `codebase-analysis` | _(none)_ | deep-analysis, code-exploration, code-architecture | Structured 3-phase workflow: deep analysis, reporting, and post-analysis actions. |
 | `release-python-package` | changelog-manager | _(none)_ | Python package release automation workflow. |
+| `mr-reviewer` | codebase-understanding, code-quality, git-history | glab | Automated MR review: dispatches 3 parallel agents for codebase, quality, and history analysis. Produces structured reports and/or GitLab line-level comments. |
 
 ### Wrapper Skills (shared agent access)
 
@@ -69,6 +70,9 @@ All agents live inside the skill that owns them:
 | `bug-investigator` | `bug-killer/agents/` | Diagnostic investigation agent for testing debugging hypotheses. |
 | `docs-writer` | `docs-manager/agents/` | Generates and updates documentation files in MkDocs or basic markdown format. |
 | `changelog-manager` | `release-python-package/agents/` | Manages CHANGELOG.md entries following Keep a Changelog format. |
+| `codebase-understanding` | `mr-reviewer/agents/` | Analyzes MR changed files and surrounding codebase context for convention, architecture, and integration issues. |
+| `code-quality` | `mr-reviewer/agents/` | Analyzes code changes for bugs, quality issues, best practice violations, and missing error handling. |
+| `git-history` | `mr-reviewer/agents/` | Examines git history of changed files for regression risks, high-churn areas, and historical context. |
 
 ## Directory Structure
 
@@ -101,6 +105,15 @@ tools/skills/
 │   ├── agents/
 │   │   └── docs-writer.md
 │   └── references/
+├── mr-reviewer/
+│   ├── SKILL.md
+│   ├── agents/
+│   │   ├── codebase-understanding.md
+│   │   ├── code-quality.md
+│   │   └── git-history.md
+│   └── references/
+│       ├── finding-schema.md
+│       └── gitlab-api-patterns.md
 ├── codebase-analysis/
 │   ├── SKILL.md
 │   └── references/

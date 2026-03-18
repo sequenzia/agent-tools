@@ -30,6 +30,7 @@ This makes skills portable across harnesses with different capabilities.
 | `codebase-analysis` | _(none)_ | deep-analysis, code-exploration, code-architecture | Structured 3-phase workflow: deep analysis, reporting, and post-analysis actions. |
 | `release-python-package` | changelog-manager | _(none)_ | Python package release automation workflow. |
 | `mr-reviewer` | codebase-understanding, code-quality, git-history | glab | Automated MR review: dispatches 3 parallel agents for codebase, quality, and history analysis. Produces structured reports and/or GitLab line-level comments. |
+| `create-spec` | _(none)_ | code-exploration, research | Adaptive interview-driven spec creation with codebase exploration, proactive recommendations, and research. Supports high-level, detailed, and full technical documentation depths. |
 
 ### Wrapper Skills (shared agent access)
 
@@ -37,6 +38,7 @@ This makes skills portable across harnesses with different capabilities.
 |-------|--------------|---------|
 | `code-exploration` | code-explorer | deep-analysis, bug-killer, docs-manager, codebase-analysis |
 | `code-architecture` | code-architect | feature-dev, codebase-analysis |
+| `research` | researcher | create-spec |
 
 ### Knowledge Skills (no agents)
 
@@ -73,6 +75,7 @@ All agents live inside the skill that owns them:
 | `codebase-understanding` | `mr-reviewer/agents/` | Analyzes MR changed files and surrounding codebase context for convention, architecture, and integration issues. |
 | `code-quality` | `mr-reviewer/agents/` | Analyzes code changes for bugs, quality issues, best practice violations, and missing error handling. |
 | `git-history` | `mr-reviewer/agents/` | Examines git history of changed files for regression risks, high-churn areas, and historical context. |
+| `researcher` | `research/agents/` | Researches best practices, compliance requirements, technology comparisons, and domain knowledge for spec enrichment. |
 
 ## Directory Structure
 
@@ -117,6 +120,22 @@ tools/skills/
 ├── codebase-analysis/
 │   ├── SKILL.md
 │   └── references/
+├── research/                          (wrapper: researcher)
+│   ├── SKILL.md
+│   └── agents/
+│       └── researcher.md
+├── create-spec/
+│   ├── SKILL.md
+│   └── references/
+│       ├── codebase-exploration.md
+│       ├── complexity-signals.md
+│       ├── interview-questions.md
+│       ├── recommendation-format.md
+│       ├── recommendation-triggers.md
+│       └── templates/
+│           ├── high-level.md
+│           ├── detailed.md
+│           └── full-tech.md
 ├── release-python-package/
 │   ├── SKILL.md
 │   └── agents/

@@ -44,6 +44,7 @@ This makes skills portable across harnesses with different capabilities.
 
 | Skill | Description |
 |-------|-------------|
+| `agent-tasks` | Task schema, file-based CRUD, state management, dependency patterns, and execution guidance for harness-independent task management. Tasks stored as `.tasks/` JSON files. |
 | `language-patterns` | TypeScript, Python, and React patterns, idioms, and best practices. |
 | `project-conventions` | Discovers and applies project-specific conventions (naming, structure, patterns). |
 | `technical-diagrams` | Mermaid diagram syntax, styling, and best practices for flowcharts, sequence, class, state, ER, and C4 diagrams. |
@@ -55,6 +56,7 @@ This makes skills portable across harnesses with different capabilities.
 
 | Skill | Description |
 |-------|-------------|
+| `create-tasks` | Spec-to-task decomposition with layer patterns, dependency inference, and producer-consumer detection. Generates `.tasks/` JSON files from `create-spec` output. |
 | `document-changes` | Generate a markdown report documenting session changes. |
 | `git-commit` | Automates git commits following Conventional Commits format. |
 | `project-learnings` | Captures project-specific patterns and anti-patterns into the project's AGENTS.md. |
@@ -140,6 +142,18 @@ tools/skills/
 │   ├── SKILL.md
 │   └── agents/
 │       └── changelog-manager.md
+├── agent-tasks/                          (knowledge: task schema & management)
+│   ├── SKILL.md
+│   └── references/
+│       ├── task-schema.md
+│       ├── operations.md
+│       └── anti-patterns.md
+├── create-tasks/                         (utility: spec-to-task decomposition)
+│   ├── SKILL.md
+│   └── references/
+│       ├── decomposition-patterns.md
+│       ├── dependency-inference.md
+│       └── testing-requirements.md
 ├── architecture-patterns/
 ├── changelog-format/
 ├── code-quality/

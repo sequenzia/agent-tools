@@ -1,53 +1,75 @@
 # Task Schema Reference
 
-Complete JSON schema definition for `.tasks/{task-group}.json` files.
+Complete JSON schema definition for `.agent-tasks/` task files.
 
 ---
 
-## File Structure
+## Directory Structure
 
-Each task file contains a top-level object with file metadata and a `tasks` array:
+Tasks are stored as individual JSON files organized by status and group:
+
+```
+.agent-tasks/
+├── _manifests/
+│   └── {group}.json
+├── backlog/
+│   └── {group}/
+│       └── task-NNN.json
+├── pending/
+│   └── {group}/
+│       └── task-NNN.json
+├── in-progress/
+│   └── {group}/
+│       └── task-NNN.json
+└── completed/
+    └── {group}/
+        └── task-NNN.json
+```
+
+---
+
+## Manifest File
+
+Each task group has a manifest file at `_manifests/{group}.json`:
 
 ```json
 {
-  "version": "1.0",
+  "version": "2.0",
   "task_group": "user-authentication",
   "spec_path": "specs/SPEC-Auth.md",
-  "created_at": "2026-03-19T10:00:00Z",
-  "updated_at": "2026-03-19T10:30:00Z",
-  "tasks": []
+  "created_at": "2026-03-20T10:00:00Z",
+  "updated_at": "2026-03-20T10:30:00Z"
 }
 ```
 
-### Top-Level Fields
+### Manifest Fields
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `version` | string | Yes | Schema version. Currently `"1.0"`. |
+| `version` | string | Yes | Schema version. Currently `"2.0"`. |
 | `task_group` | string | Yes | Kebab-case identifier grouping these tasks (e.g., `"user-authentication"`). |
 | `spec_path` | string | Yes | Path to the source specification file (e.g., `"specs/SPEC-Auth.md"`). |
-| `created_at` | string | Yes | ISO 8601 timestamp of initial file creation. |
-| `updated_at` | string | Yes | ISO 8601 timestamp of the most recent write. Updated on every file write. |
-| `tasks` | array | Yes | Array of task objects (see below). |
+| `created_at` | string | Yes | ISO 8601 timestamp of initial manifest creation. |
+| `updated_at` | string | Yes | ISO 8601 timestamp of the most recent group modification. Updated on any task write. |
 
 ---
 
 ## Task Object Fields
 
-Each task in the `tasks` array has these fields:
+Each task is stored as an individual JSON file with these fields:
 
 ### id
 
 - **Type**: string
 - **Required**: Yes
 - **Format**: `task-NNN` where NNN is a zero-padded 3-digit sequential number
-- **Description**: Unique identifier within this file. Generated at creation time as the next sequential ID.
+- **Description**: Unique identifier within this task group. Generated at creation time as the next sequential ID. Also used as the filename (e.g., `task-001.json`).
 - **Examples**: `"task-001"`, `"task-002"`, `"task-042"`
 
 ID generation rules:
-1. Find the highest existing numeric suffix in the file (e.g., `task-015` → 15)
+1. Find the highest existing numeric suffix across all status directories for the group
 2. Increment by 1 and zero-pad to 3 digits (→ `task-016`)
-3. If the file is empty, start at `task-001`
+3. If no tasks exist, start at `task-001`
 4. IDs are never reused — if task-005 is deleted, the next task is still task-016 (or wherever the sequence is)
 
 ### title
@@ -71,59 +93,51 @@ ID generation rules:
 
 - **Type**: string (markdown)
 - **Required**: Yes
-- **Description**: Full task specification including context, technical details, acceptance criteria, and testing requirements. Supports markdown formatting.
+- **Description**: Pure description of what needs to be done, including context and technical details. Does **not** contain acceptance criteria or testing requirements — those are in their own top-level fields.
 
-Recommended structure:
-```markdown
-{Brief description of what needs to be done}
+### acceptance_criteria
 
-{Technical details if applicable}
+- **Type**: object
+- **Required**: Yes
+- **Description**: Structured acceptance criteria organized by category. Each category is an array of strings describing individual criteria.
 
-**Acceptance Criteria:**
+| Category | Type | Description |
+|----------|------|-------------|
+| `functional` | string[] | Core behavior, expected outputs, state changes |
+| `edge_cases` | string[] | Boundaries, empty/null, max values, concurrent operations |
+| `error_handling` | string[] | Invalid input, failures, timeouts, graceful degradation |
+| `performance` | string[] | Response times, throughput, resource limits (if applicable) |
 
-_Functional:_
-- [ ] Core behavior criterion
-- [ ] Expected output criterion
+All four categories must be present. Use an empty array `[]` if a category has no criteria.
 
-_Edge Cases:_
-- [ ] Boundary condition criterion
+### testing_requirements
 
-_Error Handling:_
-- [ ] Error scenario criterion
+- **Type**: array of objects
+- **Required**: Yes (empty array `[]` if no specific testing requirements)
+- **Description**: Array of testing requirements, each specifying a test type and target.
 
-_Performance:_ (if applicable)
-- [ ] Performance target criterion
+Each object has:
 
-**Testing Requirements:**
-- {Test type}: {What to test}
-- {Test type}: {What to test}
-
-Source: {spec_path} Section {number}
-```
+| Field | Type | Description |
+|-------|------|-------------|
+| `type` | string | Test type: `"unit"`, `"integration"`, `"e2e"`, `"security"`, `"performance"` |
+| `target` | string | What to test (e.g., `"Schema validation"`, `"Database persistence"`) |
 
 ### status
 
 - **Type**: string
 - **Required**: Yes
-- **Values**: `"pending"`, `"in_progress"`, `"completed"`, `"deleted"`
-- **Default**: `"pending"` on creation
-- **Description**: Current state of the task. See Status Lifecycle in SKILL.md for transition rules.
+- **Values**: `"backlog"`, `"pending"`, `"in_progress"`, `"completed"`
+- **Default**: `"pending"` for current-phase tasks, `"backlog"` for future-phase tasks
+- **Description**: Current state of the task. Must match the directory the file lives in. See Status Lifecycle in SKILL.md for transition rules.
 
 ### blocked_by
 
 - **Type**: string[]
 - **Required**: Yes (empty array `[]` if no dependencies)
 - **Description**: Array of task IDs that must reach `completed` status before this task can start.
-- **Validation**: Every ID in `blocked_by` must reference an existing task in the same file.
+- **Validation**: Every ID in `blocked_by` must reference an existing task in the same group (across any status directory).
 - **Example**: `["task-001", "task-003"]`
-
-### blocks
-
-- **Type**: string[]
-- **Required**: Yes (empty array `[]` if nothing depends on this task)
-- **Description**: **Computed field** — array of task IDs that have this task in their `blocked_by`. Recomputed on every file write as the inverse of all `blocked_by` relationships.
-- **Never set manually**: Always derived from scanning all tasks' `blocked_by` arrays.
-- **Example**: `["task-004", "task-005"]` (meaning tasks 4 and 5 depend on this task)
 
 ### owner
 
@@ -131,6 +145,20 @@ Source: {spec_path} Section {number}
 - **Required**: No (defaults to `null`)
 - **Description**: Identifier of the agent or session that has claimed this task. Set when transitioning to `in_progress`.
 - **Example**: `"agent-worker-1"`, `"session-abc123"`, `null`
+
+### created_at
+
+- **Type**: string
+- **Required**: Yes
+- **Description**: ISO 8601 timestamp of when the task was created.
+- **Example**: `"2026-03-20T10:00:00Z"`
+
+### updated_at
+
+- **Type**: string
+- **Required**: Yes
+- **Description**: ISO 8601 timestamp of the most recent modification to this task. Updated on every write.
+- **Example**: `"2026-03-20T10:30:00Z"`
 
 ### metadata
 
@@ -144,7 +172,7 @@ Source: {spec_path} Section {number}
 |-----|------|----------|----------------|-------------|
 | `priority` | string | Yes | `"critical"`, `"high"`, `"medium"`, `"low"` | Execution ordering within a wave |
 | `complexity` | string | Yes | `"XS"`, `"S"`, `"M"`, `"L"`, `"XL"` | Effort estimate |
-| `task_group` | string | Yes | Kebab-case slug (e.g., `"user-auth"`) | Groups tasks for filtered execution |
+| `task_group` | string | Yes | Kebab-case slug (e.g., `"user-auth"`) | Groups tasks; matches directory name |
 | `task_uid` | string | Yes | `{spec_path}:{feature}:{type}:{seq}` | Composite key for idempotent merge |
 | `spec_path` | string | Yes | File path | Source spec file |
 | `feature_name` | string | Yes | Feature name string | Parent feature from spec |
@@ -164,16 +192,28 @@ Source: {spec_path} Section {number}
 
 ### Required Fields
 
-Every task must have: `id`, `title`, `active_form`, `description`, `status`, `blocked_by`, `blocks`, `metadata`.
+Every task must have: `id`, `title`, `active_form`, `description`, `acceptance_criteria`, `testing_requirements`, `status`, `blocked_by`, `created_at`, `updated_at`, `metadata`.
+
+Every `acceptance_criteria` object must have: `functional`, `edge_cases`, `error_handling`, `performance` (all arrays, empty if no criteria).
 
 Every `metadata` object must have: `priority`, `complexity`, `task_group`, `task_uid`, `spec_path`, `feature_name`, `source_section`.
 
 ### Referential Integrity
 
-- Every ID in `blocked_by` must reference an existing task `id` in the same file
-- Every ID in `blocks` must reference an existing task `id` in the same file
-- Every ID in `produces_for` must reference an existing task `id` in the same file
-- `blocks` must be the exact inverse of all `blocked_by` relationships (computed, not manual)
+- Every ID in `blocked_by` must reference an existing task `id` in the same group (across all status directories)
+- Every ID in `produces_for` must reference an existing task `id` in the same group
+
+### Status-Directory Consistency
+
+- The `status` field in a task file must match the status directory the file lives in
+- A file at `.agent-tasks/pending/group/task-001.json` must have `"status": "pending"`
+- After moving a file, always update the `status` field to match the new directory
+
+### Acceptance Criteria Structure
+
+- `acceptance_criteria` must be an object with exactly four keys: `functional`, `edge_cases`, `error_handling`, `performance`
+- Each key must map to an array of strings
+- Empty arrays are valid (not all categories apply to every task)
 
 ### Acyclicity
 
@@ -183,22 +223,38 @@ The dependency graph formed by `blocked_by` relationships must be acyclic. To de
 
 - Only `pending` tasks with all blockers `completed` should transition to `in_progress`
 - Only `in_progress` tasks should transition to `completed`
-- `completed` tasks should not be modified (except to `deleted`)
+- `completed` tasks should not be modified
 
 ---
 
 ## Example: Minimal Task
+
+File: `.agent-tasks/pending/user-authentication/task-001.json`
 
 ```json
 {
   "id": "task-001",
   "title": "Create User data model",
   "active_form": "Creating User data model",
-  "description": "Define the User entity with id, email, passwordHash, and timestamp fields.\n\n**Acceptance Criteria:**\n\n_Functional:_\n- [ ] All fields defined with correct types\n- [ ] Email uniqueness constraint\n\n**Testing Requirements:**\n- Unit: Schema validation\n- Integration: Database persistence\n\nSource: specs/SPEC-Auth.md Section 7.3",
+  "description": "Define the User entity with id, email, passwordHash, and timestamp fields.\n\nSource: specs/SPEC-Auth.md Section 7.3",
+  "acceptance_criteria": {
+    "functional": [
+      "All fields defined with correct types",
+      "Email uniqueness constraint"
+    ],
+    "edge_cases": [],
+    "error_handling": [],
+    "performance": []
+  },
+  "testing_requirements": [
+    { "type": "unit", "target": "Schema validation" },
+    { "type": "integration", "target": "Database persistence" }
+  ],
   "status": "pending",
   "blocked_by": [],
-  "blocks": ["task-002", "task-003"],
   "owner": null,
+  "created_at": "2026-03-20T10:00:00Z",
+  "updated_at": "2026-03-20T10:00:00Z",
   "metadata": {
     "priority": "critical",
     "complexity": "S",
@@ -213,16 +269,38 @@ The dependency graph formed by `blocked_by` relationships must be acyclic. To de
 
 ## Example: Task with Phase and Producer-Consumer
 
+File: `.agent-tasks/pending/user-authentication/task-005.json`
+
 ```json
 {
   "id": "task-005",
   "title": "Implement POST /auth/login endpoint",
   "active_form": "Implementing login endpoint",
-  "description": "Create login endpoint that authenticates users and returns JWT token.\n\nEndpoint: POST /api/auth/login\nRequest: { email, password }\nResponse: { token, expiresAt, user }\n\n**Acceptance Criteria:**\n\n_Functional:_\n- [ ] Valid credentials return JWT token\n- [ ] Token contains user ID and expiration\n\n_Error Handling:_\n- [ ] 401 for invalid credentials\n- [ ] 429 for rate limit exceeded\n\n_Performance:_\n- [ ] Response time < 200ms (P95)\n\n**Testing Requirements:**\n- Integration: Successful login returns valid token\n- Integration: Invalid credentials return 401\n- Security: Rate limiting prevents brute force\n\nSource: specs/SPEC-Auth.md Section 7.4.1",
+  "description": "Create login endpoint that authenticates users and returns JWT token.\n\nEndpoint: POST /api/auth/login\nRequest: { email, password }\nResponse: { token, expiresAt, user }\n\nSource: specs/SPEC-Auth.md Section 7.4.1",
+  "acceptance_criteria": {
+    "functional": [
+      "Valid credentials return JWT token",
+      "Token contains user ID and expiration"
+    ],
+    "edge_cases": [],
+    "error_handling": [
+      "401 for invalid credentials",
+      "429 for rate limit exceeded"
+    ],
+    "performance": [
+      "Response time < 200ms (P95)"
+    ]
+  },
+  "testing_requirements": [
+    { "type": "integration", "target": "Successful login returns valid token" },
+    { "type": "integration", "target": "Invalid credentials return 401" },
+    { "type": "security", "target": "Rate limiting prevents brute force" }
+  ],
   "status": "pending",
   "blocked_by": ["task-001"],
-  "blocks": ["task-010"],
   "owner": null,
+  "created_at": "2026-03-20T10:00:00Z",
+  "updated_at": "2026-03-20T10:00:00Z",
   "metadata": {
     "priority": "high",
     "complexity": "M",
@@ -238,103 +316,63 @@ The dependency graph formed by `blocked_by` relationships must be acyclic. To de
 }
 ```
 
-## Example: Complete File
+## Example: Backlog Task (Future Phase)
+
+File: `.agent-tasks/backlog/user-authentication/task-010.json`
 
 ```json
 {
-  "version": "1.0",
-  "task_group": "user-authentication",
-  "spec_path": "specs/SPEC-Auth.md",
-  "created_at": "2026-03-19T10:00:00Z",
-  "updated_at": "2026-03-19T10:00:00Z",
-  "tasks": [
-    {
-      "id": "task-001",
-      "title": "Create User data model",
-      "active_form": "Creating User data model",
-      "description": "...",
-      "status": "pending",
-      "blocked_by": [],
-      "blocks": ["task-002", "task-003"],
-      "owner": null,
-      "metadata": {
-        "priority": "critical",
-        "complexity": "S",
-        "task_group": "user-authentication",
-        "task_uid": "specs/SPEC-Auth.md:user-auth:model:001",
-        "spec_path": "specs/SPEC-Auth.md",
-        "feature_name": "User Authentication",
-        "source_section": "7.3 Data Models",
-        "spec_phase": 1,
-        "spec_phase_name": "Foundation"
-      }
-    },
-    {
-      "id": "task-002",
-      "title": "Implement POST /auth/login endpoint",
-      "active_form": "Implementing login endpoint",
-      "description": "...",
-      "status": "pending",
-      "blocked_by": ["task-001"],
-      "blocks": ["task-004"],
-      "owner": null,
-      "metadata": {
-        "priority": "high",
-        "complexity": "M",
-        "task_group": "user-authentication",
-        "task_uid": "specs/SPEC-Auth.md:user-auth:api-login:001",
-        "spec_path": "specs/SPEC-Auth.md",
-        "feature_name": "User Authentication",
-        "source_section": "7.4 API Specifications",
-        "spec_phase": 1,
-        "spec_phase_name": "Foundation",
-        "produces_for": ["task-004"]
-      }
-    },
-    {
-      "id": "task-003",
-      "title": "Implement POST /auth/register endpoint",
-      "active_form": "Implementing registration endpoint",
-      "description": "...",
-      "status": "pending",
-      "blocked_by": ["task-001"],
-      "blocks": ["task-004"],
-      "owner": null,
-      "metadata": {
-        "priority": "high",
-        "complexity": "M",
-        "task_group": "user-authentication",
-        "task_uid": "specs/SPEC-Auth.md:user-auth:api-register:001",
-        "spec_path": "specs/SPEC-Auth.md",
-        "feature_name": "User Authentication",
-        "source_section": "7.4 API Specifications",
-        "spec_phase": 1,
-        "spec_phase_name": "Foundation"
-      }
-    },
-    {
-      "id": "task-004",
-      "title": "Add auth endpoint integration tests",
-      "active_form": "Adding auth endpoint integration tests",
-      "description": "...",
-      "status": "pending",
-      "blocked_by": ["task-002", "task-003"],
-      "blocks": [],
-      "owner": null,
-      "metadata": {
-        "priority": "high",
-        "complexity": "M",
-        "task_group": "user-authentication",
-        "task_uid": "specs/SPEC-Auth.md:user-auth:test:001",
-        "spec_path": "specs/SPEC-Auth.md",
-        "feature_name": "User Authentication",
-        "source_section": "8.1 Testing Strategy",
-        "spec_phase": 1,
-        "spec_phase_name": "Foundation"
-      }
-    }
-  ]
+  "id": "task-010",
+  "title": "Add OAuth2 social login",
+  "active_form": "Adding OAuth2 social login",
+  "description": "Integrate Google and GitHub OAuth2 providers for social login.\n\nSource: specs/SPEC-Auth.md Section 5.3",
+  "acceptance_criteria": {
+    "functional": [
+      "Google OAuth2 login flow works end-to-end",
+      "GitHub OAuth2 login flow works end-to-end",
+      "New OAuth users get local accounts created"
+    ],
+    "edge_cases": [
+      "Handles existing email with different provider"
+    ],
+    "error_handling": [
+      "Graceful handling of OAuth provider downtime"
+    ],
+    "performance": []
+  },
+  "testing_requirements": [
+    { "type": "integration", "target": "OAuth2 flow with mocked providers" },
+    { "type": "e2e", "target": "Full login flow through UI" }
+  ],
+  "status": "backlog",
+  "blocked_by": ["task-005"],
+  "owner": null,
+  "created_at": "2026-03-20T10:00:00Z",
+  "updated_at": "2026-03-20T10:00:00Z",
+  "metadata": {
+    "priority": "medium",
+    "complexity": "L",
+    "task_group": "user-authentication",
+    "task_uid": "specs/SPEC-Auth.md:user-auth:oauth:001",
+    "spec_path": "specs/SPEC-Auth.md",
+    "feature_name": "User Authentication",
+    "source_section": "5.3 Social Login",
+    "spec_phase": 2,
+    "spec_phase_name": "Enhancement"
+  }
 }
 ```
 
-This forms a diamond dependency pattern: task-001 fans out to task-002 and task-003, which fan in to task-004.
+## Example: Manifest File
+
+File: `.agent-tasks/_manifests/user-authentication.json`
+
+```json
+{
+  "version": "2.0",
+  "task_group": "user-authentication",
+  "spec_path": "specs/SPEC-Auth.md",
+  "created_at": "2026-03-20T10:00:00Z",
+  "updated_at": "2026-03-20T10:30:00Z"
+}
+```

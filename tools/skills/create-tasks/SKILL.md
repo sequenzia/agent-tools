@@ -4,7 +4,7 @@ description: >-
   Generate implementation tasks from an existing spec. Analyzes specs produced
   by create-spec, decomposes features into atomic tasks using layer patterns,
   infers dependencies, detects producer-consumer relationships, and writes
-  tasks to .tasks/ JSON files. Use when user says "create tasks", "generate
+  tasks to .agent-tasks/ JSON files. Use when user says "create tasks", "generate
   tasks from spec", "spec to tasks", "task generation", or wants to decompose
   a spec into implementation tasks. Also trigger when the user has a spec and
   wants to start building.
@@ -15,7 +15,7 @@ allowed-tools: Read Write Glob Grep Bash
 
 # Spec to Tasks
 
-You are an expert at transforming specifications into well-structured, actionable implementation tasks. You analyze specs, decompose features into atomic tasks, infer dependencies, and write tasks to `.tasks/` JSON files with proper metadata and acceptance criteria.
+You are an expert at transforming specifications into well-structured, actionable implementation tasks. You analyze specs, decompose features into atomic tasks, infer dependencies, and write tasks to `.agent-tasks/` JSON files with proper metadata and acceptance criteria.
 
 ## Critical Rules
 
@@ -40,7 +40,7 @@ Text output should only be used for:
 - **DO NOT** create an implementation plan for how to build the spec's features
 - **DO NOT** defer task generation to an "execution phase"
 - **DO** proceed with the full task generation workflow immediately
-- **DO** write tasks to `.tasks/` as normal
+- **DO** write tasks to `.agent-tasks/` as normal
 
 The tasks are planning artifacts themselves — generating them IS the planning activity.
 
@@ -53,11 +53,11 @@ Read ../agent-tasks/SKILL.md
 ```
 
 This reference provides:
-- Task file convention (`.tasks/{task-group}.json`)
-- Task schema with field reference (id, title, active_form, description, status, blocked_by, blocks, metadata)
-- Status lifecycle and transition rules
+- Task file convention (`.agent-tasks/{status}/{group}/task-NNN.json`)
+- Task schema with field reference (id, title, active_form, description, acceptance_criteria, testing_requirements, status, blocked_by, metadata)
+- Status lifecycle and transition rules (backlog, pending, in_progress, completed)
 - Naming conventions (imperative `title`, present-continuous `active_form`)
-- Dependency management with DAG design (blocked_by, blocks)
+- Dependency management with DAG design (blocked_by)
 - Standard metadata conventions (priority, complexity, task_group, task_uid)
 
 The SDD-specific extensions to these conventions are documented in the "SDD Task Metadata Extensions" section below.
@@ -67,14 +67,14 @@ The SDD-specific extensions to these conventions are documented in the "SDD Task
 This workflow has ten phases:
 
 1. **Validate & Load** — Validate spec file, parse `--phase` argument, read content, load reference files
-2. **Detect Depth & Check Existing** — Detect spec depth level, check for existing task file
+2. **Detect Depth & Check Existing** — Detect spec depth level, check for existing task files
 3. **Analyze Spec** — Extract features, requirements, structure, and implementation phases from spec
 4. **Select Phases** — Interactive or CLI-driven phase selection for incremental generation
 5. **Decompose Tasks** — Phase-filtered hybrid decomposition from features and deliverables
 6. **Infer Dependencies** — Phase-aware blocking relationships with cross-phase handling
 7. **Detect Producer-Consumer Relationships** — Identify `produces_for` relationships between tasks
 8. **Preview & Confirm** — Show summary, get user approval before writing
-9. **Create Tasks** — Write tasks to `.tasks/` JSON file (fresh or merge mode)
+9. **Create Tasks** — Write tasks to `.agent-tasks/` as individual files (fresh or merge mode)
 10. **Error Handling** — Handle spec parsing issues, circular deps, missing info, phase errors
 
 ---
@@ -145,16 +145,20 @@ Analyze the spec content to determine its depth level. Check in priority order:
 
 ### Check for Existing Tasks
 
-Derive the expected `task_group` slug from the spec (see Phase 3) and check if `.tasks/{task-group}.json` exists.
+Derive the expected `task_group` slug from the spec (see Phase 3) and check if tasks already exist by scanning for the manifest and task files:
 
-If the file exists:
-- Read it and parse the tasks
-- Count by status (pending, in_progress, completed)
-- Extract `spec_phase` metadata to build `existing_phases_map`: `{phase_number → {pending, in_progress, completed, total, phase_name}}`
+1. Check if `.agent-tasks/_manifests/{task-group}.json` exists
+2. Glob `.agent-tasks/*/{task-group}/*.json` to find existing task files across all status directories
+
+If tasks exist:
+- Read each task file and categorize by status
+- Count by status (backlog, pending, in_progress, completed)
+- Extract `spec_phase` metadata to build `existing_phases_map`: `{phase_number → {backlog, pending, in_progress, completed, total, phase_name}}`
 - Report to user about merge behavior with phase-aware detail:
 
 ```
 Found {n} existing tasks for this spec:
+- {backlog} backlog
 - {pending} pending
 - {in_progress} in progress
 - {completed} completed
@@ -305,6 +309,13 @@ When `spec_phases` is non-empty and phases were selected:
 
 When `spec_phases = []`: Decompose all features without phase assignment. Omit `spec_phase` and `spec_phase_name` entirely.
 
+### Phase-Based Status Assignment
+
+When phases are selected:
+- Tasks from **selected/current phases** → status `pending`, written to `pending/{group}/`
+- Tasks from **non-selected/future phases** → status `backlog`, written to `backlog/{group}/`
+- Tasks with **no phase** (phaseless specs) → status `pending`, written to `pending/{group}/`
+
 ### Standard Layer Pattern
 
 For each feature, apply the standard layer pattern. See `references/decomposition-patterns.md` for the full set of patterns (Standard Feature, Authentication, CRUD, Integration, Background Job, Migration).
@@ -319,35 +330,37 @@ For each feature, apply the standard layer pattern. See `references/decompositio
 
 ### Task Structure
 
-Each task follows the agent-tasks schema (imperative `title`, present-continuous `active_form`). Include categorized acceptance criteria and testing requirements in the description:
+Each task follows the agent-tasks schema (imperative `title`, present-continuous `active_form`). Acceptance criteria and testing requirements are structured as top-level fields:
 
-```
-title: "Create User data model"
-active_form: "Creating User data model"
-description: |
-  {What needs to be done}
-
-  {Technical details if applicable}
-
-  **Acceptance Criteria:**
-
-  _Functional:_
-  - [ ] Core behavior criterion
-
-  _Edge Cases:_
-  - [ ] Boundary condition criterion
-
-  _Error Handling:_
-  - [ ] Error scenario criterion
-
-  _Performance:_ (include if applicable)
-  - [ ] Performance target criterion
-
-  **Testing Requirements:**
-  - {Inferred test type}: {What to test}
-  - {Spec-specified test}: {What to test}
-
-  Source: {spec_path} Section {number}
+```json
+{
+  "id": "task-NNN",
+  "title": "Create User data model",
+  "active_form": "Creating User data model",
+  "description": "{What needs to be done}\n\n{Technical details if applicable}\n\nSource: {spec_path} Section {number}",
+  "acceptance_criteria": {
+    "functional": [
+      "Core behavior criterion"
+    ],
+    "edge_cases": [
+      "Boundary condition criterion"
+    ],
+    "error_handling": [
+      "Error scenario criterion"
+    ],
+    "performance": []
+  },
+  "testing_requirements": [
+    { "type": "unit", "target": "What to test" },
+    { "type": "integration", "target": "What to test" }
+  ],
+  "status": "pending",
+  "blocked_by": [],
+  "owner": null,
+  "created_at": "{ISO-8601}",
+  "updated_at": "{ISO-8601}",
+  "metadata": { ... }
+}
 ```
 
 ### SDD Task Metadata Extensions
@@ -440,7 +453,7 @@ Data Model → API → UI → Tests
 When tasks have `spec_phase` metadata, apply cross-phase blocking based on three scenarios:
 
 1. **Phase N-1 tasks in current generation**: Normal `blocked_by` — Phase N tasks blocked by Phase N-1 tasks
-2. **Phase N-1 tasks from prior generation (merge mode)**: Create `blocked_by` to existing Phase N-1 task IDs from the task file
+2. **Phase N-1 tasks from prior generation (merge mode)**: Create `blocked_by` to existing Phase N-1 task IDs from the task files
 3. **Phase N-1 not selected and no existing tasks**: Do NOT add `blocked_by` to non-existent tasks. Instead:
    - Add a "Prerequisites" note to task descriptions listing assumed-complete deliverables
    - Emit a one-time warning: "Phase {N} tasks generated without Phase {N-1} predecessor tasks."
@@ -522,8 +535,8 @@ SUMMARY:
 - By complexity: {XS} XS, {S} S, {M} M, {L} L, {XL} XL
 
 PHASES:
-- Phase {N}: {phase_name} — {n} tasks
-- Phase {M}: {phase_name} — {n} tasks
+- Phase {N}: {phase_name} — {n} tasks → pending/
+- Phase {M}: {phase_name} — {n} tasks → backlog/
 
 FEATURES:
 - {Feature 1} (Phase {N}) → {n} tasks
@@ -561,26 +574,26 @@ If "Show task details": list all tasks with title, priority, complexity, grouped
 
 ### Fresh Mode (No Existing Tasks)
 
-Build all tasks in memory and write atomically:
+Build all tasks in memory and write as individual files:
 
-1. **Build task array**: Construct all task objects with all fields
+1. **Build task list**: Construct all task objects with all fields
 2. **Assign sequential IDs**: `task-001`, `task-002`, ... using the task_uid-to-ID mapping
 3. **Set blocked_by**: Using the internal UID-to-ID mapping from Phase 6
-4. **Compute blocks**: Recompute as inverse of all `blocked_by` relationships
-5. **Set produces_for**: Using the detection results from Phase 7
-6. **Write file**: Write the complete `.tasks/{task-group}.json` in a single operation
+4. **Set produces_for**: Using the detection results from Phase 7
+5. **Create directory structure**: Ensure `.agent-tasks/` with all subdirectories exists
+6. **Write manifest**: Write `.agent-tasks/_manifests/{group}.json`
+7. **Write task files**: Write each task as an individual file to the appropriate directory:
+   - Current-phase tasks → `.agent-tasks/pending/{group}/task-NNN.json`
+   - Future-phase tasks → `.agent-tasks/backlog/{group}/task-NNN.json`
 
-This atomic approach eliminates two-pass create-then-update workflows. All relationships are resolved before any file I/O.
-
-**File structure:**
+**Manifest structure:**
 ```json
 {
-  "version": "1.0",
+  "version": "2.0",
   "task_group": "{task-group}",
   "spec_path": "{spec-path}",
   "created_at": "{ISO-8601}",
-  "updated_at": "{ISO-8601}",
-  "tasks": [ ... ]
+  "updated_at": "{ISO-8601}"
 }
 ```
 
@@ -594,7 +607,10 @@ Created {n} tasks from {spec_name}
 Set {m} dependency relationships
 Set {p} producer-consumer relationships
 
-Task file: .tasks/{task-group}.json
+Task directory: .agent-tasks/
+Manifest: .agent-tasks/_manifests/{group}.json
+Pending tasks: .agent-tasks/pending/{group}/ ({x} files)
+Backlog tasks: .agent-tasks/backlog/{group}/ ({y} files)
 
 RECOMMENDED FIRST TASKS (no blockers):
 - {Task title} ({priority}, {complexity})
@@ -606,21 +622,21 @@ Run these tasks first to unblock others.
 
 ### Merge Mode (Existing Tasks Found)
 
-When the task file already exists:
+When tasks already exist for this group:
 
-1. **Read existing file** and parse tasks
+1. **Read existing tasks**: Glob `.agent-tasks/*/{group}/*.json` and read each file
 2. **Match by task_uid**: Build mapping of existing `task_uid` → task
 3. **Apply merge rules**:
    | Existing Status | Action |
    |-----------------|--------|
-   | `pending` | Update description, title, active_form, metadata. Preserve id and status. |
+   | `pending` | Update description, title, active_form, acceptance_criteria, testing_requirements, metadata. Preserve id, status, and file location. |
+   | `backlog` | Same as pending — update content, preserve identity and status. |
    | `in_progress` | Preserve status and owner. Optionally update description. |
    | `completed` | Never modify. |
-   | `deleted` | Treat as no match — create as new. |
-4. **Add new tasks**: Tasks with no matching `task_uid` get new sequential IDs
+4. **Add new tasks**: Tasks with no matching `task_uid` get new sequential IDs and are written as new files
 5. **Handle obsolete tasks**: Existing tasks with no matching `task_uid` in the new set — present to user with keep/delete options
-6. **Recompute relationships**: Recompute all `blocked_by`, `blocks`, and `produces_for` using the combined task set
-7. **Write file**: Write the updated file atomically
+6. **Write updates**: Write modified task files back to their locations, write new task files to appropriate directories
+7. **Update manifest**: Update the manifest's `updated_at` timestamp
 
 Report merge statistics:
 ```

@@ -5,7 +5,7 @@ description: >-
   format. Provides task schema, file-based CRUD operations, state management,
   dependency tracking, and execution patterns. Use as a reference skill when
   creating, executing, or managing tasks from specs. Load this skill whenever
-  working with .tasks/ files, decomposing specs into tasks, or coordinating
+  working with .agent-tasks/ files, decomposing specs into tasks, or coordinating
   multi-agent task execution.
 ---
 
@@ -14,13 +14,13 @@ description: >-
 This skill is a shared reference for harness-independent task management. Load it when your skill or agent needs to create, manage, or coordinate tasks stored as JSON files.
 
 It covers:
-- Task file conventions and storage location
+- Task file conventions, directory structure, and manifest files
 - Complete task schema with field reference
 - Status lifecycle, transition rules, and completion rules
 - Naming conventions (imperative `title`, present-continuous `active_form`)
 - Dependency management with DAG design principles
 - Standard metadata conventions for categorization and tracking
-- File-based CRUD operations (create, read, update, query, merge)
+- File-based CRUD operations (create, read, update, move, delete, query, merge)
 - Execution patterns (claim-work-complete, wave-based grouping, find-next-available)
 
 For deeper content, load the reference files listed at the end of this document.
@@ -29,40 +29,74 @@ For deeper content, load the reference files listed at the end of this document.
 
 ## Task File Convention
 
-Tasks are stored as JSON files in a `.tasks/` directory at the project root, with one file per task group:
+Tasks are stored as individual JSON files in an `.agent-tasks/` directory at the project root. Tasks are organized by status and group:
 
 ```
-.tasks/
-├── user-authentication.json
-├── payment-flow.json
-└── onboarding.json
+.agent-tasks/
+├── _manifests/
+│   ├── user-authentication.json
+│   └── payment-flow.json
+├── backlog/
+│   └── user-authentication/
+│       └── task-005.json
+├── pending/
+│   └── user-authentication/
+│       ├── task-001.json
+│       └── task-002.json
+├── in-progress/
+│   └── user-authentication/
+│       └── task-003.json
+└── completed/
+    └── user-authentication/
+        └── task-004.json
 ```
 
-**File naming**: `{task-group}.json` where `task-group` is the kebab-case slug derived from the spec title or feature name.
+**Status directories**: `backlog/`, `pending/`, `in-progress/`, `completed/` — each task lives in the directory matching its current status.
 
-**Discovery**: To find task files, search for `.tasks/*.json` using Glob.
+**Group subdirectories**: Within each status directory, tasks are organized by group (e.g., `user-authentication/`). The group name is a kebab-case slug derived from the spec title or feature name.
 
-**Creation**: If the `.tasks/` directory does not exist, create it before writing the first task file.
+**Manifest files**: Group-level metadata is stored in `_manifests/{group}.json`. Each manifest tracks version, group name, spec path, and timestamps.
+
+**File naming**: `task-NNN.json` where NNN is a zero-padded 3-digit sequential number.
+
+**Discovery**: To find all tasks for a group, search with `.agent-tasks/*/{group}/*.json`. To find all tasks in a status, search with `.agent-tasks/{status}/**/*.json`.
+
+**Creation**: If the `.agent-tasks/` directory does not exist, create it with all subdirectories (`_manifests/`, `backlog/`, `pending/`, `in-progress/`, `completed/`) before writing the first task.
 
 ---
 
 ## Task Schema Overview
 
-Each task file contains a top-level object with metadata and a `tasks` array. Each task in the array has these fields:
+Each task is an individual JSON file. Group-level metadata is stored separately in manifest files.
+
+### Manifest Fields
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `id` | string | Yes | Sequential identifier within the file (e.g., `task-001`) |
+| `version` | string | Yes | Schema version: `"2.0"` |
+| `task_group` | string | Yes | Kebab-case identifier for this task group |
+| `spec_path` | string | Yes | Path to the source specification file |
+| `created_at` | string | Yes | ISO 8601 timestamp of manifest creation |
+| `updated_at` | string | Yes | ISO 8601 timestamp of most recent group modification |
+
+### Task Fields
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `id` | string | Yes | Sequential identifier (e.g., `task-001`) |
 | `title` | string | Yes | Short imperative description of the task (5-10 words) |
 | `active_form` | string | Yes | Present-continuous text shown during execution |
-| `description` | string | Yes | Full specification with acceptance criteria (markdown) |
-| `status` | string | Yes | Current state: `pending`, `in_progress`, `completed`, `deleted` |
+| `description` | string | Yes | Pure description of what needs to be done (no AC/testing) |
+| `acceptance_criteria` | object | Yes | Structured criteria with `functional`, `edge_cases`, `error_handling`, `performance` arrays |
+| `testing_requirements` | array | Yes | Array of `{type, target}` objects specifying required tests |
+| `status` | string | Yes | Current state: `backlog`, `pending`, `in_progress`, `completed` |
 | `blocked_by` | string[] | Yes | Array of task IDs this task depends on (empty if none) |
-| `blocks` | string[] | Yes | Computed inverse — task IDs that depend on this task |
 | `owner` | string\|null | No | Agent or session that claimed this task |
+| `created_at` | string | Yes | ISO 8601 timestamp of task creation |
+| `updated_at` | string | Yes | ISO 8601 timestamp of most recent task modification |
 | `metadata` | object | Yes | Key-value pairs for categorization, tracking, and deduplication |
 
-The `blocks` field is always a **computed inverse** of all `blocked_by` relationships across the file. It is recomputed on every write — never set manually.
+The task's `status` field is kept in sync with the directory the file lives in. Both must always match.
 
 See `references/task-schema.md` for the complete JSON schema definition with field-level documentation, validation rules, and examples.
 
@@ -70,33 +104,47 @@ See `references/task-schema.md` for the complete JSON schema definition with fie
 
 ## Status Lifecycle
 
-Tasks follow a three-state lifecycle with an additional terminal state:
+Tasks follow a four-state lifecycle:
 
 ```
-pending ──→ in_progress ──→ completed
-  │              │
-  │              │
-  ▼              ▼
-deleted        deleted
+backlog ──→ pending ──→ in_progress ──→ completed
+                             │
+                             ▼
+                          pending (reset on failure)
 ```
 
 ### States
 
 | Status | Meaning | Entry Condition |
 |--------|---------|-----------------|
-| `pending` | Waiting to be started | Default on creation |
+| `backlog` | Future phase, not yet active | Tasks from non-selected/future phases |
+| `pending` | Ready to be started | Default for current-phase tasks; promoted from backlog |
 | `in_progress` | Actively being worked on | Set when an agent begins work |
 | `completed` | Finished — all acceptance criteria met | Set after verification passes |
-| `deleted` | Soft-deleted, no longer needed | Set from any state |
 
 ### Transition Rules
 
-- **pending -> in_progress**: An agent begins working on the task.
+- **backlog -> pending**: Phase becomes active, or task is manually prioritized.
+- **pending -> in_progress**: An agent begins working on the task. All blockers must be completed.
 - **in_progress -> completed**: The task is verified as done. Only mark complete after all acceptance criteria are met.
 - **in_progress -> pending**: Reset after a failed attempt or interrupted session.
-- **pending -> deleted**: Task is no longer needed.
-- **in_progress -> deleted**: Cancel in-flight work.
+- **Any status -> deleted**: Remove the file from disk. No soft-delete status — git history preserves the record.
 - **Blocked tasks**: A task with non-empty `blocked_by` (where blockers are not yet completed) should not be started. Orchestration logic must check dependencies before transitioning to `in_progress`.
+
+### Status Transitions as File Moves
+
+When a task's status changes, the file physically moves between directories. For example, transitioning task-001 from `pending` to `in_progress`:
+- Source: `.agent-tasks/pending/user-auth/task-001.json`
+- Destination: `.agent-tasks/in-progress/user-auth/task-001.json`
+
+The `status` field inside the JSON is updated to match the new directory.
+
+### Backlog Rules
+
+- Tasks from **non-selected / future phases** start in `backlog/`
+- Tasks from the **current/selected phase(s)** start in `pending/`
+- When a phase completes (all its tasks completed), the next phase's backlog tasks can be promoted to `pending/`
+- Tasks with **no phase** (phaseless specs) go directly to `pending/`
 
 ### Completion Rules
 
@@ -139,12 +187,13 @@ The conversion is mechanical — change the imperative verb to its `-ing` form.
 
 ## Dependency Management
 
-Tasks support dependency tracking via `blocked_by` and `blocks` fields, forming a **Directed Acyclic Graph (DAG)**.
+Tasks support dependency tracking via the `blocked_by` field, forming a **Directed Acyclic Graph (DAG)**.
 
 ### Fields
 
-- **`blocked_by`**: Array of task IDs that must complete before this task can start. Set explicitly when creating or updating tasks.
-- **`blocks`**: Array of task IDs that are waiting on this task. This is the computed inverse of `blocked_by` — recomputed automatically on every file write.
+- **`blocked_by`**: Array of task IDs that must reach `completed` status before this task can start. Set explicitly when creating or updating tasks.
+
+Dependencies are resolved across directories — a task in `pending/group-a/` can depend on a task in `completed/group-a/` or any other status directory.
 
 ### DAG Design Principles
 
@@ -162,6 +211,10 @@ Tasks support dependency tracking via `blocked_by` and `blocks` fields, forming 
 | **Fan-out** | A -> [B, C, D] | One task produces input for multiple parallel tasks |
 | **Fan-in** | [A, B, C] -> D | Multiple tasks must complete before a merge/integration task |
 | **Diamond** | A -> [B, C] -> D | Fan-out followed by fan-in; most common real-world pattern |
+
+### Deriving Downstream Dependents
+
+To find which tasks depend on a given task (the inverse of `blocked_by`), scan all task files across all status directories and collect tasks that list the given task ID in their `blocked_by` array. This is derived on-the-fly when needed rather than stored as a field.
 
 ### Combining Patterns into Waves
 
@@ -189,7 +242,7 @@ The `metadata` field holds typed key-value pairs for categorization, tracking, a
 |-----|------|----------|---------|
 | `priority` | string | Yes | Execution ordering: `critical`, `high`, `medium`, `low` |
 | `complexity` | string | Yes | Effort estimate: `XS`, `S`, `M`, `L`, `XL` |
-| `task_group` | string | Yes | Groups related tasks for filtered execution |
+| `task_group` | string | Yes | Groups related tasks; matches the directory name |
 | `task_uid` | string | Yes | Composite key for idempotent merge mode |
 | `spec_path` | string | Yes | Path to the source specification file |
 | `feature_name` | string | Yes | Associates task with a feature for tracking |
@@ -223,30 +276,31 @@ The `produces_for` field is an optional array of task IDs identifying tasks that
 
 For detailed file-based CRUD procedures, load `references/operations.md`. It covers:
 
-- **Initialize**: Create `.tasks/` directory and write initial file structure
-- **Add task**: Read file, generate next ID, append to tasks array, recompute `blocks`, write file
-- **Update task**: Read file, find by ID, modify fields, recompute `blocks` if deps changed, write file
-- **Query tasks**: Filter by status, metadata fields, phase, priority
-- **Find next available**: Filter pending tasks with all blockers completed, sort by priority then phase
-- **Merge mode**: Match by `task_uid`, apply merge rules (pending→update, in_progress→preserve, completed→never modify)
-- **Recompute blocks**: Iterate all tasks, invert all `blocked_by` relationships
+- **Initialize**: Create `.agent-tasks/` directory structure and write manifest file
+- **Add task**: Write individual task JSON file to the appropriate status directory
+- **Update task**: Read individual file, modify fields, update `updated_at`, write back
+- **Move task**: Transition status by moving file between status directories, updating `status` field
+- **Delete task**: Remove file from disk
+- **Query tasks**: Scan directories with Glob patterns for flexible filtering
+- **Find next available**: Scan `pending/{group}/`, check blockers against `completed/{group}/`, sort by priority
+- **Merge mode**: Match by `task_uid` across all status directories, apply merge rules
 
 ---
 
 ## Execution Patterns
 
-These patterns describe how agents coordinate work through the task file.
+These patterns describe how agents coordinate work through the task files.
 
 ### Claim-Work-Complete Cycle
 
 The standard workflow for any agent working through tasks:
 
-1. Read the task file to see all tasks
-2. Filter for tasks where `status == "pending"` and all `blocked_by` tasks have `status == "completed"`
+1. Scan `pending/{group}/` to find all pending tasks
+2. For each pending task, check if all `blocked_by` tasks exist in `completed/{group}/`
 3. Select the highest-priority unblocked task
-4. Claim the task: update `status` to `in_progress`, set `owner`
+4. Claim the task: move to `in-progress/{group}/`, set `status` to `in_progress`, set `owner`
 5. Execute the task
-6. Mark `completed` (or reset to `pending` on failure)
+6. Mark `completed`: move to `completed/{group}/`, set `status` to `completed` (or reset to `pending/` on failure)
 7. Repeat from step 1
 
 Only claim one task at a time. Complete or reset the current task before claiming the next.
@@ -254,16 +308,17 @@ Only claim one task at a time. Complete or reset the current task before claimin
 ### Find-Next-Available Algorithm
 
 ```
-1. Read .tasks/{task-group}.json
-2. Build set of completed task IDs: { t.id for t in tasks where t.status == "completed" }
-3. Filter candidate tasks:
-   - status == "pending"
+1. Glob .agent-tasks/pending/{group}/*.json
+2. Read each task file
+3. Glob .agent-tasks/completed/{group}/*.json to build completed set:
+     completed_ids = { filename stem (e.g., "task-001") for each file }
+4. Filter candidates:
    - every ID in blocked_by is in the completed set
-4. Sort candidates by:
+5. Sort candidates by:
    - priority (critical > high > medium > low)
    - spec_phase (lower phase first, if present)
    - id (sequential order as tiebreaker)
-5. Return the first candidate (or null if none available)
+6. Return the first candidate (or null if none available)
 ```
 
 ### Wave-Based Execution
@@ -279,7 +334,7 @@ Tasks grouped by their dependency level form waves. All tasks in a wave have the
 1. Form next wave from unblocked pending tasks
 2. Launch agents for wave tasks (up to max parallelism)
 3. Wait for all agents in wave to complete
-4. Update task statuses in the file
+4. Move completed task files to `completed/{group}/`
 5. Repeat until no pending tasks remain
 
 ### Task Right-Sizing
@@ -305,7 +360,7 @@ Read references/task-schema.md
 
 ### Operations
 
-Detailed file-based CRUD procedures for every operation: initialization, adding, updating, querying, merging, and recomputing computed fields.
+Detailed file-based CRUD procedures for every operation: initialization, adding, updating, moving, deleting, querying, merging, and batch creation.
 
 ```
 Read references/operations.md
@@ -313,7 +368,7 @@ Read references/operations.md
 
 ### Anti-Patterns
 
-Common mistakes when working with tasks: circular dependencies, over-granular tasks, missing active_form, batch status updates, duplicate creation, summary-only consumption, and missing task_group. Each anti-pattern includes the problem, why it matters, and the correct alternative.
+Common mistakes when working with tasks: circular dependencies, over-granular tasks, missing active_form, batch status updates, duplicate creation, summary-only consumption, missing task_group, and status/directory mismatch. Each anti-pattern includes the problem, why it matters, and the correct alternative.
 
 ```
 Read references/anti-patterns.md

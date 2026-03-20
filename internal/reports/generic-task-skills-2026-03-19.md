@@ -14,7 +14,7 @@
 
 **Scope**: Create generic, harness-independent `agent-tasks` and `create-tasks` skills
 
-**Summary**: Created two new skills in `tools/skills/` that provide harness-independent task management. `agent-tasks` defines a JSON-based task schema with file-based CRUD operations, dependency patterns, and execution guidance. `create-tasks` provides a 10-phase spec-to-task decomposition workflow that analyzes specs from `create-spec` and generates `.tasks/` JSON files. Both skills were ported from the Claude Code-specific `create-tasks` skill in agent-alchemy, replacing native Task tools with file-based operations and generic tool references.
+**Summary**: Created two new skills in `tools/skills/` that provide harness-independent task management. `agent-tasks` defines a JSON-based task schema with file-based CRUD operations, dependency patterns, and execution guidance. `create-tasks` provides a 10-phase spec-to-task decomposition workflow that analyzes specs from `create-spec` and generates `.agent-tasks/` JSON files. Both skills were ported from the Claude Code-specific `create-tasks` skill in agent-alchemy, replacing native Task tools with file-based operations and generic tool references.
 
 ## Overview
 
@@ -43,7 +43,7 @@ Two new skills were added to the `tools/skills/` directory, along with an update
 
 ### Added
 
-- **`tools/skills/agent-tasks/SKILL.md`** — Knowledge skill providing the harness-independent task management reference. Defines `.tasks/{task-group}.json` file convention, task schema (id, title, active_form, description, status, blocked_by, blocks, owner, metadata), status lifecycle (pending/in_progress/completed/deleted), naming conventions, DAG dependency patterns (linear, fan-out, fan-in, diamond), metadata conventions with typed values, and execution patterns (claim-work-complete, wave-based grouping, find-next-available).
+- **`tools/skills/agent-tasks/SKILL.md`** — Knowledge skill providing the harness-independent task management reference. Defines `.agent-tasks/{status}/{group}/task-NNN.json` file convention, task schema (id, title, active_form, description, acceptance_criteria, testing_requirements, status, blocked_by, owner, metadata), status lifecycle (backlog/pending/in_progress/completed), naming conventions, DAG dependency patterns (linear, fan-out, fan-in, diamond), metadata conventions with typed values, and execution patterns (claim-work-complete, wave-based grouping, find-next-available).
 
 - **`tools/skills/agent-tasks/references/task-schema.md`** — Complete JSON schema reference for task files. Documents the top-level file structure (version, task_group, spec_path, timestamps, tasks array) and per-task field definitions with types, constraints, and defaults. Includes ID generation rules (sequential task-NNN format), validation rules (referential integrity, acyclicity, status constraints), and three worked examples at different complexity levels.
 
@@ -51,7 +51,7 @@ Two new skills were added to the `tools/skills/` directory, along with an update
 
 - **`tools/skills/agent-tasks/references/anti-patterns.md`** — Seven anti-patterns adapted from Claude Code's claude-code-tasks reference for file-based operations: circular dependencies, too-granular tasks, missing active_form, batch status updates, duplicate task creation, summary-only consumption, and missing task_group metadata.
 
-- **`tools/skills/create-tasks/SKILL.md`** — Utility skill implementing a 10-phase spec-to-task workflow: (1) validate & load spec and references, (2) detect spec depth and check existing tasks, (3) analyze spec sections for features/phases/requirements, (4) interactive phase selection, (5) decompose features using layer patterns, (6) infer dependencies (layer, phase, cross-feature, explicit), (7) detect producer-consumer relationships, (8) preview and confirm with user, (9) write tasks atomically to .tasks/ file (fresh or merge mode), (10) error handling. Replaces Claude Code TaskCreate/TaskUpdate with file-based operations and AskUserQuestion with generic question tool.
+- **`tools/skills/create-tasks/SKILL.md`** — Utility skill implementing a 10-phase spec-to-task workflow: (1) validate & load spec and references, (2) detect spec depth and check existing tasks, (3) analyze spec sections for features/phases/requirements, (4) interactive phase selection, (5) decompose features using layer patterns, (6) infer dependencies (layer, phase, cross-feature, explicit), (7) detect producer-consumer relationships, (8) preview and confirm with user, (9) write tasks to .agent-tasks/ as individual files (fresh or merge mode), (10) error handling. Replaces Claude Code TaskCreate/TaskUpdate with file-based operations and AskUserQuestion with generic question tool.
 
 - **`tools/skills/create-tasks/references/decomposition-patterns.md`** — Six feature decomposition patterns ported from the original: Standard Feature (6 layers), Authentication, CRUD, Integration, Background Job, and Migration/Refactoring. Updated field names (subject to title, activeForm to active_form). Includes task title guidelines, description template, testing suggestions per pattern, and complexity indicators (XS through XL).
 

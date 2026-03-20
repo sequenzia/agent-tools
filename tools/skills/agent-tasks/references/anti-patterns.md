@@ -29,20 +29,17 @@ Longer chains are harder to spot: task-001 → task-002 → task-003 → task-00
 {
   "id": "task-001",
   "title": "Define shared request/response types",
-  "blocked_by": [],
-  "blocks": ["task-002", "task-003"]
+  "blocked_by": []
 },
 {
   "id": "task-002",
   "title": "Create API routes",
-  "blocked_by": ["task-001"],
-  "blocks": []
+  "blocked_by": ["task-001"]
 },
 {
   "id": "task-003",
   "title": "Create request handlers",
-  "blocked_by": ["task-001"],
-  "blocks": []
+  "blocked_by": ["task-001"]
 }
 ```
 
@@ -120,17 +117,17 @@ The exception is multi-agent orchestration where each agent claims exactly one t
 
 **Why It's Problematic**: Duplicate tasks waste execution resources — two agents may work on the same change simultaneously, producing merge conflicts. If duplicates have slightly different descriptions, agents may implement conflicting versions. Completed status on one duplicate does not affect the other, so orchestrators may re-execute finished work.
 
-**Correct Alternative**: Before creating tasks, read the existing task file and check `task_uid` metadata. If a task with a matching `task_uid` exists, update it instead of creating a new one. Skills like `create-tasks` use this merge mode automatically.
+**Correct Alternative**: Before creating tasks, scan existing task files across all status directories and check `task_uid` metadata. If a task with a matching `task_uid` exists, update it instead of creating a new one. Skills like `create-tasks` use this merge mode automatically.
 
 ---
 
 ## AP-06: Summary-Only Consumption
 
-**Description**: Working from task `title` alone without reading the full `description` before starting work.
+**Description**: Working from task `title` alone without reading the full task file before starting work.
 
-**Why It's Problematic**: The `title` is a 5-10 word imperative summary. The `description` contains the full specification: acceptance criteria, implementation instructions, edge cases, testing requirements, and spec context. Working from the title alone leads to incomplete implementations that miss key requirements, fail verification, and require retries.
+**Why It's Problematic**: The `title` is a 5-10 word imperative summary. The task file contains the full specification: acceptance criteria, testing requirements, implementation context, and spec references. Working from the title alone leads to incomplete implementations that miss key requirements, fail verification, and require retries.
 
-**Correct Alternative**: Always read the full task object including its `description` before starting work. Use the title for overview and filtering; use the description for implementation.
+**Correct Alternative**: Always read the full task JSON file including `description`, `acceptance_criteria`, and `testing_requirements` before starting work. Use the title for overview and filtering; use the full task for implementation.
 
 ---
 
@@ -138,9 +135,9 @@ The exception is multi-agent orchestration where each agent claims exactly one t
 
 **Description**: Creating tasks without the `task_group` metadata key, making them invisible to group-filtered execution.
 
-**Why It's Problematic**: The `task_group` key enables filtered execution (e.g., "run only user-auth tasks"). Without it, tasks cannot be selectively executed as a group. In projects with multiple features in flight, ungrouped tasks are either executed with every run or must be manually identified.
+**Why It's Problematic**: The `task_group` key enables filtered execution (e.g., "run only user-auth tasks") and determines the directory path where tasks are stored. Without it, tasks cannot be selectively executed as a group, and the directory structure breaks down. In projects with multiple features in flight, ungrouped tasks are either executed with every run or must be manually identified.
 
-**Correct Alternative**: Always include `task_group` in metadata. Derive it from the spec title as a kebab-case slug.
+**Correct Alternative**: Always include `task_group` in metadata. Derive it from the spec title as a kebab-case slug. The `task_group` value must match the group subdirectory name.
 
 ```json
 {
@@ -151,3 +148,22 @@ The exception is multi-agent orchestration where each agent claims exactly one t
   }
 }
 ```
+
+---
+
+## AP-08: Status/Directory Mismatch
+
+**Description**: A task file's `status` field does not match the directory it lives in. For example, a file at `.agent-tasks/pending/user-auth/task-001.json` has `"status": "in_progress"`.
+
+```
+File location: .agent-tasks/pending/user-auth/task-001.json
+File content:  { "status": "in_progress", ... }
+```
+
+**Why It's Problematic**: The Kanban directory structure relies on the file's physical location as the source of truth for status. Query operations that glob a specific status directory (e.g., `pending/**/*.json`) will include tasks whose `status` field disagrees with their location. This causes incorrect behavior in find-next-available, wave formation, and dependency resolution. The task may be started twice or skipped entirely.
+
+**Correct Alternative**: When changing a task's status, always perform both operations atomically:
+1. Update the `status` field in the JSON
+2. Move the file to the matching status directory
+
+If you discover a mismatch, trust the directory location and update the `status` field to match it, since the directory move is the visible state change that other operations depend on.

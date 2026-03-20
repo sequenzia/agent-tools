@@ -1,26 +1,32 @@
 # Task File Operations
 
-Detailed procedures for file-based CRUD operations on `.tasks/{task-group}.json` files. All operations use the `Read` and `Write` tools — no harness-specific task tools required.
+Detailed procedures for file-based CRUD operations on `.agent-tasks/` task files. All operations use the `Read`, `Write`, and `Glob` tools — no harness-specific task tools required.
 
 ---
 
-## Initialize Task File
+## Initialize Task Group
 
-Create a new task file for a task group.
+Create the directory structure and manifest for a new task group.
 
 **Procedure:**
 
-1. Check if `.tasks/` directory exists. If not, create it.
-2. Write the initial file structure:
+1. Check if `.agent-tasks/` directory exists. If not, create it with all subdirectories:
+   ```
+   .agent-tasks/_manifests/
+   .agent-tasks/backlog/
+   .agent-tasks/pending/
+   .agent-tasks/in-progress/
+   .agent-tasks/completed/
+   ```
+2. Write the manifest file at `.agent-tasks/_manifests/{group}.json`:
 
 ```json
 {
-  "version": "1.0",
+  "version": "2.0",
   "task_group": "{task-group-slug}",
   "spec_path": "{path-to-spec}",
   "created_at": "{ISO-8601-timestamp}",
-  "updated_at": "{ISO-8601-timestamp}",
-  "tasks": []
+  "updated_at": "{ISO-8601-timestamp}"
 }
 ```
 
@@ -31,27 +37,29 @@ Create a new task file for a task group.
 
 ## Add Task
 
-Append a new task to an existing task file.
+Write a new task as an individual JSON file.
 
 **Procedure:**
 
-1. Read the task file with the `Read` tool
-2. Parse the JSON content
-3. Generate the next sequential ID:
-   - Find the highest numeric suffix among existing task IDs
-   - Increment by 1, zero-pad to 3 digits
-   - Format as `task-NNN`
+1. Determine the next sequential ID:
+   - Glob `.agent-tasks/*/{group}/*.json` to find all existing task files for this group
+   - Find the highest numeric suffix among existing filenames (e.g., `task-015` → 15)
+   - Increment by 1 and zero-pad to 3 digits (→ `task-016`)
    - If no tasks exist, start at `task-001`
-4. Construct the task object with all required fields:
-   - Set `status` to `"pending"`
+2. Determine the target status directory:
+   - Tasks from the current/selected phase → `pending/`
+   - Tasks from future/non-selected phases → `backlog/`
+   - Tasks with no phase (phaseless specs) → `pending/`
+3. Create the group subdirectory if it doesn't exist:
+   ```
+   .agent-tasks/{status}/{group}/
+   ```
+4. Construct the task JSON with all required fields:
+   - Set `status` to match the target directory
    - Set `owner` to `null`
-   - Set `blocks` to `[]` (will be recomputed)
-5. Append the task to the `tasks` array
-6. Recompute `blocks` for all tasks (see Recompute Blocks below)
-7. Update the `updated_at` timestamp
-8. Write the entire file using the `Write` tool
-
-**Important:** The entire file is written atomically. There is no partial update — always read the full file, modify in memory, and write the complete result.
+   - Set `created_at` and `updated_at` to the current time
+5. Write the task file: `.agent-tasks/{status}/{group}/task-NNN.json`
+6. Update the manifest's `updated_at` timestamp
 
 ---
 
@@ -61,13 +69,12 @@ Modify an existing task's fields.
 
 **Procedure:**
 
-1. Read the task file
-2. Find the task by `id`
-3. Modify only the specified fields — omitted fields remain unchanged
-4. If `blocked_by` was modified, recompute `blocks` for all tasks
-5. If `status` was changed, validate the transition (see Status Lifecycle in SKILL.md)
-6. Update the `updated_at` timestamp
-7. Write the entire file
+1. Read the task file from its current location
+2. Modify only the specified fields — omitted fields remain unchanged
+3. Update the `updated_at` timestamp
+4. If `status` was changed, perform a **Move** (see below) instead of writing back to the same location
+5. Write the updated task file
+6. Update the manifest's `updated_at` timestamp
 
 ### Metadata Updates
 
@@ -87,18 +94,91 @@ Result:            { "priority": "high", "complexity": "medium" }
 
 ---
 
+## Move Task (Status Transition)
+
+Transition a task's status by moving its file between status directories.
+
+**Procedure:**
+
+1. Validate the transition is allowed (see Status Lifecycle in SKILL.md)
+2. Read the task file from its current location
+3. Update the `status` field to the new status
+4. Update the `updated_at` timestamp
+5. Create the target group subdirectory if it doesn't exist:
+   ```
+   .agent-tasks/{new-status}/{group}/
+   ```
+6. Write the task file to the new location:
+   ```
+   .agent-tasks/{new-status}/{group}/task-NNN.json
+   ```
+7. Delete the file from the old location
+8. Update the manifest's `updated_at` timestamp
+
+**Example — claiming a task:**
+```
+Source:      .agent-tasks/pending/user-auth/task-001.json
+Destination: .agent-tasks/in-progress/user-auth/task-001.json
+
+Update:
+  status: "pending" → "in_progress"
+  owner: null → "agent-worker-1"
+  updated_at: "{current-time}"
+```
+
+**Example — completing a task:**
+```
+Source:      .agent-tasks/in-progress/user-auth/task-001.json
+Destination: .agent-tasks/completed/user-auth/task-001.json
+
+Update:
+  status: "in_progress" → "completed"
+  updated_at: "{current-time}"
+```
+
+---
+
+## Delete Task
+
+Remove a task file from disk.
+
+**Procedure:**
+
+1. Locate the task file across status directories:
+   ```
+   Glob: .agent-tasks/*/{group}/task-NNN.json
+   ```
+2. Delete the file
+3. Update the manifest's `updated_at` timestamp
+
+There is no soft-delete status. Git history preserves the record of deleted tasks.
+
+---
+
 ## Query Tasks
 
-Filter and retrieve tasks matching specific criteria.
+Scan directories with Glob patterns to find and filter tasks.
 
 ### By Status
 
 ```
-Filter: task.status == "pending"
+All pending tasks for a group:    .agent-tasks/pending/{group}/*.json
+All in-progress across groups:    .agent-tasks/in-progress/**/*.json
+All completed tasks:              .agent-tasks/completed/**/*.json
+All backlog tasks:                .agent-tasks/backlog/**/*.json
 ```
+
+### All Tasks for a Group
+
+```
+.agent-tasks/*/{group}/*.json
+```
+
+This scans all status directories. Exclude `_manifests/` from results (it doesn't have group subdirectories with task files).
 
 ### By Metadata Field
 
+After globbing task files, read each and filter by metadata:
 ```
 Filter: task.metadata.task_group == "user-auth"
 Filter: task.metadata.spec_phase == 1
@@ -116,9 +196,12 @@ Sort by: task.metadata.priority (critical > high > medium > low)
 
 Find tasks ready to execute:
 ```
-1. Build set: completed_ids = { t.id for t in tasks where t.status == "completed" }
-2. Filter: t.status == "pending" AND every id in t.blocked_by is in completed_ids
-3. Sort by: priority (critical first), then spec_phase (lower first), then id
+1. Glob .agent-tasks/completed/{group}/*.json
+2. Build set: completed_ids = { filename stem for each file }
+3. Glob .agent-tasks/pending/{group}/*.json
+4. Read each pending task
+5. Filter: every id in task.blocked_by is in completed_ids
+6. Sort by: priority (critical first), then spec_phase (lower first), then id
 ```
 
 ---
@@ -130,20 +213,21 @@ Locate the highest-priority task that is ready to execute.
 **Algorithm:**
 
 ```
-1. Read .tasks/{task-group}.json
-2. Build completed set:
-     completed_ids = { t.id | t in tasks, t.status == "completed" }
-3. Filter candidates:
+1. Glob .agent-tasks/pending/{group}/*.json
+2. Read each task file
+3. Glob .agent-tasks/completed/{group}/*.json
+4. Build completed set:
+     completed_ids = { stem of filename | e.g., "task-001" from "task-001.json" }
+5. Filter candidates:
      candidates = [
-       t for t in tasks
-       where t.status == "pending"
-       and all(dep in completed_ids for dep in t.blocked_by)
+       t for t in pending_tasks
+       where all(dep in completed_ids for dep in t.blocked_by)
      ]
-4. Sort candidates:
+6. Sort candidates:
      - By priority: critical > high > medium > low
      - By spec_phase: lower phase first (if present)
      - By id: task-001 before task-002 (tiebreaker)
-5. Return first candidate, or null if none available
+7. Return first candidate, or null if none available
 ```
 
 **Priority ordering map:**
@@ -158,76 +242,41 @@ low:      3
 
 ## Merge Mode
 
-Handle re-running task generation against an existing task file. Match tasks by `task_uid` and apply merge rules based on existing task status.
+Handle re-running task generation against an existing task group. Match tasks by `task_uid` across all status directories and apply merge rules.
 
 **Procedure:**
 
-1. Read the existing task file
-2. Build a UID-to-task mapping: `{ t.metadata.task_uid: t for t in existing_tasks }`
-3. For each new task to merge:
+1. Glob `.agent-tasks/*/{group}/*.json` to find all existing tasks
+2. Read each task file
+3. Build a UID-to-task mapping: `{ task.metadata.task_uid: { task, file_path } }`
+4. For each new task to merge:
    a. Look up by `task_uid` in the mapping
    b. Apply merge rules based on existing status (see table below)
-   c. If no match, this is a new task — add it with a new sequential ID
-4. Handle potentially obsolete tasks: existing tasks with no matching `task_uid` in the new set
-5. Recompute `blocks` for all tasks
-6. Update `updated_at` timestamp
-7. Write the file
+   c. If no match, this is a new task — write it with a new sequential ID
+5. Handle potentially obsolete tasks: existing tasks with no matching `task_uid` in the new set
+6. Update the manifest's `updated_at` timestamp
 
 ### Merge Rules by Status
 
 | Existing Status | Action |
 |-----------------|--------|
-| `pending` | Update `description`, `title`, `active_form`, and metadata. Preserve `id` and `status`. |
-| `in_progress` | Preserve `status` and `owner`. Optionally update `description` if content changed. |
+| `pending` | Update `description`, `title`, `active_form`, `acceptance_criteria`, `testing_requirements`, and metadata. Preserve `id`, `status`, and file location. |
+| `backlog` | Same as `pending` — update content, preserve identity and status. |
+| `in_progress` | Preserve `status`, `owner`, and file location. Optionally update `description` if content changed. |
 | `completed` | **Never modify.** Skip entirely. |
-| `deleted` | Skip — treat as if no match found (create as new). |
 
 ### Handling New Tasks in Merge
 
 New tasks (no matching `task_uid`) are added with:
-- A new sequential ID (continuing from the highest existing ID)
-- Status `pending`
-- Dependencies set using the UID-to-ID mapping for both new and existing tasks
+- A new sequential ID (continuing from the highest existing ID across all status directories)
+- Status `pending` or `backlog` based on phase rules
+- File written to the appropriate status directory
 
 ### Handling Obsolete Tasks
 
 Existing tasks with no matching `task_uid` in the new generation may be obsolete. Present them to the user with options:
 - **Keep**: Requirements may still be relevant outside the current spec
-- **Mark deleted**: Requirements changed, tasks no longer needed
-
----
-
-## Recompute Blocks
-
-The `blocks` field is the computed inverse of all `blocked_by` relationships. Recompute it whenever `blocked_by` changes on any task.
-
-**Algorithm:**
-
-```
-1. Initialize: for every task, set blocks = []
-2. For each task T in the file:
-   a. For each ID in T.blocked_by:
-      b. Find the task with that ID
-      c. Add T.id to that task's blocks array
-3. Deduplicate each blocks array (should already be unique, but safety check)
-```
-
-**Example:**
-
-```
-task-001: blocked_by = []
-task-002: blocked_by = ["task-001"]
-task-003: blocked_by = ["task-001"]
-task-004: blocked_by = ["task-002", "task-003"]
-
-After recompute:
-task-001: blocks = ["task-002", "task-003"]
-task-002: blocks = ["task-004"]
-task-003: blocks = ["task-004"]
-task-004: blocks = []
-```
-
-Always recompute `blocks` for the **entire file** — not just the modified task — because adding a `blocked_by` to one task affects another task's `blocks`.
+- **Delete**: Remove the file from disk
 
 ---
 
@@ -237,11 +286,15 @@ When creating many tasks at once (e.g., from a spec), build all tasks in memory 
 
 **Procedure:**
 
-1. Build the complete task array in memory
+1. Build the complete task list in memory
 2. Assign sequential IDs: `task-001`, `task-002`, ...
 3. Set all `blocked_by` references using the assigned IDs
-4. Compute all `blocks` as the inverse of `blocked_by`
-5. Set `produces_for` metadata where detected
-6. Write the entire `.tasks/{task-group}.json` file in a single operation
+4. Set `produces_for` metadata where detected
+5. Determine target directory for each task:
+   - Current/selected phase tasks → `pending/{group}/`
+   - Future/non-selected phase tasks → `backlog/{group}/`
+6. Create group subdirectories as needed
+7. Write each task as an individual file in a single batch
+8. Write the manifest file to `.agent-tasks/_manifests/{group}.json`
 
-This atomic approach eliminates the need for two-pass create-then-update workflows. All relationships are resolved before any file I/O.
+This atomic approach ensures all relationships are resolved before any file I/O. Each task is written as its own file, enabling independent reads and updates.

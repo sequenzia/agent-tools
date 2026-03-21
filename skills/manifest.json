@@ -1,0 +1,156 @@
+{
+  "version": "1.0",
+  "types": ["workflow", "utility", "reference", "dispatcher"],
+  "categories": {
+    "core": {
+      "path": "skills/core",
+      "skills": [
+        {
+          "name": "architecture-patterns",
+          "type": "reference",
+          "description": "Provides architectural pattern knowledge for designing feature implementations including MVC, event-driven, microservices, and CQRS patterns. Use when designing system architecture or choosing implementation patterns."
+        },
+        {
+          "name": "bug-killer",
+          "type": "workflow",
+          "description": "Systematic, hypothesis-driven debugging workflow with triage-based track routing. Use when asked to \"fix this bug\", \"debug this\", \"why is this failing\", \"this is broken\", \"investigate this error\", \"track down this issue\", or any debugging situation. Supports --deep flag to force full investigation.",
+          "allowed_tools": ["Read", "Write", "Edit", "Glob", "Grep", "Bash"]
+        },
+        {
+          "name": "changelog-format",
+          "type": "reference",
+          "description": "Keep a Changelog format guidelines and entry writing best practices. Use when writing changelog entries, updating CHANGELOG.md, or following Keep a Changelog specification."
+        },
+        {
+          "name": "code-architecture",
+          "type": "dispatcher",
+          "description": "Dispatches a code-architect agent to design an implementation blueprint for a feature. Use when another skill needs architectural design — planning files to create/modify, data flow, risks, and testing strategy. Accepts a feature description, exploration findings, and a design approach.",
+          "allowed_tools": ["Read", "Glob", "Grep"]
+        },
+        {
+          "name": "code-exploration",
+          "type": "dispatcher",
+          "description": "Dispatches a code-explorer agent to investigate a specific focus area of a codebase. Use when another skill needs focused codebase exploration — finding relevant files, tracing execution paths, and mapping architecture for a defined area. Accepts a focus area assignment and analysis context.",
+          "allowed_tools": ["Read", "Glob", "Grep", "Bash"]
+        },
+        {
+          "name": "code-quality",
+          "type": "reference",
+          "description": "Provides code quality principles including SOLID, DRY, testing strategies, and best practices for implementation review. Use when reviewing code or applying quality standards."
+        },
+        {
+          "name": "codebase-analysis",
+          "type": "workflow",
+          "description": "Produce a structured codebase analysis report with architecture overview, critical files, patterns, and actionable recommendations. Use when asked to \"analyze codebase\", \"explore codebase\", \"understand this codebase\", \"map the codebase\", \"give me an overview of this project\", \"what does this codebase do\", \"codebase report\", \"project analysis\", \"audit this codebase\", or \"how is this project structured\".",
+          "allowed_tools": ["Read", "Write", "Edit", "Glob", "Grep", "Bash"]
+        },
+        {
+          "name": "create-skill-opencode",
+          "type": "workflow",
+          "description": "Create a new agent skill through an adaptive interview process that produces complete, platform-native skill files. Optimized for OpenCode's runtime. Supports Generic Agent Skills, OpenCode, and Codex platforms. Use when user says \"create a skill\", \"new skill\", \"generate skill\", \"make a skill\", \"build a skill\", \"skill creator\", or wants to author an agent skill file."
+        },
+        {
+          "name": "deep-analysis",
+          "type": "workflow",
+          "description": "Deep exploration and synthesis workflow using parallel subagents with dynamic planning and hub-and-spoke coordination. Use when asked for \"deep analysis\", \"deep understanding\", \"analyze codebase\", \"explore and analyze\", or \"investigate codebase\". Also use when another skill needs comprehensive codebase exploration before proceeding.",
+          "allowed_tools": ["Read", "Glob", "Grep", "Bash"]
+        },
+        {
+          "name": "docs-manager",
+          "type": "workflow",
+          "description": "Documentation management workflow for MkDocs sites and standalone markdown files — initialize, generate, update docs, and create change summaries. Use when asked to \"create docs\", \"write README\", \"update documentation\", \"generate docs site\", \"write CONTRIBUTING\", \"manage documentation\", or \"docs changelog\".",
+          "allowed_tools": ["Read", "Write", "Edit", "Glob", "Grep", "Bash"]
+        },
+        {
+          "name": "document-changes",
+          "type": "utility",
+          "description": "Generate a markdown report documenting codebase changes from the current session — files added, modified, deleted, and a summary of what was done. Use when asked to \"document changes\", \"generate change report\", \"save changes report\", \"what did I change\", \"session report\", \"summarize my changes\", or \"write a changes report\".",
+          "allowed_tools": ["Read", "Write", "Glob", "Grep", "Bash"]
+        },
+        {
+          "name": "feature-dev",
+          "type": "workflow",
+          "description": "Feature development workflow with exploration, architecture, implementation, and review phases. Use for implementing new features or significant changes. Trigger when user says \"implement this feature\", \"add this functionality\", \"build this\", or describes a feature they want built.",
+          "allowed_tools": ["Read", "Write", "Edit", "Glob", "Grep", "Bash"]
+        },
+        {
+          "name": "git-commit",
+          "type": "utility",
+          "description": "Commit staged changes with conventional commit message. Use when user says \"commit changes\", \"commit this\", \"save my changes\", or wants to create a git commit.",
+          "allowed_tools": ["Bash"]
+        },
+        {
+          "name": "glab",
+          "type": "reference",
+          "description": "Interact with GitLab through the glab CLI tool. Covers merge requests, issues, CI/CD pipelines, runners, pipeline schedules, repositories, releases, API requests, variables, labels, milestones, snippets, access tokens, deploy keys, incidents, and changelogs. Use when the user needs to create or manage merge requests, check CI pipeline status, manage runners or schedules, manage GitLab issues or incidents, create releases, generate changelogs, manage access tokens or deploy keys, query the GitLab API, or perform any GitLab operation from the command line. Trigger on mentions of glab, GitLab CLI, merge requests, MR workflows, CI pipelines, runners, pipeline schedules, access tokens, deploy keys, incidents, GitLab issues, or GitLab API."
+        },
+        {
+          "name": "language-patterns",
+          "type": "reference",
+          "description": "Provides language-specific patterns for TypeScript, Python, and React including idioms, best practices, and common patterns. Use when implementing features in these languages."
+        },
+        {
+          "name": "mr-reviewer",
+          "type": "workflow",
+          "description": "Perform automated merge request reviews by dispatching three parallel agents -- codebase understanding, code quality analysis, and git history examination -- then merging their findings into a structured review report and/or GitLab line-level comments. Uses the glab CLI for GitLab integration. Use when the user wants to review an MR, analyze a merge request, get code review feedback, or post review comments on GitLab. Also trigger when users mention \"MR review\", \"review this merge request\", \"code review for MR\", \"review my changes\", or any merge request review workflow.",
+          "allowed_tools": ["Read", "Glob", "Grep", "Bash"]
+        },
+        {
+          "name": "project-conventions",
+          "type": "reference",
+          "description": "Guides discovery and application of project-specific conventions including code patterns, naming, structure, and team practices. Use when exploring a codebase or implementing features to match existing patterns."
+        },
+        {
+          "name": "project-learnings",
+          "type": "utility",
+          "description": "Captures project-specific patterns and anti-patterns into the project's AGENTS.md. Loaded by other skills (bug-killer, feature-dev, etc.) when they discover project-specific knowledge worth encoding for future sessions.",
+          "allowed_tools": ["Read", "Edit", "Glob"]
+        },
+        {
+          "name": "release-python-package",
+          "type": "workflow",
+          "description": "Prepare and execute a Python package release with verification steps. Use for releasing Python packages with uv and ruff.",
+          "allowed_tools": ["Read", "Edit", "Bash", "Glob"]
+        },
+        {
+          "name": "research",
+          "type": "dispatcher",
+          "description": "Dispatches a researcher agent to investigate best practices, compliance requirements, technology comparisons, and domain knowledge. Use when a skill needs external research to inform decisions — compliance frameworks (GDPR, HIPAA, PCI), technology trade-offs, competitive analysis, or industry best practices. Wrapper skill for the researcher agent.",
+          "allowed_tools": ["Read", "Glob", "Grep", "Bash"]
+        },
+        {
+          "name": "technical-diagrams",
+          "type": "reference",
+          "description": "Provides Mermaid diagram syntax, best practices, and styling rules for technical visualizations. Use when creating diagrams, flowcharts, sequence diagrams, class diagrams, state diagrams, ER diagrams, architecture diagrams, C4 diagrams, visualizations, or any visual documentation in markdown. Always use this skill when generating or updating Mermaid code blocks."
+        }
+      ]
+    },
+    "sdd": {
+      "path": "skills/sdd",
+      "skills": [
+        {
+          "name": "create-spec",
+          "type": "workflow",
+          "description": "Create a new specification through an adaptive interview process with proactive recommendations and optional research. Supports high-level, detailed, and full technical documentation depths. Use when user says \"create spec\", \"new spec\", \"generate spec\", \"write a spec\", \"PRD\", \"product requirements\", or wants to start a specification document.",
+          "allowed_tools": ["Read", "Write", "Glob", "Grep", "Bash"]
+        },
+        {
+          "name": "create-tasks",
+          "type": "workflow",
+          "description": "Generate implementation tasks from an existing spec. Analyzes specs produced by create-spec, decomposes features into atomic tasks using layer patterns, infers dependencies, detects producer-consumer relationships, and writes tasks to .agents/tasks/ JSON files. Use when user says \"create tasks\", \"generate tasks from spec\", \"spec to tasks\", \"task generation\", or wants to decompose a spec into implementation tasks. Also trigger when the user has a spec and wants to start building.",
+          "allowed_tools": ["Read", "Write", "Glob", "Grep", "Bash"]
+        },
+        {
+          "name": "sdd-specs",
+          "type": "reference",
+          "description": "Spec templates, interview question banks, complexity signals, recommendation patterns, and codebase exploration procedures for the SDD spec creation workflow. Use as a reference skill when creating or reviewing specs. Load this skill whenever working with spec templates, conducting interviews, assessing project complexity, or reviewing spec quality."
+        },
+        {
+          "name": "sdd-tasks",
+          "type": "reference",
+          "description": "Define and manage implementation tasks using a harness-independent JSON file format. Provides task schema, file-based CRUD operations, state management, dependency tracking, and execution patterns. Use as a reference skill when creating, executing, or managing tasks from specs. Load this skill whenever working with .agents/tasks/ files, decomposing specs into tasks, or coordinating multi-agent task execution."
+        }
+      ]
+    }
+  }
+}

@@ -1,6 +1,8 @@
 ---
 name: release-python-package
 description: Prepare and execute a Python package release with verification steps. Use for releasing Python packages with uv and ruff.
+metadata:
+  type: workflow
 allowed-tools: Read Edit Bash Glob
 ---
 

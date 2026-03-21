@@ -7,6 +7,7 @@ description: >-
   "session report", "summarize my changes", or "write a changes report".
 metadata:
   argument-hint: "[scope-or-description]"
+  type: utility
 allowed-tools: Read Write Glob Grep Bash
 ---
 

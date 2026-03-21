@@ -8,6 +8,7 @@ description: >-
   "docs changelog".
 metadata:
   argument-hint: "<action-or-description>"
+  type: workflow
 allowed-tools: Read Write Edit Glob Grep Bash
 ---
 

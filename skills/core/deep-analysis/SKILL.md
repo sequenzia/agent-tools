@@ -8,6 +8,7 @@ description: >-
   codebase exploration before proceeding.
 metadata:
   argument-hint: "<analysis-context or focus-area>"
+  type: workflow
 allowed-tools: Read Glob Grep Bash
 ---
 

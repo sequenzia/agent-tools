@@ -11,6 +11,7 @@ description: >-
   "review my changes", or any merge request review workflow.
 metadata:
   argument-hint: "<mr-url-or-iid> [--deep] [--report-only] [--comments-only]"
+  type: workflow
 allowed-tools: Read Glob Grep Bash
 ---
 

@@ -7,6 +7,8 @@ description: >-
   creating, executing, or managing tasks from specs. Load this skill whenever
   working with .agents/tasks/ files, decomposing specs into tasks, or coordinating
   multi-agent task execution.
+metadata:
+  type: reference
 ---
 
 # SDD Tasks Reference

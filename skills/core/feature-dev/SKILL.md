@@ -7,6 +7,7 @@ description: >-
   "build this", or describes a feature they want built.
 metadata:
   argument-hint: "<feature-description>"
+  type: workflow
 allowed-tools: Read Write Edit Glob Grep Bash
 ---
 

@@ -1,6 +1,8 @@
 ---
 name: code-quality
 description: Provides code quality principles including SOLID, DRY, testing strategies, and best practices for implementation review. Use when reviewing code or applying quality standards.
+metadata:
+  type: reference
 ---
 
 # Code Quality

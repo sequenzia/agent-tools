@@ -1,6 +1,8 @@
 ---
 name: create-skill-opencode
 description: Create a new agent skill through an adaptive interview process that produces complete, platform-native skill files. Optimized for OpenCode's runtime. Supports Generic Agent Skills, OpenCode, and Codex platforms. Use when user says "create a skill", "new skill", "generate skill", "make a skill", "build a skill", "skill creator", or wants to author an agent skill file.
+metadata:
+  type: workflow
 ---
 
 # Create Skill

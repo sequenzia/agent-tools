@@ -5,6 +5,8 @@ description: >-
   codebase. Use when another skill needs focused codebase exploration — finding
   relevant files, tracing execution paths, and mapping architecture for a
   defined area. Accepts a focus area assignment and analysis context.
+metadata:
+  type: dispatcher
 allowed-tools: Read Glob Grep Bash
 ---
 

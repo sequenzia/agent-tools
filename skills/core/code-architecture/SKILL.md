@@ -5,6 +5,8 @@ description: >-
   feature. Use when another skill needs architectural design — planning files to
   create/modify, data flow, risks, and testing strategy. Accepts a feature
   description, exploration findings, and a design approach.
+metadata:
+  type: dispatcher
 allowed-tools: Read Glob Grep
 ---
 

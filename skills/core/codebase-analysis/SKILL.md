@@ -9,6 +9,7 @@ description: >-
   or "how is this project structured".
 metadata:
   argument-hint: "<analysis-context or feature-description>"
+  type: workflow
 allowed-tools: Read Write Edit Glob Grep Bash
 ---
 

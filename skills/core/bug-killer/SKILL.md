@@ -8,6 +8,7 @@ description: >-
   investigation.
 metadata:
   argument-hint: "<bug-description-or-error> [--deep]"
+  type: workflow
 allowed-tools: Read Write Edit Glob Grep Bash
 ---
 

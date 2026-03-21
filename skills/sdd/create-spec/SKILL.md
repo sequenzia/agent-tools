@@ -8,6 +8,7 @@ description: >-
   start a specification document.
 metadata:
   argument-hint: "[context-file-or-text]"
+  type: workflow
 allowed-tools: Read Write Glob Grep Bash
 ---
 

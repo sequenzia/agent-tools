@@ -1,6 +1,8 @@
 ---
 name: language-patterns
 description: Provides language-specific patterns for TypeScript, Python, and React including idioms, best practices, and common patterns. Use when implementing features in these languages.
+metadata:
+  type: reference
 ---
 
 # Language Patterns

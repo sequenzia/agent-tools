@@ -6,6 +6,8 @@ description: >-
   workflow. Use as a reference skill when creating or reviewing specs. Load
   this skill whenever working with spec templates, conducting interviews,
   assessing project complexity, or reviewing spec quality.
+metadata:
+  type: reference
 ---
 
 # SDD Specs Reference

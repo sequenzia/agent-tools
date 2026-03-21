@@ -1,6 +1,8 @@
 ---
 name: git-commit
 description: Commit staged changes with conventional commit message. Use when user says "commit changes", "commit this", "save my changes", or wants to create a git commit.
+metadata:
+  type: utility
 allowed-tools: Bash
 ---
 

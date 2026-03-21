@@ -10,6 +10,7 @@ description: >-
   wants to start building.
 metadata:
   argument-hint: "[spec-path] [--phase <phases>]"
+  type: workflow
 allowed-tools: Read Write Glob Grep Bash
 ---
 

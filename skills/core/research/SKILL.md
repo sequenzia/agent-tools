@@ -6,6 +6,8 @@ description: >-
   needs external research to inform decisions — compliance frameworks (GDPR,
   HIPAA, PCI), technology trade-offs, competitive analysis, or industry best
   practices. Wrapper skill for the researcher agent.
+metadata:
+  type: dispatcher
 allowed-tools: Read Glob Grep Bash
 ---
 

@@ -4,6 +4,8 @@ description: >-
   Captures project-specific patterns and anti-patterns into the project's AGENTS.md.
   Loaded by other skills (bug-killer, feature-dev, etc.) when they discover
   project-specific knowledge worth encoding for future sessions.
+metadata:
+  type: utility
 allowed-tools: Read Edit Glob
 ---
 

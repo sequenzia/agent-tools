@@ -11,6 +11,8 @@ description: >-
   command line. Trigger on mentions of glab, GitLab CLI, merge requests, MR
   workflows, CI pipelines, runners, pipeline schedules, access tokens, deploy
   keys, incidents, GitLab issues, or GitLab API.
+metadata:
+  type: reference
 ---
 
 # glab CLI Reference

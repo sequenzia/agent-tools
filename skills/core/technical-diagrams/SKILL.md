@@ -6,6 +6,8 @@ description: >-
   diagrams, state diagrams, ER diagrams, architecture diagrams, C4 diagrams,
   visualizations, or any visual documentation in markdown. Always use this skill
   when generating or updating Mermaid code blocks.
+metadata:
+  type: reference
 ---
 
 # Technical Diagrams

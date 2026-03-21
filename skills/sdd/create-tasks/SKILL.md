@@ -4,7 +4,7 @@ description: >-
   Generate implementation tasks from an existing spec. Analyzes specs produced
   by create-spec, decomposes features into atomic tasks using layer patterns,
   infers dependencies, detects producer-consumer relationships, and writes
-  tasks to .agent-tasks/ JSON files. Use when user says "create tasks", "generate
+  tasks to .agents/tasks/ JSON files. Use when user says "create tasks", "generate
   tasks from spec", "spec to tasks", "task generation", or wants to decompose
   a spec into implementation tasks. Also trigger when the user has a spec and
   wants to start building.
@@ -15,7 +15,7 @@ allowed-tools: Read Write Glob Grep Bash
 
 # Spec to Tasks
 
-You are an expert at transforming specifications into well-structured, actionable implementation tasks. You analyze specs, decompose features into atomic tasks, infer dependencies, and write tasks to `.agent-tasks/` JSON files with proper metadata and acceptance criteria.
+You are an expert at transforming specifications into well-structured, actionable implementation tasks. You analyze specs, decompose features into atomic tasks, infer dependencies, and write tasks to `.agents/tasks/` JSON files with proper metadata and acceptance criteria.
 
 ## Critical Rules
 
@@ -40,20 +40,20 @@ Text output should only be used for:
 - **DO NOT** create an implementation plan for how to build the spec's features
 - **DO NOT** defer task generation to an "execution phase"
 - **DO** proceed with the full task generation workflow immediately
-- **DO** write tasks to `.agent-tasks/` as normal
+- **DO** write tasks to `.agents/tasks/` as normal
 
 The tasks are planning artifacts themselves — generating them IS the planning activity.
 
 ## Load Reference Skills
 
-Before starting the workflow, load the agent-tasks reference for task schema, conventions, and patterns:
+Before starting the workflow, load the sdd-tasks reference for task schema, conventions, and patterns:
 
 ```
-Read ../agent-tasks/SKILL.md
+Read ../sdd-tasks/SKILL.md
 ```
 
 This reference provides:
-- Task file convention (`.agent-tasks/{status}/{group}/task-NNN.json`)
+- Task file convention (`.agents/tasks/{status}/{group}/task-NNN.json`)
 - Task schema with field reference (id, title, active_form, description, acceptance_criteria, testing_requirements, status, blocked_by, metadata)
 - Status lifecycle and transition rules (backlog, pending, in_progress, completed)
 - Naming conventions (imperative `title`, present-continuous `active_form`)
@@ -74,7 +74,7 @@ This workflow has ten phases:
 6. **Infer Dependencies** — Phase-aware blocking relationships with cross-phase handling
 7. **Detect Producer-Consumer Relationships** — Identify `produces_for` relationships between tasks
 8. **Preview & Confirm** — Show summary, get user approval before writing
-9. **Create Tasks** — Write tasks to `.agent-tasks/` as individual files (fresh or merge mode)
+9. **Create Tasks** — Write tasks to `.agents/tasks/` as individual files (fresh or merge mode)
 10. **Error Handling** — Handle spec parsing issues, circular deps, missing info, phase errors
 
 ---
@@ -147,8 +147,8 @@ Analyze the spec content to determine its depth level. Check in priority order:
 
 Derive the expected `task_group` slug from the spec (see Phase 3) and check if tasks already exist by scanning for the manifest and task files:
 
-1. Check if `.agent-tasks/_manifests/{task-group}.json` exists
-2. Glob `.agent-tasks/*/{task-group}/*.json` to find existing task files across all status directories
+1. Check if `.agents/tasks/_manifests/{task-group}.json` exists
+2. Glob `.agents/tasks/*/{task-group}/*.json` to find existing task files across all status directories
 
 If tasks exist:
 - Read each task file and categorize by status
@@ -330,7 +330,7 @@ For each feature, apply the standard layer pattern. See `references/decompositio
 
 ### Task Structure
 
-Each task follows the agent-tasks schema (imperative `title`, present-continuous `active_form`). Acceptance criteria and testing requirements are structured as top-level fields:
+Each task follows the sdd-tasks schema (imperative `title`, present-continuous `active_form`). Acceptance criteria and testing requirements are structured as top-level fields:
 
 ```json
 {
@@ -365,7 +365,7 @@ Each task follows the agent-tasks schema (imperative `title`, present-continuous
 
 ### SDD Task Metadata Extensions
 
-In addition to the standard metadata keys from agent-tasks (`priority`, `complexity`, `task_group`, `task_uid`), SDD tasks use these spec-specific keys:
+In addition to the standard metadata keys from sdd-tasks (`priority`, `complexity`, `task_group`, `task_uid`), SDD tasks use these spec-specific keys:
 
 | Key | Type | Required | Description |
 |-----|------|----------|-------------|
@@ -580,11 +580,18 @@ Build all tasks in memory and write as individual files:
 2. **Assign sequential IDs**: `task-001`, `task-002`, ... using the task_uid-to-ID mapping
 3. **Set blocked_by**: Using the internal UID-to-ID mapping from Phase 6
 4. **Set produces_for**: Using the detection results from Phase 7
-5. **Create directory structure**: Ensure `.agent-tasks/` with all subdirectories exists
-6. **Write manifest**: Write `.agent-tasks/_manifests/{group}.json`
+5. **Create directory structure**: If `.agents/tasks/` does not exist, create the full structure:
+   ```bash
+   mkdir -p .agents/tasks/{_manifests,backlog,pending,in-progress,completed}
+   ```
+   Always ensure group subdirectories exist before writing task files:
+   ```bash
+   mkdir -p .agents/tasks/{pending,backlog}/{group}
+   ```
+6. **Write manifest**: Write `.agents/tasks/_manifests/{group}.json` with task statistics
 7. **Write task files**: Write each task as an individual file to the appropriate directory:
-   - Current-phase tasks → `.agent-tasks/pending/{group}/task-NNN.json`
-   - Future-phase tasks → `.agent-tasks/backlog/{group}/task-NNN.json`
+   - Current-phase tasks → `.agents/tasks/pending/{group}/task-NNN.json`
+   - Future-phase tasks → `.agents/tasks/backlog/{group}/task-NNN.json`
 
 **Manifest structure:**
 ```json
@@ -593,9 +600,25 @@ Build all tasks in memory and write as individual files:
   "task_group": "{task-group}",
   "spec_path": "{spec-path}",
   "created_at": "{ISO-8601}",
-  "updated_at": "{ISO-8601}"
+  "updated_at": "{ISO-8601}",
+  "total_tasks": "{count}",
+  "pending_count": "{count}",
+  "backlog_count": "{count}",
+  "dependency_count": "{count}",
+  "producer_consumer_count": "{count}",
+  "complexity_breakdown": { "{level}": "{count}" },
+  "priority_breakdown": { "{level}": "{count}" }
 }
 ```
+
+**Computing statistics:**
+- `total_tasks`: Count of all task files written
+- `pending_count`: Count of tasks written to `pending/{group}/`
+- `backlog_count`: Count of tasks written to `backlog/{group}/`
+- `dependency_count`: Sum of all `blocked_by` array lengths across all tasks
+- `producer_consumer_count`: Sum of all `produces_for` array lengths across all tasks
+- `complexity_breakdown`: Group tasks by `metadata.complexity` and count each level
+- `priority_breakdown`: Group tasks by `metadata.priority` and count each level
 
 ### Report Completion
 
@@ -607,10 +630,10 @@ Created {n} tasks from {spec_name}
 Set {m} dependency relationships
 Set {p} producer-consumer relationships
 
-Task directory: .agent-tasks/
-Manifest: .agent-tasks/_manifests/{group}.json
-Pending tasks: .agent-tasks/pending/{group}/ ({x} files)
-Backlog tasks: .agent-tasks/backlog/{group}/ ({y} files)
+Task directory: .agents/tasks/
+Manifest: .agents/tasks/_manifests/{group}.json
+Pending tasks: .agents/tasks/pending/{group}/ ({x} files)
+Backlog tasks: .agents/tasks/backlog/{group}/ ({y} files)
 
 RECOMMENDED FIRST TASKS (no blockers):
 - {Task title} ({priority}, {complexity})
@@ -624,7 +647,7 @@ Run these tasks first to unblock others.
 
 When tasks already exist for this group:
 
-1. **Read existing tasks**: Glob `.agent-tasks/*/{group}/*.json` and read each file
+1. **Read existing tasks**: Glob `.agents/tasks/*/{group}/*.json` and read each file
 2. **Match by task_uid**: Build mapping of existing `task_uid` → task
 3. **Apply merge rules**:
    | Existing Status | Action |
@@ -636,7 +659,7 @@ When tasks already exist for this group:
 4. **Add new tasks**: Tasks with no matching `task_uid` get new sequential IDs and are written as new files
 5. **Handle obsolete tasks**: Existing tasks with no matching `task_uid` in the new set — present to user with keep/delete options
 6. **Write updates**: Write modified task files back to their locations, write new task files to appropriate directories
-7. **Update manifest**: Update the manifest's `updated_at` timestamp
+7. **Update manifest**: Update the manifest's `updated_at` timestamp and recompute all statistics (`total_tasks`, `pending_count`, `backlog_count`, `dependency_count`, `producer_consumer_count`, `complexity_breakdown`, `priority_breakdown`) by scanning all current task files for the group
 
 Report merge statistics:
 ```
@@ -692,7 +715,7 @@ Degrade gracefully — if phase headers can't be parsed, log a warning and gener
 
 ## Anti-Pattern Validation
 
-Before confirming task creation in Phase 8, validate against common anti-patterns. Load `../agent-tasks/references/anti-patterns.md` for the full reference if issues are detected.
+Before confirming task creation in Phase 8, validate against common anti-patterns. Load `../sdd-tasks/references/anti-patterns.md` for the full reference if issues are detected.
 
 Check for:
 - **AP-01**: Circular dependencies — detect cycles in the dependency graph
@@ -707,5 +730,5 @@ Check for:
 - `references/decomposition-patterns.md` — Feature decomposition patterns by type
 - `references/dependency-inference.md` — Automatic dependency inference rules
 - `references/testing-requirements.md` — Test type mappings and acceptance criteria patterns
-- `../agent-tasks/SKILL.md` — Task schema, conventions, and patterns (loaded at init)
-- `../agent-tasks/references/anti-patterns.md` — Common task anti-patterns (loaded on validation)
+- `../sdd-tasks/SKILL.md` — Task schema, conventions, and patterns (loaded at init)
+- `../sdd-tasks/references/anti-patterns.md` — Common task anti-patterns (loaded on validation)

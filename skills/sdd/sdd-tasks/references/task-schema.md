@@ -1,6 +1,6 @@
 # Task Schema Reference
 
-Complete JSON schema definition for `.agent-tasks/` task files.
+Complete JSON schema definition for `.agents/tasks/` task files.
 
 ---
 
@@ -9,7 +9,7 @@ Complete JSON schema definition for `.agent-tasks/` task files.
 Tasks are stored as individual JSON files organized by status and group:
 
 ```
-.agent-tasks/
+.agents/tasks/
 ├── _manifests/
 │   └── {group}.json
 ├── backlog/
@@ -38,7 +38,14 @@ Each task group has a manifest file at `_manifests/{group}.json`:
   "task_group": "user-authentication",
   "spec_path": "specs/SPEC-Auth.md",
   "created_at": "2026-03-20T10:00:00Z",
-  "updated_at": "2026-03-20T10:30:00Z"
+  "updated_at": "2026-03-20T10:30:00Z",
+  "total_tasks": 10,
+  "pending_count": 6,
+  "backlog_count": 4,
+  "dependency_count": 8,
+  "producer_consumer_count": 3,
+  "complexity_breakdown": { "S": 3, "M": 5, "L": 2 },
+  "priority_breakdown": { "critical": 1, "high": 4, "medium": 3, "low": 2 }
 }
 ```
 
@@ -51,6 +58,13 @@ Each task group has a manifest file at `_manifests/{group}.json`:
 | `spec_path` | string | Yes | Path to the source specification file (e.g., `"specs/SPEC-Auth.md"`). |
 | `created_at` | string | Yes | ISO 8601 timestamp of initial manifest creation. |
 | `updated_at` | string | Yes | ISO 8601 timestamp of the most recent group modification. Updated on any task write. |
+| `total_tasks` | integer | No | Total number of tasks in the group. |
+| `pending_count` | integer | No | Number of tasks in `pending` status. |
+| `backlog_count` | integer | No | Number of tasks in `backlog` status. |
+| `dependency_count` | integer | No | Total number of `blocked_by` relationships across all tasks. |
+| `producer_consumer_count` | integer | No | Total number of `produces_for` relationships across all tasks. |
+| `complexity_breakdown` | object | No | Counts by complexity level (e.g., `{"S": 3, "M": 5, "L": 2}`). |
+| `priority_breakdown` | object | No | Counts by priority level (e.g., `{"critical": 1, "high": 4, "medium": 3}`). |
 
 ---
 
@@ -206,7 +220,7 @@ Every `metadata` object must have: `priority`, `complexity`, `task_group`, `task
 ### Status-Directory Consistency
 
 - The `status` field in a task file must match the status directory the file lives in
-- A file at `.agent-tasks/pending/group/task-001.json` must have `"status": "pending"`
+- A file at `.agents/tasks/pending/group/task-001.json` must have `"status": "pending"`
 - After moving a file, always update the `status` field to match the new directory
 
 ### Acceptance Criteria Structure
@@ -229,7 +243,7 @@ The dependency graph formed by `blocked_by` relationships must be acyclic. To de
 
 ## Example: Minimal Task
 
-File: `.agent-tasks/pending/user-authentication/task-001.json`
+File: `.agents/tasks/pending/user-authentication/task-001.json`
 
 ```json
 {
@@ -269,7 +283,7 @@ File: `.agent-tasks/pending/user-authentication/task-001.json`
 
 ## Example: Task with Phase and Producer-Consumer
 
-File: `.agent-tasks/pending/user-authentication/task-005.json`
+File: `.agents/tasks/pending/user-authentication/task-005.json`
 
 ```json
 {
@@ -318,7 +332,7 @@ File: `.agent-tasks/pending/user-authentication/task-005.json`
 
 ## Example: Backlog Task (Future Phase)
 
-File: `.agent-tasks/backlog/user-authentication/task-010.json`
+File: `.agents/tasks/backlog/user-authentication/task-010.json`
 
 ```json
 {
@@ -365,7 +379,7 @@ File: `.agent-tasks/backlog/user-authentication/task-010.json`
 
 ## Example: Manifest File
 
-File: `.agent-tasks/_manifests/user-authentication.json`
+File: `.agents/tasks/_manifests/user-authentication.json`
 
 ```json
 {
@@ -373,6 +387,13 @@ File: `.agent-tasks/_manifests/user-authentication.json`
   "task_group": "user-authentication",
   "spec_path": "specs/SPEC-Auth.md",
   "created_at": "2026-03-20T10:00:00Z",
-  "updated_at": "2026-03-20T10:30:00Z"
+  "updated_at": "2026-03-20T10:30:00Z",
+  "total_tasks": 10,
+  "pending_count": 6,
+  "backlog_count": 4,
+  "dependency_count": 8,
+  "producer_consumer_count": 3,
+  "complexity_breakdown": { "S": 3, "M": 5, "L": 2 },
+  "priority_breakdown": { "critical": 1, "high": 4, "medium": 3, "low": 2 }
 }
 ```

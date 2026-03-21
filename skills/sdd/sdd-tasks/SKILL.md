@@ -1,15 +1,15 @@
 ---
-name: agent-tasks
+name: sdd-tasks
 description: >-
   Define and manage implementation tasks using a harness-independent JSON file
   format. Provides task schema, file-based CRUD operations, state management,
   dependency tracking, and execution patterns. Use as a reference skill when
   creating, executing, or managing tasks from specs. Load this skill whenever
-  working with .agent-tasks/ files, decomposing specs into tasks, or coordinating
+  working with .agents/tasks/ files, decomposing specs into tasks, or coordinating
   multi-agent task execution.
 ---
 
-# Agent Tasks Reference
+# SDD Tasks Reference
 
 This skill is a shared reference for harness-independent task management. Load it when your skill or agent needs to create, manage, or coordinate tasks stored as JSON files.
 
@@ -29,10 +29,10 @@ For deeper content, load the reference files listed at the end of this document.
 
 ## Task File Convention
 
-Tasks are stored as individual JSON files in an `.agent-tasks/` directory at the project root. Tasks are organized by status and group:
+Tasks are stored as individual JSON files in an `.agents/tasks/` directory at the project root. Tasks are organized by status and group:
 
 ```
-.agent-tasks/
+.agents/tasks/
 ├── _manifests/
 │   ├── user-authentication.json
 │   └── payment-flow.json
@@ -59,9 +59,9 @@ Tasks are stored as individual JSON files in an `.agent-tasks/` directory at the
 
 **File naming**: `task-NNN.json` where NNN is a zero-padded 3-digit sequential number.
 
-**Discovery**: To find all tasks for a group, search with `.agent-tasks/*/{group}/*.json`. To find all tasks in a status, search with `.agent-tasks/{status}/**/*.json`.
+**Discovery**: To find all tasks for a group, search with `.agents/tasks/*/{group}/*.json`. To find all tasks in a status, search with `.agents/tasks/{status}/**/*.json`.
 
-**Creation**: If the `.agent-tasks/` directory does not exist, create it with all subdirectories (`_manifests/`, `backlog/`, `pending/`, `in-progress/`, `completed/`) before writing the first task.
+**Creation**: If the `.agents/tasks/` directory does not exist, create it with all subdirectories (`_manifests/`, `backlog/`, `pending/`, `in-progress/`, `completed/`) before writing the first task.
 
 ---
 
@@ -78,6 +78,13 @@ Each task is an individual JSON file. Group-level metadata is stored separately 
 | `spec_path` | string | Yes | Path to the source specification file |
 | `created_at` | string | Yes | ISO 8601 timestamp of manifest creation |
 | `updated_at` | string | Yes | ISO 8601 timestamp of most recent group modification |
+| `total_tasks` | integer | No | Total number of tasks in the group |
+| `pending_count` | integer | No | Tasks in pending status |
+| `backlog_count` | integer | No | Tasks in backlog status |
+| `dependency_count` | integer | No | Total `blocked_by` relationships |
+| `producer_consumer_count` | integer | No | Total `produces_for` relationships |
+| `complexity_breakdown` | object | No | Counts by complexity level |
+| `priority_breakdown` | object | No | Counts by priority level |
 
 ### Task Fields
 
@@ -134,8 +141,8 @@ backlog ──→ pending ──→ in_progress ──→ completed
 ### Status Transitions as File Moves
 
 When a task's status changes, the file physically moves between directories. For example, transitioning task-001 from `pending` to `in_progress`:
-- Source: `.agent-tasks/pending/user-auth/task-001.json`
-- Destination: `.agent-tasks/in-progress/user-auth/task-001.json`
+- Source: `.agents/tasks/pending/user-auth/task-001.json`
+- Destination: `.agents/tasks/in-progress/user-auth/task-001.json`
 
 The `status` field inside the JSON is updated to match the new directory.
 
@@ -276,7 +283,7 @@ The `produces_for` field is an optional array of task IDs identifying tasks that
 
 For detailed file-based CRUD procedures, load `references/operations.md`. It covers:
 
-- **Initialize**: Create `.agent-tasks/` directory structure and write manifest file
+- **Initialize**: Create `.agents/tasks/` directory structure and write manifest file
 - **Add task**: Write individual task JSON file to the appropriate status directory
 - **Update task**: Read individual file, modify fields, update `updated_at`, write back
 - **Move task**: Transition status by moving file between status directories, updating `status` field
@@ -308,9 +315,9 @@ Only claim one task at a time. Complete or reset the current task before claimin
 ### Find-Next-Available Algorithm
 
 ```
-1. Glob .agent-tasks/pending/{group}/*.json
+1. Glob .agents/tasks/pending/{group}/*.json
 2. Read each task file
-3. Glob .agent-tasks/completed/{group}/*.json to build completed set:
+3. Glob .agents/tasks/completed/{group}/*.json to build completed set:
      completed_ids = { filename stem (e.g., "task-001") for each file }
 4. Filter candidates:
    - every ID in blocked_by is in the completed set

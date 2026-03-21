@@ -153,10 +153,10 @@ The exception is multi-agent orchestration where each agent claims exactly one t
 
 ## AP-08: Status/Directory Mismatch
 
-**Description**: A task file's `status` field does not match the directory it lives in. For example, a file at `.agent-tasks/pending/user-auth/task-001.json` has `"status": "in_progress"`.
+**Description**: A task file's `status` field does not match the directory it lives in. For example, a file at `.agents/tasks/pending/user-auth/task-001.json` has `"status": "in_progress"`.
 
 ```
-File location: .agent-tasks/pending/user-auth/task-001.json
+File location: .agents/tasks/pending/user-auth/task-001.json
 File content:  { "status": "in_progress", ... }
 ```
 

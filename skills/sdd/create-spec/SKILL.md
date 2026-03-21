@@ -83,6 +83,21 @@ question:
 
 The spec is a planning artifact itself — generating it IS the planning activity.
 
+## Load Reference Skills
+
+Before starting the workflow, load the sdd-specs reference for templates, interview questions, and recommendation patterns:
+
+```
+Read ../sdd-specs/SKILL.md
+```
+
+This reference provides:
+- Spec templates (high-level, detailed, full-tech)
+- Interview question bank organized by category and depth
+- Complexity signal definitions and thresholds
+- Recommendation trigger patterns and presentation format
+- Codebase exploration procedure for "new feature" type
+
 ## Workflow Overview
 
 This workflow has five phases:
@@ -119,7 +134,7 @@ If no arguments are provided, skip this subsection entirely — the skill behave
 
 If user-supplied context was loaded, assess its complexity:
 
-1. **Read** `references/complexity-signals.md` for signal definitions and thresholds
+1. **Read** `../sdd-specs/references/complexity-signals.md` for signal definitions and thresholds
 2. **Scan** the user-supplied context for complexity signals
 3. **If threshold is met** (3+ high-weight signals OR 5+ any-weight signals), present a brief notice via the `question` tool:
    ```yaml
@@ -200,7 +215,7 @@ question:
 
 If the product type is "New feature for existing product":
 
-1. **Read the exploration procedure:** `references/codebase-exploration.md`
+1. **Read the exploration procedure:** `../sdd-specs/references/codebase-exploration.md`
 2. **Follow all 4 steps** (Quick Reconnaissance → Plan Focus Areas → Parallel Exploration → Synthesis)
 3. After synthesis, store the merged findings internally as "Codebase Context" for use in subsequent interview rounds and spec compilation
 4. Present a brief summary of key findings to the user before starting the interview
@@ -226,8 +241,8 @@ If exploration agents fail:
 
 Before starting Round 1, read these reference files to load the full question bank and trigger patterns:
 
-1. `references/interview-questions.md` — Question bank organized by category and depth level
-2. `references/recommendation-triggers.md` — Trigger patterns for proactive recommendations across all domains
+1. `../sdd-specs/references/interview-questions.md` — Question bank organized by category and depth level
+2. `../sdd-specs/references/recommendation-triggers.md` — Trigger patterns for proactive recommendations across all domains
 
 Use these as your primary source for questions and trigger detection throughout the interview.
 
@@ -266,7 +281,7 @@ Cover all four categories, but adjust depth based on level:
 
 #### Expanded Budgets
 
-When `complexity_detected` is set (user opted in after complexity assessment), use expanded budgets from `references/interview-questions.md` (section "Expanded Budgets (Complexity Detected)") instead of the standard budgets above. Soft ceiling of ~8 rounds / ~35 questions applies.
+When `complexity_detected` is set (user opted in after complexity assessment), use expanded budgets from `../sdd-specs/references/interview-questions.md` (section "Expanded Budgets (Complexity Detected)") instead of the standard budgets above. Soft ceiling of ~8 rounds / ~35 questions applies.
 
 #### Adaptive Behavior
 
@@ -332,7 +347,7 @@ question:
 
 Throughout the interview, watch for patterns in user responses that indicate opportunities for best-practice recommendations. When detected, offer relevant suggestions based on industry standards.
 
-**Trigger Detection**: After receiving user responses each round, scan for trigger keywords from the loaded `references/recommendation-triggers.md`. The file covers domains including: Authentication, Scale & Performance, Security & Compliance, Real-Time Features, File & Media, API Design, Search & Discovery, Testing, and Accessibility.
+**Trigger Detection**: After receiving user responses each round, scan for trigger keywords from the loaded `../sdd-specs/references/recommendation-triggers.md`. The file covers domains including: Authentication, Scale & Performance, Security & Compliance, Real-Time Features, File & Media, API Design, Search & Discovery, Testing, and Accessibility.
 
 **When to Offer Recommendations:**
 - **Inline insights**: Brief suggestions during rounds when triggers detected (max 2 per round)
@@ -351,7 +366,7 @@ question:
   custom: false
 ```
 
-**For detailed recommendation templates, refer to:** `references/recommendation-format.md`
+**For detailed recommendation templates, refer to:** `../sdd-specs/references/recommendation-format.md`
 
 **Tracking Recommendations:**
 Maintain internal tracking of detected triggers and accepted recommendations:
@@ -596,9 +611,9 @@ Choose the appropriate template based on depth level:
 
 | Depth Level | Template | Use Case |
 |-------------|----------|----------|
-| High-level overview | `references/templates/high-level.md` | Executive summaries, stakeholder alignment, initial scoping |
-| Detailed specifications | `references/templates/detailed.md` | Standard development specs with clear requirements |
-| Full technical documentation | `references/templates/full-tech.md` | Complex features requiring API specs, data models, architecture |
+| High-level overview | `../sdd-specs/references/templates/high-level.md` | Executive summaries, stakeholder alignment, initial scoping |
+| Detailed specifications | `../sdd-specs/references/templates/detailed.md` | Standard development specs with clear requirements |
+| Full technical documentation | `../sdd-specs/references/templates/full-tech.md` | Complex features requiring API specs, data models, architecture |
 
 ### Diagram Guidance (Detailed/Full-Tech Only)
 
@@ -762,11 +777,11 @@ This skill invokes the following skills for agent access:
 
 ## Reference Files
 
-- `references/interview-questions.md` — Question bank organized by category and depth level (includes expanded budgets for complex projects)
-- `references/complexity-signals.md` — Signal definitions, thresholds, and assessment format for complexity detection
-- `references/recommendation-triggers.md` — Trigger patterns for proactive recommendations
-- `references/recommendation-format.md` — Templates for presenting recommendations
-- `references/codebase-exploration.md` — Procedure for team-based codebase exploration (new feature type)
-- `references/templates/high-level.md` — Streamlined executive overview template
-- `references/templates/detailed.md` — Standard spec template with all sections
-- `references/templates/full-tech.md` — Extended template with technical specifications
+- `../sdd-specs/references/interview-questions.md` — Question bank organized by category and depth level (includes expanded budgets for complex projects)
+- `../sdd-specs/references/complexity-signals.md` — Signal definitions, thresholds, and assessment format for complexity detection
+- `../sdd-specs/references/recommendation-triggers.md` — Trigger patterns for proactive recommendations
+- `../sdd-specs/references/recommendation-format.md` — Templates for presenting recommendations
+- `../sdd-specs/references/codebase-exploration.md` — Procedure for team-based codebase exploration (new feature type)
+- `../sdd-specs/references/templates/high-level.md` — Streamlined executive overview template
+- `../sdd-specs/references/templates/detailed.md` — Standard spec template with all sections
+- `../sdd-specs/references/templates/full-tech.md` — Extended template with technical specifications

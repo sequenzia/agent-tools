@@ -30,7 +30,7 @@ This makes skills portable across harnesses with different capabilities.
 | `codebase-analysis` | _(none)_ | deep-analysis, code-exploration, code-architecture | Structured 3-phase workflow: deep analysis, reporting, and post-analysis actions. |
 | `release-python-package` | changelog-manager | _(none)_ | Python package release automation workflow. |
 | `mr-reviewer` | codebase-understanding, code-quality, git-history | glab | Automated MR review: dispatches 3 parallel agents for codebase, quality, and history analysis. Produces structured reports and/or GitLab line-level comments. |
-| `create-spec` | _(none)_ | code-exploration, research | Adaptive interview-driven spec creation with codebase exploration, proactive recommendations, and research. Supports high-level, detailed, and full technical documentation depths. |
+| `create-spec` | _(none)_ | code-exploration, research, sdd-specs | Adaptive interview-driven spec creation with codebase exploration, proactive recommendations, and research. Supports high-level, detailed, and full technical documentation depths. |
 
 ### Wrapper Skills (shared agent access)
 
@@ -44,7 +44,8 @@ This makes skills portable across harnesses with different capabilities.
 
 | Skill | Description |
 |-------|-------------|
-| `agent-tasks` | Task schema, file-based CRUD, state management, dependency patterns, and execution guidance for harness-independent task management. Tasks stored as `.agent-tasks/` JSON files. |
+| `sdd-tasks` | Task schema, file-based CRUD, state management, dependency patterns, and execution guidance for harness-independent task management. Tasks stored as `.agents/tasks/` JSON files. |
+| `sdd-specs` | Spec templates, interview question banks, complexity signals, recommendation patterns, and codebase exploration procedures for the SDD spec creation workflow. |
 | `language-patterns` | TypeScript, Python, and React patterns, idioms, and best practices. |
 | `project-conventions` | Discovers and applies project-specific conventions (naming, structure, patterns). |
 | `technical-diagrams` | Mermaid diagram syntax, styling, and best practices for flowcharts, sequence, class, state, ER, and C4 diagrams. |
@@ -56,7 +57,7 @@ This makes skills portable across harnesses with different capabilities.
 
 | Skill | Description |
 |-------|-------------|
-| `create-tasks` | Spec-to-task decomposition with layer patterns, dependency inference, and producer-consumer detection. Generates `.agent-tasks/` JSON files from `create-spec` output. |
+| `create-tasks` | Spec-to-task decomposition with layer patterns, dependency inference, and producer-consumer detection. Generates `.agents/tasks/` JSON files from `create-spec` output. |
 | `document-changes` | Generate a markdown report documenting session changes. |
 | `git-commit` | Automates git commits following Conventional Commits format. |
 | `project-learnings` | Captures project-specific patterns and anti-patterns into the project's AGENTS.md. |
@@ -146,6 +147,14 @@ skills/
 │   └── technical-diagrams/
 ├── sdd/
 │   ├── create-spec/
+│   │   └── SKILL.md
+│   ├── create-tasks/
+│   │   ├── SKILL.md
+│   │   └── references/
+│   │       ├── decomposition-patterns.md
+│   │       ├── dependency-inference.md
+│   │       └── testing-requirements.md
+│   ├── sdd-specs/
 │   │   ├── SKILL.md
 │   │   └── references/
 │   │       ├── codebase-exploration.md
@@ -157,13 +166,7 @@ skills/
 │   │           ├── high-level.md
 │   │           ├── detailed.md
 │   │           └── full-tech.md
-│   ├── create-tasks/
-│   │   ├── SKILL.md
-│   │   └── references/
-│   │       ├── decomposition-patterns.md
-│   │       ├── dependency-inference.md
-│   │       └── testing-requirements.md
-│   └── agent-tasks/
+│   └── sdd-tasks/
 │       ├── SKILL.md
 │       └── references/
 │           ├── task-schema.md

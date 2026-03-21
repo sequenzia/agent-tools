@@ -1,6 +1,6 @@
 # Task File Operations
 
-Detailed procedures for file-based CRUD operations on `.agent-tasks/` task files. All operations use the `Read`, `Write`, and `Glob` tools — no harness-specific task tools required.
+Detailed procedures for file-based CRUD operations on `.agents/tasks/` task files. All operations use the `Read`, `Write`, and `Glob` tools — no harness-specific task tools required.
 
 ---
 
@@ -10,15 +10,15 @@ Create the directory structure and manifest for a new task group.
 
 **Procedure:**
 
-1. Check if `.agent-tasks/` directory exists. If not, create it with all subdirectories:
+1. Check if `.agents/tasks/` directory exists. If not, create it with all subdirectories:
    ```
-   .agent-tasks/_manifests/
-   .agent-tasks/backlog/
-   .agent-tasks/pending/
-   .agent-tasks/in-progress/
-   .agent-tasks/completed/
+   .agents/tasks/_manifests/
+   .agents/tasks/backlog/
+   .agents/tasks/pending/
+   .agents/tasks/in-progress/
+   .agents/tasks/completed/
    ```
-2. Write the manifest file at `.agent-tasks/_manifests/{group}.json`:
+2. Write the manifest file at `.agents/tasks/_manifests/{group}.json`:
 
 ```json
 {
@@ -26,7 +26,14 @@ Create the directory structure and manifest for a new task group.
   "task_group": "{task-group-slug}",
   "spec_path": "{path-to-spec}",
   "created_at": "{ISO-8601-timestamp}",
-  "updated_at": "{ISO-8601-timestamp}"
+  "updated_at": "{ISO-8601-timestamp}",
+  "total_tasks": 0,
+  "pending_count": 0,
+  "backlog_count": 0,
+  "dependency_count": 0,
+  "producer_consumer_count": 0,
+  "complexity_breakdown": {},
+  "priority_breakdown": {}
 }
 ```
 
@@ -42,7 +49,7 @@ Write a new task as an individual JSON file.
 **Procedure:**
 
 1. Determine the next sequential ID:
-   - Glob `.agent-tasks/*/{group}/*.json` to find all existing task files for this group
+   - Glob `.agents/tasks/*/{group}/*.json` to find all existing task files for this group
    - Find the highest numeric suffix among existing filenames (e.g., `task-015` → 15)
    - Increment by 1 and zero-pad to 3 digits (→ `task-016`)
    - If no tasks exist, start at `task-001`
@@ -52,13 +59,13 @@ Write a new task as an individual JSON file.
    - Tasks with no phase (phaseless specs) → `pending/`
 3. Create the group subdirectory if it doesn't exist:
    ```
-   .agent-tasks/{status}/{group}/
+   .agents/tasks/{status}/{group}/
    ```
 4. Construct the task JSON with all required fields:
    - Set `status` to match the target directory
    - Set `owner` to `null`
    - Set `created_at` and `updated_at` to the current time
-5. Write the task file: `.agent-tasks/{status}/{group}/task-NNN.json`
+5. Write the task file: `.agents/tasks/{status}/{group}/task-NNN.json`
 6. Update the manifest's `updated_at` timestamp
 
 ---
@@ -106,19 +113,19 @@ Transition a task's status by moving its file between status directories.
 4. Update the `updated_at` timestamp
 5. Create the target group subdirectory if it doesn't exist:
    ```
-   .agent-tasks/{new-status}/{group}/
+   .agents/tasks/{new-status}/{group}/
    ```
 6. Write the task file to the new location:
    ```
-   .agent-tasks/{new-status}/{group}/task-NNN.json
+   .agents/tasks/{new-status}/{group}/task-NNN.json
    ```
 7. Delete the file from the old location
 8. Update the manifest's `updated_at` timestamp
 
 **Example — claiming a task:**
 ```
-Source:      .agent-tasks/pending/user-auth/task-001.json
-Destination: .agent-tasks/in-progress/user-auth/task-001.json
+Source:      .agents/tasks/pending/user-auth/task-001.json
+Destination: .agents/tasks/in-progress/user-auth/task-001.json
 
 Update:
   status: "pending" → "in_progress"
@@ -128,8 +135,8 @@ Update:
 
 **Example — completing a task:**
 ```
-Source:      .agent-tasks/in-progress/user-auth/task-001.json
-Destination: .agent-tasks/completed/user-auth/task-001.json
+Source:      .agents/tasks/in-progress/user-auth/task-001.json
+Destination: .agents/tasks/completed/user-auth/task-001.json
 
 Update:
   status: "in_progress" → "completed"
@@ -146,7 +153,7 @@ Remove a task file from disk.
 
 1. Locate the task file across status directories:
    ```
-   Glob: .agent-tasks/*/{group}/task-NNN.json
+   Glob: .agents/tasks/*/{group}/task-NNN.json
    ```
 2. Delete the file
 3. Update the manifest's `updated_at` timestamp
@@ -162,16 +169,16 @@ Scan directories with Glob patterns to find and filter tasks.
 ### By Status
 
 ```
-All pending tasks for a group:    .agent-tasks/pending/{group}/*.json
-All in-progress across groups:    .agent-tasks/in-progress/**/*.json
-All completed tasks:              .agent-tasks/completed/**/*.json
-All backlog tasks:                .agent-tasks/backlog/**/*.json
+All pending tasks for a group:    .agents/tasks/pending/{group}/*.json
+All in-progress across groups:    .agents/tasks/in-progress/**/*.json
+All completed tasks:              .agents/tasks/completed/**/*.json
+All backlog tasks:                .agents/tasks/backlog/**/*.json
 ```
 
 ### All Tasks for a Group
 
 ```
-.agent-tasks/*/{group}/*.json
+.agents/tasks/*/{group}/*.json
 ```
 
 This scans all status directories. Exclude `_manifests/` from results (it doesn't have group subdirectories with task files).
@@ -196,9 +203,9 @@ Sort by: task.metadata.priority (critical > high > medium > low)
 
 Find tasks ready to execute:
 ```
-1. Glob .agent-tasks/completed/{group}/*.json
+1. Glob .agents/tasks/completed/{group}/*.json
 2. Build set: completed_ids = { filename stem for each file }
-3. Glob .agent-tasks/pending/{group}/*.json
+3. Glob .agents/tasks/pending/{group}/*.json
 4. Read each pending task
 5. Filter: every id in task.blocked_by is in completed_ids
 6. Sort by: priority (critical first), then spec_phase (lower first), then id
@@ -213,9 +220,9 @@ Locate the highest-priority task that is ready to execute.
 **Algorithm:**
 
 ```
-1. Glob .agent-tasks/pending/{group}/*.json
+1. Glob .agents/tasks/pending/{group}/*.json
 2. Read each task file
-3. Glob .agent-tasks/completed/{group}/*.json
+3. Glob .agents/tasks/completed/{group}/*.json
 4. Build completed set:
      completed_ids = { stem of filename | e.g., "task-001" from "task-001.json" }
 5. Filter candidates:
@@ -246,7 +253,7 @@ Handle re-running task generation against an existing task group. Match tasks by
 
 **Procedure:**
 
-1. Glob `.agent-tasks/*/{group}/*.json` to find all existing tasks
+1. Glob `.agents/tasks/*/{group}/*.json` to find all existing tasks
 2. Read each task file
 3. Build a UID-to-task mapping: `{ task.metadata.task_uid: { task, file_path } }`
 4. For each new task to merge:
@@ -295,6 +302,6 @@ When creating many tasks at once (e.g., from a spec), build all tasks in memory 
    - Future/non-selected phase tasks → `backlog/{group}/`
 6. Create group subdirectories as needed
 7. Write each task as an individual file in a single batch
-8. Write the manifest file to `.agent-tasks/_manifests/{group}.json`
+8. Write the manifest file to `.agents/tasks/_manifests/{group}.json`
 
 This atomic approach ensures all relationships are resolved before any file I/O. Each task is written as its own file, enabling independent reads and updates.

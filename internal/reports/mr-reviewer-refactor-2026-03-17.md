@@ -29,28 +29,28 @@ Major architectural refactor of the mr-reviewer skill to make it compatible with
 
 | File | Status | Lines | Description |
 |------|--------|-------|-------------|
-| `tools/skills/mr-reviewer/SKILL.md` | Modified | +386 / -2,298 | Complete rewrite: added frontmatter fields, agent table, execution strategy; removed inline prompts; replaced Claude Code-specific patterns |
-| `tools/skills/mr-reviewer/agents/codebase-understanding.md` | Added | +133 | New agent file: convention violations, architectural issues, integration risks |
-| `tools/skills/mr-reviewer/agents/code-quality.md` | Added | +172 | New agent file: bugs, code quality, best practices, error handling; expanded language coverage |
-| `tools/skills/mr-reviewer/agents/git-history.md` | Added | +146 | New agent file: regression risks, high-churn areas, historical context |
-| `tools/skills/mr-reviewer/references/finding-schema.md` | Modified | +158 / -92 | Added confidence field, category-aware deduplication, structured sub-findings format, merge examples |
-| `tools/skills/mr-reviewer/references/gitlab-api-patterns.md` | Modified | +1 / -1 | Replaced `@skills/glab` references with relative paths |
-| `tools/skills/mr-reviewer/references/subagent-prompts.md` | Deleted | -497 | Content moved to agents/ directory; eliminated triple duplication |
-| `tools/skills/README.md` | Modified | +13 | Added mr-reviewer to orchestrator skills table, agents table, and directory structure |
+| `skills/mr-reviewer/SKILL.md` | Modified | +386 / -2,298 | Complete rewrite: added frontmatter fields, agent table, execution strategy; removed inline prompts; replaced Claude Code-specific patterns |
+| `skills/mr-reviewer/agents/codebase-understanding.md` | Added | +133 | New agent file: convention violations, architectural issues, integration risks |
+| `skills/mr-reviewer/agents/code-quality.md` | Added | +172 | New agent file: bugs, code quality, best practices, error handling; expanded language coverage |
+| `skills/mr-reviewer/agents/git-history.md` | Added | +146 | New agent file: regression risks, high-churn areas, historical context |
+| `skills/mr-reviewer/references/finding-schema.md` | Modified | +158 / -92 | Added confidence field, category-aware deduplication, structured sub-findings format, merge examples |
+| `skills/mr-reviewer/references/gitlab-api-patterns.md` | Modified | +1 / -1 | Replaced `@skills/glab` references with relative paths |
+| `skills/mr-reviewer/references/subagent-prompts.md` | Deleted | -497 | Content moved to agents/ directory; eliminated triple duplication |
+| `skills/README.md` | Modified | +13 | Added mr-reviewer to orchestrator skills table, agents table, and directory structure |
 
 ## Change Details
 
 ### Added
 
-- **`tools/skills/mr-reviewer/agents/codebase-understanding.md`** -- Standalone agent file extracted from SKILL.md section 2.1. Analyzes MR changed files and surrounding codebase context for convention, architecture, and integration-risk findings. Uses plain-text placeholders instead of Handlebars syntax. Includes confidence scoring guidelines.
+- **`skills/mr-reviewer/agents/codebase-understanding.md`** -- Standalone agent file extracted from SKILL.md section 2.1. Analyzes MR changed files and surrounding codebase context for convention, architecture, and integration-risk findings. Uses plain-text placeholders instead of Handlebars syntax. Includes confidence scoring guidelines.
 
-- **`tools/skills/mr-reviewer/agents/code-quality.md`** -- Standalone agent file extracted from SKILL.md section 2.2. Performs bug detection, code quality analysis, best practice checking, and error handling review. Expanded language coverage: detailed rules for Python/TypeScript/JavaScript plus general heuristics for Go, Rust, Java, C#, and other languages.
+- **`skills/mr-reviewer/agents/code-quality.md`** -- Standalone agent file extracted from SKILL.md section 2.2. Performs bug detection, code quality analysis, best practice checking, and error handling review. Expanded language coverage: detailed rules for Python/TypeScript/JavaScript plus general heuristics for Go, Rust, Java, C#, and other languages.
 
-- **`tools/skills/mr-reviewer/agents/git-history.md`** -- Standalone agent file extracted from SKILL.md section 2.3. Examines git history for regression risks, high-churn patterns, and historical context. Uses plain-text placeholders for orchestrator-injected context.
+- **`skills/mr-reviewer/agents/git-history.md`** -- Standalone agent file extracted from SKILL.md section 2.3. Examines git history for regression risks, high-churn patterns, and historical context. Uses plain-text placeholders for orchestrator-injected context.
 
 ### Modified
 
-- **`tools/skills/mr-reviewer/SKILL.md`** -- Complete rewrite from 2,298 to 386 lines (83% reduction). Key changes:
+- **`skills/mr-reviewer/SKILL.md`** -- Complete rewrite from 2,298 to 386 lines (83% reduction). Key changes:
   - Added `allowed-tools: Read Glob Grep Bash` and `metadata.argument-hint` to frontmatter
   - Added `## Agents` table listing all three agents with files, tools, and descriptions
   - Added `## Execution Strategy` with dual-path pattern (parallel subagent dispatch OR sequential inline execution)
@@ -64,7 +64,7 @@ Major architectural refactor of the mr-reviewer skill to make it compatible with
   - Added automatic large MR detection with auto-applied focused mode
   - Consolidated error handling sections to eliminate duplication
 
-- **`tools/skills/mr-reviewer/references/finding-schema.md`** -- Updated from 261 to 327 lines. Key changes:
+- **`skills/mr-reviewer/references/finding-schema.md`** -- Updated from 261 to 327 lines. Key changes:
   - Added `confidence` field (0-100) to the schema definition (now 10 fields)
   - Replaced line-overlap-only deduplication with category-aware merging (merge only if findings share a category, have >50% overlap, or come from the same source)
   - Replaced pipe-separated merged finding format with structured sub-findings format (labeled bullets per source)
@@ -72,32 +72,32 @@ Major architectural refactor of the mr-reviewer skill to make it compatible with
   - Moved and expanded the merge example from SKILL.md sections 3.5-3.6 into this file
   - Updated validation rules for 10-field schema
 
-- **`tools/skills/mr-reviewer/references/gitlab-api-patterns.md`** -- Replaced 2 occurrences of `@skills/glab` with relative path `../glab/` equivalents.
+- **`skills/mr-reviewer/references/gitlab-api-patterns.md`** -- Replaced 2 occurrences of `@skills/glab` with relative path `../glab/` equivalents.
 
-- **`tools/skills/README.md`** -- Added mr-reviewer to the orchestrator skills table with its 3 agents and glab dependency. Added all 3 agents to the agents table. Added mr-reviewer to the directory structure tree with its agents/ and references/ subdirectories.
+- **`skills/README.md`** -- Added mr-reviewer to the orchestrator skills table with its 3 agents and glab dependency. Added all 3 agents to the agents table. Added mr-reviewer to the directory structure tree with its agents/ and references/ subdirectories.
 
 ### Deleted
 
-- **`tools/skills/mr-reviewer/references/subagent-prompts.md`** -- Removed because its 497 lines of content were a duplicate of the agent prompts that also appeared inline in SKILL.md. The canonical source for agent instructions is now the `agents/*.md` files, eliminating triple duplication.
+- **`skills/mr-reviewer/references/subagent-prompts.md`** -- Removed because its 497 lines of content were a duplicate of the agent prompts that also appeared inline in SKILL.md. The canonical source for agent instructions is now the `agents/*.md` files, eliminating triple duplication.
 
 ## Git Status
 
 ### Unstaged Changes
 
 ```
-M  tools/skills/README.md
-M  tools/skills/mr-reviewer/SKILL.md
-M  tools/skills/mr-reviewer/references/finding-schema.md
-M  tools/skills/mr-reviewer/references/gitlab-api-patterns.md
-D  tools/skills/mr-reviewer/references/subagent-prompts.md
+M  skills/README.md
+M  skills/mr-reviewer/SKILL.md
+M  skills/mr-reviewer/references/finding-schema.md
+M  skills/mr-reviewer/references/gitlab-api-patterns.md
+D  skills/mr-reviewer/references/subagent-prompts.md
 ```
 
 ### Untracked Files
 
 ```
-tools/skills/mr-reviewer/agents/codebase-understanding.md
-tools/skills/mr-reviewer/agents/code-quality.md
-tools/skills/mr-reviewer/agents/git-history.md
+skills/mr-reviewer/agents/codebase-understanding.md
+skills/mr-reviewer/agents/code-quality.md
+skills/mr-reviewer/agents/git-history.md
 ```
 
 ## Session Commits

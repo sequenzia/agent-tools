@@ -29,28 +29,28 @@ This change ports a Claude Code-specific skill into the generic agent-tools fram
 
 | File | Status | Lines | Description |
 |------|--------|-------|-------------|
-| `tools/skills/research/SKILL.md` | Added | +45 | Wrapper skill for research agent dispatch |
-| `tools/skills/research/agents/researcher.md` | Added | +106 | Research agent with tiered methodology |
-| `tools/skills/create-spec/SKILL.md` | Added | +772 | Main orchestrator skill — full interview workflow |
-| `tools/skills/create-spec/references/codebase-exploration.md` | Added | +143 | Exploration procedure using code-exploration skill |
-| `tools/skills/create-spec/references/complexity-signals.md` | Added | +62 | Complexity detection definitions (verbatim copy) |
-| `tools/skills/create-spec/references/interview-questions.md` | Added | +351 | Question bank with tool name updates |
-| `tools/skills/create-spec/references/recommendation-format.md` | Added | +222 | Recommendation templates in question tool format |
-| `tools/skills/create-spec/references/recommendation-triggers.md` | Added | +251 | Trigger patterns for proactive recommendations (verbatim copy) |
-| `tools/skills/create-spec/references/templates/high-level.md` | Added | +97 | Executive overview spec template (verbatim copy) |
-| `tools/skills/create-spec/references/templates/detailed.md` | Added | +262 | Standard spec template (verbatim copy) |
-| `tools/skills/create-spec/references/templates/full-tech.md` | Added | +602 | Full technical spec template (verbatim copy) |
-| `tools/skills/README.md` | Modified | +19 / -0 | Registered both new skills in all tables |
+| `skills/research/SKILL.md` | Added | +45 | Wrapper skill for research agent dispatch |
+| `skills/research/agents/researcher.md` | Added | +106 | Research agent with tiered methodology |
+| `skills/create-spec/SKILL.md` | Added | +772 | Main orchestrator skill — full interview workflow |
+| `skills/create-spec/references/codebase-exploration.md` | Added | +143 | Exploration procedure using code-exploration skill |
+| `skills/create-spec/references/complexity-signals.md` | Added | +62 | Complexity detection definitions (verbatim copy) |
+| `skills/create-spec/references/interview-questions.md` | Added | +351 | Question bank with tool name updates |
+| `skills/create-spec/references/recommendation-format.md` | Added | +222 | Recommendation templates in question tool format |
+| `skills/create-spec/references/recommendation-triggers.md` | Added | +251 | Trigger patterns for proactive recommendations (verbatim copy) |
+| `skills/create-spec/references/templates/high-level.md` | Added | +97 | Executive overview spec template (verbatim copy) |
+| `skills/create-spec/references/templates/detailed.md` | Added | +262 | Standard spec template (verbatim copy) |
+| `skills/create-spec/references/templates/full-tech.md` | Added | +602 | Full technical spec template (verbatim copy) |
+| `skills/README.md` | Modified | +19 / -0 | Registered both new skills in all tables |
 
 ## Change Details
 
 ### Added
 
-- **`tools/skills/research/SKILL.md`** — New wrapper skill following the `code-exploration` and `code-architecture` pattern. Provides a canonical entry point for research dispatch, enabling any skill to invoke research without duplicating the agent definition.
+- **`skills/research/SKILL.md`** — New wrapper skill following the `code-exploration` and `code-architecture` pattern. Provides a canonical entry point for research dispatch, enabling any skill to invoke research without duplicating the agent definition.
 
-- **`tools/skills/research/agents/researcher.md`** — Research agent with a tiered methodology: Tier 1 (documentation & standards via web search), Tier 2 (codebase & project context), Tier 3 (built-in knowledge as fallback). Covers compliance, technology, best practices, and competitive analysis. Includes graceful degradation when web search tools are unavailable.
+- **`skills/research/agents/researcher.md`** — Research agent with a tiered methodology: Tier 1 (documentation & standards via web search), Tier 2 (codebase & project context), Tier 3 (built-in knowledge as fallback). Covers compliance, technology, best practices, and competitive analysis. Includes graceful degradation when web search tools are unavailable.
 
-- **`tools/skills/create-spec/SKILL.md`** — The main orchestrator skill (772 lines). Implements a 5-phase adaptive interview workflow: Initial Inputs, Adaptive Interview, Recommendations Round, Pre-Compilation Summary, and Spec Compilation. Key transformations from the source:
+- **`skills/create-spec/SKILL.md`** — The main orchestrator skill (772 lines). Implements a 5-phase adaptive interview workflow: Initial Inputs, Adaptive Interview, Recommendations Round, Pre-Compilation Summary, and Spec Compilation. Key transformations from the source:
   - `AskUserQuestion` (batched) → `question` tool (one per call) with full parameter table
   - `TeamCreate`/`SendMessage` → Execution Strategy pattern with code-exploration skill
   - `Task` with `subagent_type: researcher` → research wrapper skill invocation
@@ -58,25 +58,25 @@ This change ports a Claude Code-specific skill into the generic agent-tools fram
   - Settings phase removed; sensible defaults with question-based confirmation
   - Plan Mode section genericized from Claude Code-specific language
 
-- **`tools/skills/create-spec/references/codebase-exploration.md`** — Rewritten exploration procedure replacing team-based parallel dispatch (TeamCreate, SendMessage, TeamDelete) with `code-exploration` wrapper skill invocations. Follows the same pattern used by `deep-analysis`. Includes Execution Strategy for parallel vs. sequential dispatch.
+- **`skills/create-spec/references/codebase-exploration.md`** — Rewritten exploration procedure replacing team-based parallel dispatch (TeamCreate, SendMessage, TeamDelete) with `code-exploration` wrapper skill invocations. Follows the same pattern used by `deep-analysis`. Includes Execution Strategy for parallel vs. sequential dispatch.
 
-- **`tools/skills/create-spec/references/interview-questions.md`** — Question bank with minor edits: ~5 references to `AskUserQuestion` replaced with `question` tool. All question content (57 questions across 4 categories, 3 depth levels, expanded budgets) preserved intact.
+- **`skills/create-spec/references/interview-questions.md`** — Question bank with minor edits: ~5 references to `AskUserQuestion` replaced with `question` tool. All question content (57 questions across 4 categories, 3 depth levels, expanded budgets) preserved intact.
 
-- **`tools/skills/create-spec/references/recommendation-format.md`** — All recommendation presentation templates rewritten from `AskUserQuestion` YAML format to `question` tool format. Key mapping: `question` → `text`, `options[].label + description` → combined `options[].label`, `multiSelect` → `multiple`, batched → single question per call.
+- **`skills/create-spec/references/recommendation-format.md`** — All recommendation presentation templates rewritten from `AskUserQuestion` YAML format to `question` tool format. Key mapping: `question` → `text`, `options[].label + description` → combined `options[].label`, `multiSelect` → `multiple`, batched → single question per call.
 
-- **`tools/skills/create-spec/references/complexity-signals.md`** — Copied verbatim from source. Defines 11 complexity signals (4 high-weight, 5 medium-weight, 2 low-weight) with threshold rules and assessment guidelines. No harness-specific content.
+- **`skills/create-spec/references/complexity-signals.md`** — Copied verbatim from source. Defines 11 complexity signals (4 high-weight, 5 medium-weight, 2 low-weight) with threshold rules and assessment guidelines. No harness-specific content.
 
-- **`tools/skills/create-spec/references/recommendation-triggers.md`** — Copied verbatim from source. Defines 9 trigger categories with keywords, recommendation areas, and detection guidelines. No harness-specific content.
+- **`skills/create-spec/references/recommendation-triggers.md`** — Copied verbatim from source. Defines 9 trigger categories with keywords, recommendation areas, and detection guidelines. No harness-specific content.
 
-- **`tools/skills/create-spec/references/templates/high-level.md`** — Copied verbatim. Executive overview spec template.
+- **`skills/create-spec/references/templates/high-level.md`** — Copied verbatim. Executive overview spec template.
 
-- **`tools/skills/create-spec/references/templates/detailed.md`** — Copied verbatim. Standard development spec template with user stories and acceptance criteria.
+- **`skills/create-spec/references/templates/detailed.md`** — Copied verbatim. Standard development spec template with user stories and acceptance criteria.
 
-- **`tools/skills/create-spec/references/templates/full-tech.md`** — Copied verbatim. Comprehensive technical spec template with API definitions, data models, Mermaid diagrams, and deployment strategy.
+- **`skills/create-spec/references/templates/full-tech.md`** — Copied verbatim. Comprehensive technical spec template with API definitions, data models, Mermaid diagrams, and deployment strategy.
 
 ### Modified
 
-- **`tools/skills/README.md`** — Added entries to four sections:
+- **`skills/README.md`** — Added entries to four sections:
   - Orchestrator Skills table: `create-spec` (invokes code-exploration and research)
   - Wrapper Skills table: `research` (wraps researcher agent, used by create-spec)
   - Agents table: `researcher` (located in research/agents/)
@@ -86,12 +86,12 @@ This change ports a Claude Code-specific skill into the generic agent-tools fram
 
 ### Unstaged Changes
 
-- `M tools/skills/README.md`
+- `M skills/README.md`
 
 ### Untracked Files
 
-- `tools/skills/create-spec/` (9 files)
-- `tools/skills/research/` (2 files)
+- `skills/create-spec/` (9 files)
+- `skills/research/` (2 files)
 
 ## Session Commits
 

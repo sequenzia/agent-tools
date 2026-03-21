@@ -184,7 +184,7 @@ The ecosystem uses three model tiers strategically:
 
 #### deep-analysis (Invocable: `/deep-analysis`)
 
-**File:** `tools/skills/deep-analysis/SKILL.md`
+**File:** `skills/deep-analysis/SKILL.md`
 **Loaded by:** codebase-analysis, feature-dev, docs-manager, create-spec
 
 The core reusable analysis engine. Orchestrates a hub-and-spoke team of explorers and a synthesizer through 6 phases:
@@ -212,7 +212,7 @@ The core reusable analysis engine. Orchestrates a hub-and-spoke team of explorer
 
 #### codebase-analysis (Invocable: `/codebase-analysis`)
 
-**File:** `tools/skills/codebase-analysis/SKILL.md`
+**File:** `skills/codebase-analysis/SKILL.md`
 **References:** `references/report-template.md`, `references/actionable-insights-template.md`
 
 End-to-end codebase understanding workflow built on top of deep-analysis:
@@ -229,7 +229,7 @@ End-to-end codebase understanding workflow built on top of deep-analysis:
 
 #### language-patterns (Non-invocable)
 
-**File:** `tools/skills/language-patterns/SKILL.md`
+**File:** `skills/language-patterns/SKILL.md`
 **Loaded by:** code-explorer, code-synthesizer, feature-dev
 
 Reference knowledge for three languages/frameworks:
@@ -242,7 +242,7 @@ Reference knowledge for three languages/frameworks:
 
 #### project-conventions (Non-invocable)
 
-**File:** `tools/skills/project-conventions/SKILL.md`
+**File:** `skills/project-conventions/SKILL.md`
 **Loaded by:** code-explorer, code-synthesizer
 
 Guide for discovering and applying project-specific conventions:
@@ -259,7 +259,7 @@ Guide for discovering and applying project-specific conventions:
 
 #### technical-diagrams (Non-invocable)
 
-**File:** `tools/skills/technical-diagrams/SKILL.md`
+**File:** `skills/technical-diagrams/SKILL.md`
 **References:** `references/flowcharts.md`, `references/sequence-diagrams.md`, `references/class-diagrams.md`, `references/state-diagrams.md`, `references/er-diagrams.md`, `references/c4-diagrams.md`
 **Loaded by:** code-synthesizer, code-architect, docs-writer, codebase-analysis
 
@@ -383,7 +383,7 @@ Optional debug logging via `AGENT_ALCHEMY_HOOK_DEBUG=1`.
 
 #### feature-dev (Invocable: `/feature-dev`)
 
-**File:** `tools/skills/feature-dev/SKILL.md`
+**File:** `skills/feature-dev/SKILL.md`
 **References:** `references/adr-template.md`, `references/changelog-entry-template.md`
 
 The most comprehensive workflow in the ecosystem. 7 mandatory phases that run continuously without stopping:
@@ -406,7 +406,7 @@ The most comprehensive workflow in the ecosystem. 7 mandatory phases that run co
 
 #### bug-killer (Invocable: `/bug-killer [--deep]`)
 
-**File:** `tools/skills/bug-killer/SKILL.md`
+**File:** `skills/bug-killer/SKILL.md`
 **References:** `references/general-debugging.md`, `references/python-debugging.md`, `references/typescript-debugging.md`
 
 Hypothesis-driven debugging with two-track routing:
@@ -430,7 +430,7 @@ Hypothesis-driven debugging with two-track routing:
 
 #### docs-manager (Invocable: `/docs-manager`)
 
-**File:** `tools/skills/docs-manager/SKILL.md`
+**File:** `skills/docs-manager/SKILL.md`
 **References:** `references/change-summary-templates.md`, `references/markdown-file-templates.md`, `references/mkdocs-config-template.md`
 
 Documentation management for MkDocs sites and standalone markdown:
@@ -453,7 +453,7 @@ Documentation management for MkDocs sites and standalone markdown:
 
 #### document-changes (Invocable: `/document-changes`)
 
-**File:** `tools/skills/document-changes/SKILL.md`
+**File:** `skills/document-changes/SKILL.md`
 
 Lightweight session change reporter. Generates a markdown report from git state:
 
@@ -470,7 +470,7 @@ Lightweight session change reporter. Generates a markdown report from git state:
 
 #### release-python-package (Invocable: `/release-python-package`)
 
-**File:** `tools/skills/release-python-package/SKILL.md`
+**File:** `skills/release-python-package/SKILL.md`
 
 Python release automation:
 
@@ -492,7 +492,7 @@ Python release automation:
 
 #### architecture-patterns
 
-**File:** `tools/skills/architecture-patterns/SKILL.md`
+**File:** `skills/architecture-patterns/SKILL.md`
 **Loaded by:** feature-dev (Phase 4)
 
 Architectural pattern knowledge:
@@ -511,7 +511,7 @@ Also covers anti-patterns: Big Ball of Mud, God Object, Spaghetti Code, Golden H
 
 #### code-quality
 
-**File:** `tools/skills/code-quality/SKILL.md`
+**File:** `skills/code-quality/SKILL.md`
 **Loaded by:** feature-dev (Phase 6), bug-killer (Phase 4, deep track)
 
 Code quality principles and review standards:
@@ -526,7 +526,7 @@ Code quality principles and review standards:
 
 #### changelog-format
 
-**File:** `tools/skills/changelog-format/SKILL.md`
+**File:** `skills/changelog-format/SKILL.md`
 **References:** `references/entry-examples.md`
 **Loaded by:** feature-dev (Phase 7), changelog-manager
 
@@ -540,7 +540,7 @@ Keep a Changelog specification:
 
 #### project-learnings
 
-**File:** `tools/skills/project-learnings/SKILL.md`
+**File:** `skills/project-learnings/SKILL.md`
 **Loaded by:** bug-killer (Phase 5)
 
 Captures project-specific patterns to CLAUDE.md. Qualification criteria:
@@ -573,7 +573,7 @@ Creates short-name symlinks in plugin cache so cross-plugin paths like `${CLAUDE
 
 #### git-commit (Invocable: `/git-commit`)
 
-**File:** `tools/skills/git-commit/SKILL.md`
+**File:** `skills/git-commit/SKILL.md`
 **Model:** Haiku
 **Tools:** Bash, AskUserQuestion only
 

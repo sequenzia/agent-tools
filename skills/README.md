@@ -82,7 +82,7 @@ All agents live inside the skill that owns them:
 ## Directory Structure
 
 ```
-tools/skills/
+skills/
 ├── code-exploration/              (wrapper: code-explorer)
 │   ├── SKILL.md
 │   └── agents/

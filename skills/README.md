@@ -67,101 +67,107 @@ All agents live inside the skill that owns them:
 
 | Agent | Location | Purpose |
 |-------|----------|---------|
-| `code-explorer` | `code-exploration/agents/` | Focused area exploration worker. Reads files, searches patterns, produces structured reports. |
-| `code-architect` | `code-architecture/agents/` | Designs implementation blueprints with minimal, flexible, and project-aligned approaches. |
-| `code-synthesizer` | `deep-analysis/agents/` | Merges exploration findings into unified analysis. Has bash access for git history and dependency analysis. |
-| `code-reviewer` | `feature-dev/agents/` | Quality review with confidence-scored findings. |
-| `bug-investigator` | `bug-killer/agents/` | Diagnostic investigation agent for testing debugging hypotheses. |
-| `docs-writer` | `docs-manager/agents/` | Generates and updates documentation files in MkDocs or basic markdown format. |
-| `changelog-manager` | `release-python-package/agents/` | Manages CHANGELOG.md entries following Keep a Changelog format. |
-| `codebase-understanding` | `mr-reviewer/agents/` | Analyzes MR changed files and surrounding codebase context for convention, architecture, and integration issues. |
-| `code-quality` | `mr-reviewer/agents/` | Analyzes code changes for bugs, quality issues, best practice violations, and missing error handling. |
-| `git-history` | `mr-reviewer/agents/` | Examines git history of changed files for regression risks, high-churn areas, and historical context. |
-| `researcher` | `research/agents/` | Researches best practices, compliance requirements, technology comparisons, and domain knowledge for spec enrichment. |
+| `code-explorer` | `core/code-exploration/agents/` | Focused area exploration worker. Reads files, searches patterns, produces structured reports. |
+| `code-architect` | `core/code-architecture/agents/` | Designs implementation blueprints with minimal, flexible, and project-aligned approaches. |
+| `code-synthesizer` | `core/deep-analysis/agents/` | Merges exploration findings into unified analysis. Has bash access for git history and dependency analysis. |
+| `code-reviewer` | `core/feature-dev/agents/` | Quality review with confidence-scored findings. |
+| `bug-investigator` | `core/bug-killer/agents/` | Diagnostic investigation agent for testing debugging hypotheses. |
+| `docs-writer` | `core/docs-manager/agents/` | Generates and updates documentation files in MkDocs or basic markdown format. |
+| `changelog-manager` | `core/release-python-package/agents/` | Manages CHANGELOG.md entries following Keep a Changelog format. |
+| `codebase-understanding` | `core/mr-reviewer/agents/` | Analyzes MR changed files and surrounding codebase context for convention, architecture, and integration issues. |
+| `code-quality` | `core/mr-reviewer/agents/` | Analyzes code changes for bugs, quality issues, best practice violations, and missing error handling. |
+| `git-history` | `core/mr-reviewer/agents/` | Examines git history of changed files for regression risks, high-churn areas, and historical context. |
+| `researcher` | `core/research/agents/` | Researches best practices, compliance requirements, technology comparisons, and domain knowledge for spec enrichment. |
 
 ## Directory Structure
 
+Skills are organized into two categories for repo organization. At deployment time, all skills are flattened into a single `skills/` directory.
+
 ```
 skills/
-├── code-exploration/              (wrapper: code-explorer)
-│   ├── SKILL.md
-│   └── agents/
-│       └── code-explorer.md
-├── code-architecture/             (wrapper: code-architect)
-│   ├── SKILL.md
-│   └── agents/
-│       └── code-architect.md
-├── deep-analysis/
-│   ├── SKILL.md
-│   └── agents/
-│       └── code-synthesizer.md
-├── feature-dev/
-│   ├── SKILL.md
-│   ├── agents/
-│   │   └── code-reviewer.md
-│   └── references/
-├── bug-killer/
-│   ├── SKILL.md
-│   ├── agents/
-│   │   └── bug-investigator.md
-│   └── references/
-├── docs-manager/
-│   ├── SKILL.md
-│   ├── agents/
-│   │   └── docs-writer.md
-│   └── references/
-├── mr-reviewer/
-│   ├── SKILL.md
-│   ├── agents/
-│   │   ├── codebase-understanding.md
-│   │   ├── code-quality.md
-│   │   └── git-history.md
-│   └── references/
-│       ├── finding-schema.md
-│       └── gitlab-api-patterns.md
-├── codebase-analysis/
-│   ├── SKILL.md
-│   └── references/
-├── research/                          (wrapper: researcher)
-│   ├── SKILL.md
-│   └── agents/
-│       └── researcher.md
-├── create-spec/
-│   ├── SKILL.md
-│   └── references/
-│       ├── codebase-exploration.md
-│       ├── complexity-signals.md
-│       ├── interview-questions.md
-│       ├── recommendation-format.md
-│       ├── recommendation-triggers.md
-│       └── templates/
-│           ├── high-level.md
-│           ├── detailed.md
-│           └── full-tech.md
-├── release-python-package/
-│   ├── SKILL.md
-│   └── agents/
-│       └── changelog-manager.md
-├── agent-tasks/                          (knowledge: task schema & management)
-│   ├── SKILL.md
-│   └── references/
-│       ├── task-schema.md
-│       ├── operations.md
-│       └── anti-patterns.md
-├── create-tasks/                         (utility: spec-to-task decomposition)
-│   ├── SKILL.md
-│   └── references/
-│       ├── decomposition-patterns.md
-│       ├── dependency-inference.md
-│       └── testing-requirements.md
-├── architecture-patterns/
-├── changelog-format/
-├── code-quality/
-├── document-changes/
-├── git-commit/
-├── language-patterns/
-├── project-conventions/
-├── project-learnings/
-├── technical-diagrams/
+├── core/
+│   ├── code-exploration/              (wrapper: code-explorer)
+│   │   ├── SKILL.md
+│   │   └── agents/
+│   │       └── code-explorer.md
+│   ├── code-architecture/             (wrapper: code-architect)
+│   │   ├── SKILL.md
+│   │   └── agents/
+│   │       └── code-architect.md
+│   ├── deep-analysis/
+│   │   ├── SKILL.md
+│   │   └── agents/
+│   │       └── code-synthesizer.md
+│   ├── feature-dev/
+│   │   ├── SKILL.md
+│   │   ├── agents/
+│   │   │   └── code-reviewer.md
+│   │   └── references/
+│   ├── bug-killer/
+│   │   ├── SKILL.md
+│   │   ├── agents/
+│   │   │   └── bug-investigator.md
+│   │   └── references/
+│   ├── docs-manager/
+│   │   ├── SKILL.md
+│   │   ├── agents/
+│   │   │   └── docs-writer.md
+│   │   └── references/
+│   ├── mr-reviewer/
+│   │   ├── SKILL.md
+│   │   ├── agents/
+│   │   │   ├── codebase-understanding.md
+│   │   │   ├── code-quality.md
+│   │   │   └── git-history.md
+│   │   └── references/
+│   │       ├── finding-schema.md
+│   │       └── gitlab-api-patterns.md
+│   ├── codebase-analysis/
+│   │   ├── SKILL.md
+│   │   └── references/
+│   ├── research/                      (wrapper: researcher)
+│   │   ├── SKILL.md
+│   │   └── agents/
+│   │       └── researcher.md
+│   ├── release-python-package/
+│   │   ├── SKILL.md
+│   │   └── agents/
+│   │       └── changelog-manager.md
+│   ├── architecture-patterns/
+│   ├── changelog-format/
+│   ├── code-quality/
+│   ├── create-skill-opencode/
+│   ├── document-changes/
+│   ├── git-commit/
+│   ├── glab/
+│   ├── language-patterns/
+│   ├── project-conventions/
+│   ├── project-learnings/
+│   └── technical-diagrams/
+├── sdd/
+│   ├── create-spec/
+│   │   ├── SKILL.md
+│   │   └── references/
+│   │       ├── codebase-exploration.md
+│   │       ├── complexity-signals.md
+│   │       ├── interview-questions.md
+│   │       ├── recommendation-format.md
+│   │       ├── recommendation-triggers.md
+│   │       └── templates/
+│   │           ├── high-level.md
+│   │           ├── detailed.md
+│   │           └── full-tech.md
+│   ├── create-tasks/
+│   │   ├── SKILL.md
+│   │   └── references/
+│   │       ├── decomposition-patterns.md
+│   │       ├── dependency-inference.md
+│   │       └── testing-requirements.md
+│   └── agent-tasks/
+│       ├── SKILL.md
+│       └── references/
+│           ├── task-schema.md
+│           ├── operations.md
+│           └── anti-patterns.md
 └── README.md
 ```

@@ -17,15 +17,19 @@ Agents are nested inside their owning skills. When a second skill needs the same
 
 ## Skills
 
-### Core (21 skills)
+### Core (20 skills)
 
-**Workflows:** deep-analysis, feature-dev, bug-killer, codebase-analysis, mr-reviewer, docs-manager, create-skill-opencode, release-python-package
+**Workflows:** deep-analysis, feature-dev, bug-killer, codebase-analysis, mr-reviewer, docs-manager, release-python-package
 
 **Dispatchers:** code-exploration, code-architecture, research
 
 **Knowledge:** language-patterns, architecture-patterns, technical-diagrams, code-quality, project-conventions, changelog-format, glab, sdd-specs, sdd-tasks
 
 **Utilities:** git-commit, document-changes, project-learnings
+
+### Meta (1 skill)
+
+**Workflows:** create-skill-opencode
 
 ### SDD Pipeline (5 skills)
 
@@ -44,7 +48,8 @@ Supported by `sdd-specs` (templates) and `sdd-tasks` (task schema) reference ski
 
 ```
 skills/
-├── core/              # 21 general-purpose skills
+├── core/              # 20 general-purpose skills
+├── meta/              # 1 skill-authoring skill
 ├── sdd/               # 5 spec-driven development skills
 ├── manifest.json      # Skill registry
 └── README.md          # Full architecture docs

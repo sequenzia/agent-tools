@@ -45,11 +45,6 @@
           "allowed_tools": ["Read", "Write", "Edit", "Glob", "Grep", "Bash"]
         },
         {
-          "name": "create-skill-opencode",
-          "type": "workflow",
-          "description": "Create a new agent skill through an adaptive interview process that produces complete, platform-native skill files. Optimized for OpenCode's runtime. Supports Generic Agent Skills, OpenCode, and Codex platforms. Use when user says \"create a skill\", \"new skill\", \"generate skill\", \"make a skill\", \"build a skill\", \"skill creator\", or wants to author an agent skill file."
-        },
-        {
           "name": "deep-analysis",
           "type": "workflow",
           "description": "Deep exploration and synthesis workflow using parallel subagents with dynamic planning and hub-and-spoke coordination. Use when asked for \"deep analysis\", \"deep understanding\", \"analyze codebase\", \"explore and analyze\", or \"investigate codebase\". Also use when another skill needs comprehensive codebase exploration before proceeding.",
@@ -155,6 +150,16 @@
           "type": "workflow",
           "description": "Execute pending SDD tasks in dependency order with wave-based concurrent execution and structured verification. Reads task files from .agents/tasks/ and manages execution sessions in .agents/sessions/. Supports task group filtering and configurable parallelism. Use when user says \"execute tasks\", \"run tasks\", \"start execution\", \"work on tasks\", or wants to execute generated tasks autonomously.",
           "allowed_tools": ["Read", "Write", "Glob", "Grep", "Bash"]
+        }
+      ]
+    },
+    "meta": {
+      "path": "skills/meta",
+      "skills": [
+        {
+          "name": "create-skill-opencode",
+          "type": "workflow",
+          "description": "Create a new agent skill through an adaptive interview process that produces complete, platform-native skill files. Optimized for OpenCode's runtime. Supports Generic Agent Skills, OpenCode, and Codex platforms. Use when user says \"create a skill\", \"new skill\", \"generate skill\", \"make a skill\", \"build a skill\", \"skill creator\", or wants to author an agent skill file."
         }
       ]
     }

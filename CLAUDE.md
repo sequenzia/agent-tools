@@ -59,6 +59,7 @@ tools: [Read, Glob, Grep, Bash]
 
 ## Categories
 
-- `skills/core/` — 21 general-purpose skills (flattened at deployment)
+- `skills/core/` — 20 general-purpose skills (flattened at deployment)
 - `skills/sdd/` — 5 spec-driven development skills
+- `skills/meta/` — 1 skill-authoring skill
 - `internal/reports/` — Architecture decision reports (not deployed)

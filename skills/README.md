@@ -90,7 +90,7 @@ All agents live inside the skill that owns them:
 
 ## Directory Structure
 
-Skills are organized into two categories for repo organization. At deployment time, all skills are flattened into a single `skills/` directory.
+Skills are organized into three categories for repo organization. At deployment time, all skills are flattened into a single `skills/` directory.
 
 ```
 skills/
@@ -145,7 +145,6 @@ skills/
 │   ├── architecture-patterns/
 │   ├── changelog-format/
 │   ├── code-quality/
-│   ├── create-skill-opencode/
 │   ├── document-changes/
 │   ├── git-commit/
 │   ├── glab/
@@ -190,5 +189,18 @@ skills/
 │       │   └── verification-patterns.md
 │       └── scripts/
 │           └── poll-for-results.sh
+├── meta/
+│   └── create-skill-opencode/
+│       ├── SKILL.md
+│       └── references/
+│           ├── generation-templates.md
+│           ├── interview-engine.md
+│           ├── outline-review.md
+│           ├── platform-base.md
+│           ├── platform-codex.md
+│           ├── platform-gas.md
+│           ├── platform-opencode.md
+│           ├── research-procedures.md
+│           └── validation-engine.md
 └── README.md
 ```

@@ -34,6 +34,8 @@ Text output should only be used for:
 - Reporting completion status
 - Displaying analysis findings
 
+**Platform fallback**: If the `question` tool is not available on the current platform, present questions as numbered option lists in text output and wait for the user's response. Use `AskUserQuestion` or the platform's equivalent interaction tool if available.
+
 ### Plan Mode Behavior
 
 **CRITICAL**: This skill generates tasks, NOT an implementation plan. When invoked during plan mode:

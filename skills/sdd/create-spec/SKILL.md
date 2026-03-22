@@ -34,6 +34,8 @@ Text output should only be used for:
 
 If you need the user to make a choice or provide input, use `question`.
 
+**Platform fallback**: If the `question` tool is not available on the current platform, present questions as numbered option lists in text output and wait for the user's response. Use `AskUserQuestion` or the platform's equivalent interaction tool if available.
+
 #### question tool parameters
 
 | Parameter | Type | Required | Description |

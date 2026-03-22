@@ -63,6 +63,12 @@ This makes skills portable across harnesses with different capabilities.
 | `git-commit` | Automates git commits following Conventional Commits format. |
 | `project-learnings` | Captures project-specific patterns and anti-patterns into the project's AGENTS.md. |
 
+### Meta Skills (skill/agent authoring tools)
+
+| Skill | Description |
+|-------|-------------|
+| `create-skill` | Adaptive interview-driven GAS skill creation. Produces portable SKILL.md files following the agentskills.io specification. |
+
 ## Agents
 
 All agents live inside the skill that owns them:
@@ -90,7 +96,7 @@ All agents live inside the skill that owns them:
 
 ## Directory Structure
 
-Skills are organized into two categories for repo organization. At deployment time, all skills are flattened into a single `skills/` directory.
+Skills are organized into three categories for repo organization. At deployment time, all skills are flattened into a single `skills/` directory.
 
 ```
 skills/
@@ -190,5 +196,15 @@ skills/
 │       │   └── verification-patterns.md
 │       └── scripts/
 │           └── poll-for-results.sh
+├── meta/
+│   └── create-skill/
+│       ├── SKILL.md
+│       └── references/
+│           ├── platform-knowledge.md
+│           ├── interview-engine.md
+│           ├── outline-review.md
+│           ├── generation-engine.md
+│           ├── validation-engine.md
+│           └── research-procedures.md
 └── README.md
 ```

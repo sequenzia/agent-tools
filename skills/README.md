@@ -39,7 +39,7 @@ This makes skills portable across harnesses with different capabilities.
 |-------|--------------|---------|
 | `code-exploration` | code-explorer | deep-analysis, bug-killer, docs-manager, codebase-analysis, create-spec |
 | `code-architecture` | code-architect | feature-dev, codebase-analysis |
-| `research` | researcher | create-spec |
+| `research` | researcher | create-spec _(single-consumer exception)_ |
 
 ### Knowledge Skills (no agents)
 

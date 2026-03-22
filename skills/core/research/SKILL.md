@@ -21,6 +21,8 @@ allowed-tools: Read Glob Grep Bash
 
 Dispatch a researcher agent to investigate a specific topic and return structured findings. This skill acts as the canonical entry point for research and is invoked by other skills (create-spec, and future skills like analyze-spec) rather than used standalone.
 
+> **Single-consumer exception**: Currently only consumed by create-spec. Kept as a dispatcher in anticipation of future consumers (feature-dev, docs-manager). Per the Agent Placement Rule, this would normally remain private until a second consumer appears.
+
 ## Inputs
 
 This skill expects the calling skill to provide:

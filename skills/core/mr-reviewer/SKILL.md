@@ -12,6 +12,16 @@ description: >-
 metadata:
   argument-hint: "<mr-url-or-iid> [--deep] [--report-only] [--comments-only]"
   type: workflow
+  agents:
+    - name: codebase-understanding
+      file: agents/codebase-understanding.md
+      shared: false
+    - name: mr-code-quality
+      file: agents/mr-code-quality.md
+      shared: false
+    - name: git-history
+      file: agents/git-history.md
+      shared: false
 allowed-tools: Read Glob Grep Bash
 ---
 
@@ -76,7 +86,7 @@ This skill dispatches three independent analysis agents:
 | Agent | File | Tools | Description |
 |-------|------|-------|-------------|
 | codebase-understanding | `agents/codebase-understanding.md` | Read, Glob, Grep | Convention violations, architectural issues, integration risks |
-| code-quality | `agents/code-quality.md` | Read, Glob, Grep, Bash | Bugs, code quality, best practices, error handling |
+| mr-code-quality | `agents/mr-code-quality.md` | Read, Glob, Grep, Bash | Bugs, code quality, best practices, error handling |
 | git-history | `agents/git-history.md` | Bash, Read, Glob, Grep | Regression risks, high-churn areas, historical context |
 
 All three agents return findings using the same 10-field JSON schema. See `references/finding-schema.md` for the complete schema documentation.
@@ -87,7 +97,7 @@ All three agents return findings using the same 10-field JSON schema. See `refer
 
 **If subagent dispatch is not available:** Read each agent file sequentially and follow its instructions inline:
 1. Read `agents/codebase-understanding.md`, execute its analysis, collect findings
-2. Read `agents/code-quality.md`, execute its analysis, collect findings
+2. Read `agents/mr-code-quality.md`, execute its analysis, collect findings
 3. Read `agents/git-history.md`, execute its analysis, collect findings
 
 Then proceed to finding merge with all collected findings.
@@ -188,7 +198,7 @@ Analyzes code changes for bugs, quality issues, and best practice violations. Re
 
 Pass to the agent: MR_TITLE, MR_DESCRIPTION, SOURCE_BRANCH, TARGET_BRANCH, CHANGED_FILE_LIST, MR_DIFF, REVIEW_NOTES, and the full content of each changed file (CHANGED_FILES array).
 
-See `agents/code-quality.md` for full agent instructions.
+See `agents/mr-code-quality.md` for full agent instructions.
 
 ### 2.3 Git History Agent
 

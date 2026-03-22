@@ -9,6 +9,10 @@ description: >-
 metadata:
   argument-hint: "<action-or-description>"
   type: workflow
+  agents:
+    - name: docs-writer
+      file: agents/docs-writer.md
+      shared: false
 allowed-tools: Read Write Edit Glob Grep Bash
 ---
 

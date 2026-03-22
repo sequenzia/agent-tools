@@ -6,7 +6,7 @@ Reusable skills and agents for codebase analysis, feature development, debugging
 
 Agents are nested inside the skills that own them. Each skill with agents has an `agents/` subdirectory containing the agent markdown files and a corresponding **Agents** table and **Execution Strategy** section in its SKILL.md.
 
-**Shared agents** are wrapped in dedicated skills rather than duplicated. Skills that need a shared agent invoke the wrapper skill, which handles dispatch. This keeps a single source of truth for each agent while enabling cross-skill reuse.
+**Shared agents** are wrapped in dedicated Agent Skills rather than duplicated. Skills that need a shared agent invoke the Agent Skill, which handles dispatch. This keeps a single source of truth for each agent while enabling cross-skill reuse.
 
 ### Execution Strategy Pattern
 
@@ -19,7 +19,7 @@ This makes skills portable across harnesses with different capabilities.
 
 ## Skills
 
-### Orchestrator Skills (use agents via subskills or directly)
+### Workflow Skills (orchestrate agents and phases)
 
 | Skill | Agents Owned | Skills Invoked | Description |
 |-------|-------------|----------------|-------------|
@@ -29,14 +29,14 @@ This makes skills portable across harnesses with different capabilities.
 | `docs-manager` | docs-writer | deep-analysis, code-exploration | Documentation management with MkDocs integration. Generates markdown files, updates navigation, handles change summaries. |
 | `codebase-analysis` | _(none)_ | deep-analysis, code-exploration, code-architecture | Structured 3-phase workflow: deep analysis, reporting, and post-analysis actions. |
 | `release-python-package` | changelog-manager | _(none)_ | Python package release automation workflow. |
-| `mr-reviewer` | codebase-understanding, code-quality, git-history | glab | Automated MR review: dispatches 3 parallel agents for codebase, quality, and history analysis. Produces structured reports and/or GitLab line-level comments. |
+| `mr-reviewer` | codebase-understanding, mr-code-quality, git-history | glab | Automated MR review: dispatches 3 parallel agents for codebase, quality, and history analysis. Produces structured reports and/or GitLab line-level comments. |
 | `create-spec` | _(none)_ | code-exploration, research, sdd-specs | Adaptive interview-driven spec creation with codebase exploration, proactive recommendations, and research. Supports high-level, detailed, and full technical documentation depths. |
 
-### Wrapper Skills (shared agent access)
+### Agent Skills (shared agent dispatch)
 
 | Skill | Agent Wrapped | Used By |
 |-------|--------------|---------|
-| `code-exploration` | code-explorer | deep-analysis, bug-killer, docs-manager, codebase-analysis |
+| `code-exploration` | code-explorer | deep-analysis, bug-killer, docs-manager, codebase-analysis, create-spec |
 | `code-architecture` | code-architect | feature-dev, codebase-analysis |
 | `research` | researcher | create-spec |
 
@@ -66,19 +66,25 @@ This makes skills portable across harnesses with different capabilities.
 
 All agents live inside the skill that owns them:
 
-| Agent | Location | Purpose |
-|-------|----------|---------|
-| `code-explorer` | `core/code-exploration/agents/` | Focused area exploration worker. Reads files, searches patterns, produces structured reports. |
-| `code-architect` | `core/code-architecture/agents/` | Designs implementation blueprints with minimal, flexible, and project-aligned approaches. |
-| `code-synthesizer` | `core/deep-analysis/agents/` | Merges exploration findings into unified analysis. Has bash access for git history and dependency analysis. |
-| `code-reviewer` | `core/feature-dev/agents/` | Quality review with confidence-scored findings. |
-| `bug-investigator` | `core/bug-killer/agents/` | Diagnostic investigation agent for testing debugging hypotheses. |
-| `docs-writer` | `core/docs-manager/agents/` | Generates and updates documentation files in MkDocs or basic markdown format. |
-| `changelog-manager` | `core/release-python-package/agents/` | Manages CHANGELOG.md entries following Keep a Changelog format. |
-| `codebase-understanding` | `core/mr-reviewer/agents/` | Analyzes MR changed files and surrounding codebase context for convention, architecture, and integration issues. |
-| `code-quality` | `core/mr-reviewer/agents/` | Analyzes code changes for bugs, quality issues, best practice violations, and missing error handling. |
-| `git-history` | `core/mr-reviewer/agents/` | Examines git history of changed files for regression risks, high-churn areas, and historical context. |
-| `researcher` | `core/research/agents/` | Researches best practices, compliance requirements, technology comparisons, and domain knowledge for spec enrichment. |
+| Agent | Location | Shared | Consumers | Purpose |
+|-------|----------|--------|-----------|---------|
+| `code-explorer` | `core/code-exploration/agents/` | Yes | deep-analysis, bug-killer, docs-manager, codebase-analysis, create-spec | Focused area exploration worker. Reads files, searches patterns, produces structured reports. |
+| `code-architect` | `core/code-architecture/agents/` | Yes | feature-dev, codebase-analysis | Designs implementation blueprints with minimal, flexible, and project-aligned approaches. |
+| `researcher` | `core/research/agents/` | Yes | create-spec | Researches best practices, compliance requirements, technology comparisons, and domain knowledge for spec enrichment. |
+| `code-synthesizer` | `core/deep-analysis/agents/` | No | deep-analysis | Merges exploration findings into unified analysis. Has bash access for git history and dependency analysis. |
+| `code-reviewer` | `core/feature-dev/agents/` | No | feature-dev | Quality review with confidence-scored findings. |
+| `bug-investigator` | `core/bug-killer/agents/` | No | bug-killer | Diagnostic investigation agent for testing debugging hypotheses. |
+| `docs-writer` | `core/docs-manager/agents/` | No | docs-manager | Generates and updates documentation files in MkDocs or basic markdown format. |
+| `codebase-understanding` | `core/mr-reviewer/agents/` | No | mr-reviewer | Analyzes MR changed files and surrounding codebase context for convention, architecture, and integration issues. |
+| `mr-code-quality` | `core/mr-reviewer/agents/` | No | mr-reviewer | Analyzes code changes for bugs, quality issues, best practice violations, and missing error handling. |
+| `git-history` | `core/mr-reviewer/agents/` | No | mr-reviewer | Examines git history of changed files for regression risks, high-churn areas, and historical context. |
+| `changelog-manager` | `core/release-python-package/agents/` | No | release-python-package | Manages CHANGELOG.md entries following Keep a Changelog format. |
+
+### Agent Placement Rule
+
+- Agents start **private** — embedded in the owning workflow's `agents/` directory when they have exactly one consumer.
+- When a second skill needs the same agent, **promote** it to an Agent Skill (dispatcher). The agent file moves into its own skill directory, and both consumers invoke it via the Agent Skill.
+- All Agent Skills follow the same template: Inputs section, Agents table, Workflow section, Execution Strategy section.
 
 ## Directory Structure
 
@@ -87,11 +93,11 @@ Skills are organized into two categories for repo organization. At deployment ti
 ```
 skills/
 ├── core/
-│   ├── code-exploration/              (wrapper: code-explorer)
+│   ├── code-exploration/              (agent skill: code-explorer)
 │   │   ├── SKILL.md
 │   │   └── agents/
 │   │       └── code-explorer.md
-│   ├── code-architecture/             (wrapper: code-architect)
+│   ├── code-architecture/             (agent skill: code-architect)
 │   │   ├── SKILL.md
 │   │   └── agents/
 │   │       └── code-architect.md
@@ -118,7 +124,7 @@ skills/
 │   │   ├── SKILL.md
 │   │   ├── agents/
 │   │   │   ├── codebase-understanding.md
-│   │   │   ├── code-quality.md
+│   │   │   ├── mr-code-quality.md
 │   │   │   └── git-history.md
 │   │   └── references/
 │   │       ├── finding-schema.md
@@ -126,7 +132,7 @@ skills/
 │   ├── codebase-analysis/
 │   │   ├── SKILL.md
 │   │   └── references/
-│   ├── research/                      (wrapper: researcher)
+│   ├── research/                      (agent skill: researcher)
 │   │   ├── SKILL.md
 │   │   └── agents/
 │   │       └── researcher.md

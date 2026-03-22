@@ -7,6 +7,16 @@ description: >-
   defined area. Accepts a focus area assignment and analysis context.
 metadata:
   type: dispatcher
+  agents:
+    - name: code-explorer
+      file: agents/code-explorer.md
+      shared: true
+      consumers:
+        - deep-analysis
+        - bug-killer
+        - docs-manager
+        - codebase-analysis
+        - create-spec
 allowed-tools: Read Glob Grep Bash
 ---
 

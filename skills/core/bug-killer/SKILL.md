@@ -9,6 +9,10 @@ description: >-
 metadata:
   argument-hint: "<bug-description-or-error> [--deep]"
   type: workflow
+  agents:
+    - name: bug-investigator
+      file: agents/bug-investigator.md
+      shared: false
 allowed-tools: Read Write Edit Glob Grep Bash
 ---
 

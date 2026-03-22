@@ -3,6 +3,10 @@ name: release-python-package
 description: Prepare and execute a Python package release with verification steps. Use for releasing Python packages with uv and ruff.
 metadata:
   type: workflow
+  agents:
+    - name: changelog-manager
+      file: agents/changelog-manager.md
+      shared: false
 allowed-tools: Read Edit Bash Glob
 ---
 

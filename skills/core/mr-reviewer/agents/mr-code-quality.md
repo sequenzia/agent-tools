@@ -1,5 +1,5 @@
 ---
-name: code-quality
+name: mr-code-quality
 description: Analyzes code changes for bugs, logic errors, quality issues, and best practice violations. Reads full file content for context, not just diffs. Covers Python, TypeScript, JavaScript, and general heuristics for other languages.
 tools:
   - Read

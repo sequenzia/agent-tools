@@ -7,6 +7,13 @@ description: >-
   description, exploration findings, and a design approach.
 metadata:
   type: dispatcher
+  agents:
+    - name: code-architect
+      file: agents/code-architect.md
+      shared: true
+      consumers:
+        - feature-dev
+        - codebase-analysis
 allowed-tools: Read Glob Grep
 ---
 

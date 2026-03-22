@@ -8,6 +8,10 @@ description: >-
 metadata:
   argument-hint: "<feature-description>"
   type: workflow
+  agents:
+    - name: code-reviewer
+      file: agents/code-reviewer.md
+      shared: false
 allowed-tools: Read Write Edit Glob Grep Bash
 ---
 

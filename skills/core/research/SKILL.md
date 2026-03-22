@@ -8,6 +8,12 @@ description: >-
   practices. Wrapper skill for the researcher agent.
 metadata:
   type: dispatcher
+  agents:
+    - name: researcher
+      file: agents/researcher.md
+      shared: true
+      consumers:
+        - create-spec
 allowed-tools: Read Glob Grep Bash
 ---
 

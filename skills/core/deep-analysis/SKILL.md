@@ -9,6 +9,10 @@ description: >-
 metadata:
   argument-hint: "<analysis-context or focus-area>"
   type: workflow
+  agents:
+    - name: code-synthesizer
+      file: agents/code-synthesizer.md
+      shared: false
 allowed-tools: Read Glob Grep Bash
 ---
 

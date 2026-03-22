@@ -157,6 +157,11 @@
       "path": "skills/meta",
       "skills": [
         {
+          "name": "create-skill",
+          "type": "workflow",
+          "description": "Create a new Generic Agent Skill (GAS) through an adaptive interview process that produces a complete, portable SKILL.md file following the agentskills.io specification. Use when user says \"create a skill\", \"new skill\", \"generate skill\", \"make a skill\", \"build a skill\", \"skill creator\", or wants to author a portable agent skill file."
+        },
+        {
           "name": "create-skill-opencode",
           "type": "workflow",
           "description": "Create a new agent skill through an adaptive interview process that produces complete, platform-native skill files. Optimized for OpenCode's runtime. Supports Generic Agent Skills, OpenCode, and Codex platforms. Use when user says \"create a skill\", \"new skill\", \"generate skill\", \"make a skill\", \"build a skill\", \"skill creator\", or wants to author an agent skill file."

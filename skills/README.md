@@ -63,6 +63,13 @@ This makes skills portable across harnesses with different capabilities.
 | `git-commit` | Automates git commits following Conventional Commits format. |
 | `project-learnings` | Captures project-specific patterns and anti-patterns into the project's AGENTS.md. |
 
+### Meta Skills (skill/agent authoring tools)
+
+| Skill | Description |
+|-------|-------------|
+| `create-skill` | Adaptive interview-driven GAS skill creation. Produces portable SKILL.md files following the agentskills.io specification. |
+| `create-skill-opencode` | Multi-platform skill creation (GAS, OpenCode, Codex). Optimized for OpenCode's runtime with adaptive interview and platform-native output. |
+
 ## Agents
 
 All agents live inside the skill that owns them:
@@ -190,6 +197,15 @@ skills/
 │       └── scripts/
 │           └── poll-for-results.sh
 ├── meta/
+│   ├── create-skill/
+│   │   ├── SKILL.md
+│   │   └── references/
+│   │       ├── platform-knowledge.md
+│   │       ├── interview-engine.md
+│   │       ├── outline-review.md
+│   │       ├── generation-engine.md
+│   │       ├── validation-engine.md
+│   │       └── research-procedures.md
 │   └── create-skill-opencode/
 │       ├── SKILL.md
 │       └── references/

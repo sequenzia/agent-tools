@@ -62,6 +62,7 @@ Read the task JSON. Extract:
 - `testing_requirements` array of `{type, target}` objects
 - `description` for additional context
 - `metadata.source_section` and `metadata.spec_path` for spec reference
+- Producer context (if provided in dispatch prompt): Review the producer task titles and files modified to understand what artifacts were created upstream and where to find them in the codebase
 
 If `acceptance_criteria` is present (expected for all SDD tasks), use structured verification in Phase 3. If absent (safety net), infer requirements from `title` and `description`.
 

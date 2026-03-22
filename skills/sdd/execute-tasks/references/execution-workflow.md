@@ -57,6 +57,7 @@ Read the task JSON file from its location in `.agents/tasks/in-progress/{group}/
 - `testing_requirements` — Array of `{type, target}` objects
 - `metadata` — Priority, complexity, source_section, spec_path, feature_name, task_group
 - `blocked_by` — Dependencies (all should be completed at this point)
+- `metadata.produces_for` — IDs of downstream tasks that consume this task's output (informational; the orchestrator handles context injection)
 
 ### Step 4: Classify Task
 

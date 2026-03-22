@@ -360,11 +360,13 @@ Read `.agents/sessions/__live_session__/execution_context.md` and hold it as the
    - The task-executor agent instructions from `agents/task-executor.md`
    - Task group name (for file move operations)
    - Retry context if this is a retry attempt
+   - Producer context (if applicable): For each task in the wave, check if any of its `blocked_by` tasks have a `produces_for` array containing this task's ID. If so, read the completed producer's result file (`result-{producer_id}.md`) from the session directory. Include the producer task's title and the "Files Modified" section from its result as additional context in the dispatch prompt. This gives the executor knowledge of what artifacts its upstream dependencies created.
 
    **If subagent dispatch is not available:**
 
    Execute tasks sequentially within the wave. For each task:
    a. Read `agents/task-executor.md`
+   a1. Check for producer context: If any of the task's `blocked_by` tasks have `produces_for` containing this task's ID, read their result files and include the producer titles and files modified as context before starting the workflow.
    b. Follow the 4-phase workflow inline:
       - Phase 1: Read execution_context.md, parse task JSON, explore codebase
       - Phase 2: Implement changes

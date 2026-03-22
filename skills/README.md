@@ -31,6 +31,7 @@ This makes skills portable across harnesses with different capabilities.
 | `release-python-package` | changelog-manager | _(none)_ | Python package release automation workflow. |
 | `mr-reviewer` | codebase-understanding, mr-code-quality, git-history | glab | Automated MR review: dispatches 3 parallel agents for codebase, quality, and history analysis. Produces structured reports and/or GitLab line-level comments. |
 | `create-spec` | _(none)_ | code-exploration, research, sdd-specs | Adaptive interview-driven spec creation with codebase exploration, proactive recommendations, and research. Supports high-level, detailed, and full technical documentation depths. |
+| `execute-tasks` | task-executor | sdd-tasks | Wave-based task execution with dependency resolution, structured verification, and shared execution context. Reads `.agents/tasks/` JSON files, manages sessions in `.agents/sessions/`. |
 
 ### Agent Skills (shared agent dispatch)
 
@@ -79,6 +80,7 @@ All agents live inside the skill that owns them:
 | `mr-code-quality` | `core/mr-reviewer/agents/` | No | mr-reviewer | Analyzes code changes for bugs, quality issues, best practice violations, and missing error handling. |
 | `git-history` | `core/mr-reviewer/agents/` | No | mr-reviewer | Examines git history of changed files for regression risks, high-churn areas, and historical context. |
 | `changelog-manager` | `core/release-python-package/agents/` | No | release-python-package | Manages CHANGELOG.md entries following Keep a Changelog format. |
+| `task-executor` | `sdd/execute-tasks/agents/` | No | execute-tasks | Executes a single SDD task through a 4-phase workflow (Understand, Implement, Verify, Complete). Writes result files as completion signals. |
 
 ### Agent Placement Rule
 
@@ -172,11 +174,21 @@ skills/
 │   │           ├── high-level.md
 │   │           ├── detailed.md
 │   │           └── full-tech.md
-│   └── sdd-tasks/
+│   ├── sdd-tasks/
+│   │   ├── SKILL.md
+│   │   └── references/
+│   │       ├── task-schema.md
+│   │       ├── operations.md
+│   │       └── anti-patterns.md
+│   └── execute-tasks/
 │       ├── SKILL.md
-│       └── references/
-│           ├── task-schema.md
-│           ├── operations.md
-│           └── anti-patterns.md
+│       ├── agents/
+│       │   └── task-executor.md
+│       ├── references/
+│       │   ├── orchestration.md
+│       │   ├── execution-workflow.md
+│       │   └── verification-patterns.md
+│       └── scripts/
+│           └── poll-for-results.sh
 └── README.md
 ```

@@ -149,6 +149,12 @@
           "name": "sdd-tasks",
           "type": "reference",
           "description": "Define and manage implementation tasks using a harness-independent JSON file format. Provides task schema, file-based CRUD operations, state management, dependency tracking, and execution patterns. Use as a reference skill when creating, executing, or managing tasks from specs. Load this skill whenever working with .agents/tasks/ files, decomposing specs into tasks, or coordinating multi-agent task execution."
+        },
+        {
+          "name": "execute-tasks",
+          "type": "workflow",
+          "description": "Execute pending SDD tasks in dependency order with wave-based concurrent execution and structured verification. Reads task files from .agents/tasks/ and manages execution sessions in .agents/sessions/. Supports task group filtering and configurable parallelism. Use when user says \"execute tasks\", \"run tasks\", \"start execution\", \"work on tasks\", or wants to execute generated tasks autonomously.",
+          "allowed_tools": ["Read", "Write", "Glob", "Grep", "Bash"]
         }
       ]
     }

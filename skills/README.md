@@ -80,7 +80,7 @@ All agents live inside the skill that owns them:
 |-------|----------|--------|-----------|---------|
 | `code-explorer` | `core/code-exploration/agents/` | Yes | deep-analysis, bug-killer, docs-manager, codebase-analysis, create-spec | Focused area exploration worker. Reads files, searches patterns, produces structured reports. |
 | `code-architect` | `core/code-architecture/agents/` | Yes | feature-dev, codebase-analysis | Designs implementation blueprints with minimal, flexible, and project-aligned approaches. |
-| `researcher` | `core/research/agents/` | Yes | create-spec | Researches best practices, compliance requirements, technology comparisons, and domain knowledge for spec enrichment. |
+| `researcher` | `sdd/research/agents/` | Yes | create-spec | Researches best practices, compliance requirements, technology comparisons, and domain knowledge for spec enrichment. |
 | `code-synthesizer` | `core/deep-analysis/agents/` | No | deep-analysis | Merges exploration findings into unified analysis. Has bash access for git history and dependency analysis. |
 | `code-reviewer` | `core/feature-dev/agents/` | No | feature-dev | Quality review with confidence-scored findings. |
 | `bug-investigator` | `core/bug-killer/agents/` | No | bug-killer | Diagnostic investigation agent for testing debugging hypotheses. |
@@ -143,10 +143,6 @@ skills/
 │   ├── codebase-analysis/
 │   │   ├── SKILL.md
 │   │   └── references/
-│   ├── research/                      (agent skill: researcher)
-│   │   ├── SKILL.md
-│   │   └── agents/
-│   │       └── researcher.md
 │   ├── release-python-package/
 │   │   ├── SKILL.md
 │   │   └── agents/
@@ -199,16 +195,20 @@ skills/
 │   │       ├── task-schema.md
 │   │       ├── operations.md
 │   │       └── anti-patterns.md
-│   └── execute-tasks/
+│   ├── execute-tasks/
+│   │   ├── SKILL.md
+│   │   ├── agents/
+│   │   │   └── task-executor.md
+│   │   ├── references/
+│   │   │   ├── orchestration.md
+│   │   │   ├── execution-workflow.md
+│   │   │   └── verification-patterns.md
+│   │   └── scripts/
+│   │       └── poll-for-results.sh
+│   └── research/                      (agent skill: researcher)
 │       ├── SKILL.md
-│       ├── agents/
-│       │   └── task-executor.md
-│       ├── references/
-│       │   ├── orchestration.md
-│       │   ├── execution-workflow.md
-│       │   └── verification-patterns.md
-│       └── scripts/
-│           └── poll-for-results.sh
+│       └── agents/
+│           └── researcher.md
 ├── meta/
 │   ├── create-skill/
 │   │   ├── SKILL.md

@@ -547,7 +547,11 @@ skills/sdd/
 │       ├── task-schema.md                 # Complete JSON schema
 │       ├── operations.md                  # File-based CRUD
 │       └── anti-patterns.md              # Common mistakes
+├── research/
+│   ├── SKILL.md                           # Research dispatcher (researcher agent)
+│   └── agents/
+│       └── researcher.md                  # Best practices & domain research agent
 └── README.md                              # This file
 ```
 
-31 markdown files total: 6 SKILL.md + 1 agent + 24 references
+33 markdown files total: 7 SKILL.md + 2 agents + 24 references

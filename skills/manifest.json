@@ -108,12 +108,6 @@
           "allowed_tools": ["Read", "Edit", "Bash", "Glob"]
         },
         {
-          "name": "research",
-          "type": "dispatcher",
-          "description": "Dispatches a researcher agent to investigate best practices, compliance requirements, technology comparisons, and domain knowledge. Use when a skill needs external research to inform decisions — compliance frameworks (GDPR, HIPAA, PCI), technology trade-offs, competitive analysis, or industry best practices. Wrapper skill for the researcher agent.",
-          "allowed_tools": ["Read", "Glob", "Grep", "Bash"]
-        },
-        {
           "name": "technical-diagrams",
           "type": "reference",
           "description": "Provides Mermaid diagram syntax, best practices, and styling rules for technical visualizations. Use when creating diagrams, flowcharts, sequence diagrams, class diagrams, state diagrams, ER diagrams, architecture diagrams, C4 diagrams, visualizations, or any visual documentation in markdown. Always use this skill when generating or updating Mermaid code blocks."
@@ -156,6 +150,12 @@
           "type": "workflow",
           "description": "Execute pending SDD tasks in dependency order with wave-based concurrent execution and structured verification. Reads task files from .agents/tasks/ and manages execution sessions in .agents/sessions/. Supports task group filtering and configurable parallelism. Use when user says \"execute tasks\", \"run tasks\", \"start execution\", \"work on tasks\", or wants to execute generated tasks autonomously.",
           "allowed_tools": ["Read", "Write", "Glob", "Grep", "Bash"]
+        },
+        {
+          "name": "research",
+          "type": "dispatcher",
+          "description": "Dispatches a researcher agent to investigate best practices, compliance requirements, technology comparisons, and domain knowledge. Use when a skill needs external research to inform decisions — compliance frameworks (GDPR, HIPAA, PCI), technology trade-offs, competitive analysis, or industry best practices. Wrapper skill for the researcher agent.",
+          "allowed_tools": ["Read", "Glob", "Grep", "Bash"]
         }
       ]
     },

@@ -8,7 +8,7 @@ Skills are organized into a 4-type taxonomy:
 
 | Type | Count | Purpose |
 |------|-------|---------|
-| **Workflow** | 10 | Multi-phase orchestrations with agent coordination |
+| **Workflow** | 13 | Multi-phase orchestrations with agent coordination |
 | **Dispatcher** | 3 | Thin wrappers for shared agent dispatch |
 | **Reference** | 9 | Knowledge bases loaded on demand by other skills |
 | **Utility** | 3 | Standalone single-purpose tools |

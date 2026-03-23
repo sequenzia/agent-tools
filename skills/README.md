@@ -31,6 +31,8 @@ This makes skills portable across harnesses with different capabilities.
 | `release-python-package` | changelog-manager | _(none)_ | Python package release automation workflow. |
 | `mr-reviewer` | codebase-understanding, mr-code-quality, git-history | glab | Automated MR review: dispatches 3 parallel agents for codebase, quality, and history analysis. Produces structured reports and/or GitLab line-level comments. |
 | `create-spec` | _(none)_ | code-exploration, research, sdd-specs | Adaptive interview-driven spec creation with codebase exploration, proactive recommendations, and research. Supports high-level, detailed, and full technical documentation depths. |
+| `analyze-spec` | _(none)_ | sdd-specs | Optional quality gate that scores specs across 4 dimensions (requirements, risk, quality, completeness). Supports auto-fix and interactive review modes. |
+| `create-tasks` | _(none)_ | sdd-tasks, sdd-specs | Spec-to-task decomposition with 6 layer patterns, dependency inference, and producer-consumer detection. Generates `.agents/tasks/` JSON files from `create-spec` output. |
 | `execute-tasks` | task-executor | sdd-tasks | Wave-based task execution with dependency resolution, structured verification, and shared execution context. Reads `.agents/tasks/` JSON files, manages sessions in `.agents/sessions/`. |
 
 ### Agent Skills (shared agent dispatch)
@@ -53,12 +55,12 @@ This makes skills portable across harnesses with different capabilities.
 | `architecture-patterns` | Design patterns and architectural approaches. |
 | `code-quality` | Quality criteria and review guidelines. |
 | `changelog-format` | Keep a Changelog format guidelines with entry examples. |
+| `glab` | GitLab CLI (glab) command patterns, authentication, MRs, CI/CD, issues, releases, API, and 11 reference files for detailed command coverage. |
 
 ### Utility Skills (standalone workflows, no agents)
 
 | Skill | Description |
 |-------|-------------|
-| `create-tasks` | Spec-to-task decomposition with layer patterns, dependency inference, and producer-consumer detection. Generates `.agents/tasks/` JSON files from `create-spec` output. |
 | `document-changes` | Generate a markdown report documenting session changes. |
 | `git-commit` | Automates git commits following Conventional Commits format. |
 | `project-learnings` | Captures project-specific patterns and anti-patterns into the project's AGENTS.md. |
@@ -161,7 +163,18 @@ skills/
 │   └── technical-diagrams/
 ├── sdd/
 │   ├── create-spec/
-│   │   └── SKILL.md
+│   │   ├── SKILL.md
+│   │   └── references/
+│   │       ├── interview-procedures.md
+│   │       ├── recommendations-and-summary.md
+│   │       └── compilation-and-principles.md
+│   ├── analyze-spec/
+│   │   ├── SKILL.md
+│   │   └── references/
+│   │       ├── analysis-dimensions.md
+│   │       ├── common-findings.md
+│   │       ├── report-template.md
+│   │       └── interview-guide.md
 │   ├── create-tasks/
 │   │   ├── SKILL.md
 │   │   └── references/

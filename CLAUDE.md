@@ -54,12 +54,15 @@ tools: [Read, Glob, Grep, Bash]
 - `skills/manifest.json` — Authoritative skill registry
 - `skills/README.md` — Full architecture documentation
 - `skills/core/deep-analysis/SKILL.md` — Hub-and-spoke orchestration pattern
-- `skills/core/code-exploration/SKILL.md` — Canonical dispatcher pattern
+- `skills/core/code-exploration/SKILL.md` — Canonical dispatcher pattern (5 consumers)
+- `skills/core/feature-dev/SKILL.md` — 7-phase feature development lifecycle
 - `skills/sdd/sdd-tasks/SKILL.md` — Task schema (file-based state machine)
+- `skills/sdd/execute-tasks/SKILL.md` — Wave-based task execution (Write+Edit agent)
+- `skills/sdd/create-spec/SKILL.md` — SDD pipeline entry point
 
 ## Categories
 
 - `skills/core/` — 20 general-purpose skills (flattened at deployment)
-- `skills/sdd/` — 5 spec-driven development skills
-- `skills/meta/` — 1 skill-authoring skill
+- `skills/sdd/` — 6 spec-driven development skills
+- `skills/meta/` — 2 skill-authoring skills
 - `internal/reports/` — Architecture decision reports (not deployed)

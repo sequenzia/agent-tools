@@ -23,24 +23,26 @@ Agents are nested inside their owning skills. When a second skill needs the same
 
 **Dispatchers:** code-exploration, code-architecture, research
 
-**Knowledge:** language-patterns, architecture-patterns, technical-diagrams, code-quality, project-conventions, changelog-format, glab, sdd-specs, sdd-tasks
+**Knowledge:** language-patterns, architecture-patterns, technical-diagrams, code-quality, project-conventions, changelog-format, glab
 
 **Utilities:** git-commit, document-changes, project-learnings
 
-### Meta (1 skill)
+### SDD Pipeline (6 skills)
 
-**Workflows:** create-skill-opencode
+Four-stage spec-driven development: `create-spec` → [`analyze-spec`] → `create-tasks` → `execute-tasks`
 
-### SDD Pipeline (5 skills)
-
-Three-stage spec-driven development: `create-spec` → `create-tasks` → `execute-tasks`
+`analyze-spec` is an optional quality gate that scores specs across 4 dimensions before task decomposition.
 
 Supported by `sdd-specs` (templates) and `sdd-tasks` (task schema) reference skills.
+
+### Meta (2 skills)
+
+**Workflows:** create-skill (GAS-only portable), create-skill-opencode (multi-platform: GAS/OpenCode/Codex)
 
 ## Key Design Decisions
 
 - **Harness-agnostic:** Every skill includes a dual Execution Strategy — subagent dispatch when available, sequential inline fallback when not
-- **Read-only agents:** No agent has Write/Edit access; the orchestrating lead handles all file modifications
+- **Mostly read-only agents:** Most agents have only Read/Glob/Grep/Bash access. Two exceptions: `task-executor` (Write+Edit for code implementation) and `changelog-manager` (Edit for CHANGELOG.md updates). All other file modifications are handled by the orchestrating lead.
 - **Hub-and-spoke coordination:** Workers explore independently; all coordination flows through the lead
 - **File-based task management:** SDD tasks use directory position as state (`pending/` → `in-progress/` → `completed/`)
 
@@ -49,8 +51,8 @@ Supported by `sdd-specs` (templates) and `sdd-tasks` (task schema) reference ski
 ```
 skills/
 ├── core/              # 20 general-purpose skills
-├── meta/              # 1 skill-authoring skill
-├── sdd/               # 5 spec-driven development skills
+├── meta/              # 2 skill-authoring skills
+├── sdd/               # 6 spec-driven development skills
 ├── manifest.json      # Skill registry
 └── README.md          # Full architecture docs
 internal/

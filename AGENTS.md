@@ -2,7 +2,7 @@
 
 ## Agent Inventory
 
-12 agents across 26 skills, following a hub-and-spoke coordination model.
+12 agents across 28 skills, following a hub-and-spoke coordination model.
 
 ### Shared Agents (via Dispatcher Skills)
 
@@ -10,7 +10,7 @@
 |-------|-----------------|-----------|------------|-------|
 | code-explorer | code-exploration | deep-analysis, bug-killer, docs-manager, codebase-analysis, create-spec | Sonnet | Read, Glob, Grep, Bash |
 | code-architect | code-architecture | feature-dev, codebase-analysis | Sonnet | Read, Glob, Grep |
-| researcher | research | create-spec | Sonnet | WebSearch, WebFetch, Read, Glob, Grep |
+| researcher | research | create-spec | Sonnet | Read, Glob, Grep, Bash |
 
 ### Private Agents (Owned by Workflow Skills)
 

@@ -161,7 +161,7 @@ skills/
 │   ├── project-conventions/
 │   ├── project-learnings/
 │   └── technical-diagrams/
-├── sdd/
+├── sdd/                               (see sdd/README.md for pipeline guide)
 │   ├── create-spec/
 │   │   ├── SKILL.md
 │   │   └── references/

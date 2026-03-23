@@ -33,7 +33,7 @@ Four-stage spec-driven development: `create-spec` → [`analyze-spec`] → `crea
 
 `analyze-spec` is an optional quality gate that scores specs across 4 dimensions before task decomposition.
 
-Supported by `sdd-specs` (templates) and `sdd-tasks` (task schema) reference skills.
+Supported by `sdd-specs` (templates) and `sdd-tasks` (task schema) reference skills. See [`skills/sdd/README.md`](skills/sdd/README.md) for the full pipeline developer guide.
 
 ### Meta (2 skills)
 

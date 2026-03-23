@@ -130,6 +130,12 @@
           "allowed_tools": ["Read", "Write", "Glob", "Grep", "Bash"]
         },
         {
+          "name": "analyze-spec",
+          "type": "workflow",
+          "description": "Analyze an existing specification for requirements completeness, risks, quality issues, and strategic gaps. Generates a scored report with actionable findings and supports auto-fix or interactive review modes. Use when user says \"analyze spec\", \"review spec\", \"spec analysis\", \"audit spec\", \"check spec\", \"validate requirements\", \"spec quality\", or wants to evaluate, improve, or validate an existing specification.",
+          "allowed_tools": ["Read", "Write", "Edit", "Glob", "Grep", "Bash"]
+        },
+        {
           "name": "create-tasks",
           "type": "workflow",
           "description": "Generate implementation tasks from an existing spec. Analyzes specs produced by create-spec, decomposes features into atomic tasks using layer patterns, infers dependencies, detects producer-consumer relationships, and writes tasks to .agents/tasks/ JSON files. Use when user says \"create tasks\", \"generate tasks from spec\", \"spec to tasks\", \"task generation\", or wants to decompose a spec into implementation tasks. Also trigger when the user has a spec and wants to start building.",

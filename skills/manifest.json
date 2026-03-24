@@ -152,6 +152,12 @@
           "allowed_tools": ["Read", "Write", "Glob", "Grep", "Bash"]
         },
         {
+          "name": "inverted-spec",
+          "type": "workflow",
+          "description": "Reverse-engineer a specification from an existing codebase through deep analysis, interactive curation, and gap-filling interview. Produces specs compatible with the SDD pipeline (analyze-spec, create-tasks, execute-tasks). Use when user says \"inverted spec\", \"reverse engineer spec\", \"spec from code\", \"document existing codebase\", \"create spec from existing code\", \"reverse PRD\", \"generate spec from implementation\", \"extract spec\", or wants to generate a specification from an existing implementation.",
+          "allowed_tools": ["Read", "Write", "Glob", "Grep", "Bash"]
+        },
+        {
           "name": "research",
           "type": "dispatcher",
           "description": "Dispatches a researcher agent to investigate best practices, compliance requirements, technology comparisons, and domain knowledge. Use when a skill needs external research to inform decisions — compliance frameworks (GDPR, HIPAA, PCI), technology trade-offs, competitive analysis, or industry best practices. Wrapper skill for the researcher agent.",

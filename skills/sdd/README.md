@@ -4,20 +4,25 @@ A complete guide to the Spec-Driven Development pipeline — from requirements g
 
 ## Pipeline Overview
 
-The SDD pipeline transforms natural language requirements into executed code through four stages:
+The SDD pipeline transforms requirements into executed code through four stages, with two entry points:
 
 ```
-create-spec → [analyze-spec] → create-tasks → execute-tasks
+create-spec ──→ [analyze-spec] → create-tasks → execute-tasks
+inverted-spec ↗
 ```
+
+`create-spec` builds specs from scratch via interview. `inverted-spec` reverse-engineers specs from existing codebases. Both produce the same output format, feeding into the same downstream pipeline.
 
 Each stage produces file-based artifacts consumed by the next. Two reference skills (`sdd-specs` and `sdd-tasks`) provide shared schema definitions, templates, and patterns.
 
 ```mermaid
 flowchart LR
-    CS["1. create-spec"]:::primary -->|".md spec"| AS["2. analyze-spec"]:::warning
-    AS -.->|"improved spec"| CT["3. create-tasks"]:::primary
+    CS["create-spec"]:::primary -->|".md spec"| AS["analyze-spec"]:::warning
+    IS["inverted-spec"]:::primary -->|".md spec"| AS
+    AS -.->|"improved spec"| CT["create-tasks"]:::primary
     CS -->|".md spec"| CT
-    CT -->|".agents/tasks/ JSON"| ET["4. execute-tasks"]:::primary
+    IS -->|".md spec"| CT
+    CT -->|".agents/tasks/ JSON"| ET["execute-tasks"]:::primary
 
     classDef primary fill:#dbeafe,stroke:#2563eb,color:#000
     classDef warning fill:#fef3c7,stroke:#d97706,color:#000
@@ -25,7 +30,8 @@ flowchart LR
 
 | Stage | Skill | Type | Purpose |
 |-------|-------|------|---------|
-| 1 | `create-spec` | workflow | Adaptive interview + spec compilation |
+| 1a | `create-spec` | workflow | Adaptive interview + spec compilation (greenfield) |
+| 1b | `inverted-spec` | workflow | Codebase analysis + curation interview (brownfield) |
 | 2 | `analyze-spec` | workflow | Optional quality gate — scores spec across 4 dimensions |
 | 3 | `create-tasks` | workflow | Decomposes spec features into dependency-tracked JSON tasks |
 | 4 | `execute-tasks` | workflow | Wave-based parallel execution with verification |
@@ -55,6 +61,20 @@ The skill walks you through an adaptive interview process:
 Loads a context file to make the interview smarter (not shorter — questions become more targeted).
 
 **Output:** A `.md` spec file (default: `specs/SPEC-{name}.md`)
+
+### 1b. Or: Reverse-Engineer a Spec from Code
+
+```
+/inverted-spec path/to/codebase
+```
+
+For existing codebases, `inverted-spec` reverses the process — it analyzes code to generate a spec:
+1. **Deep analysis** — Parallel exploration of the codebase structure, patterns, and architecture
+2. **Feature curation** — Select which discovered features to include ("take this, leave this")
+3. **Gap-filling interview** — Provide context code can't reveal (problem statement, users, metrics)
+4. **Spec compilation** — Generates the same template-based spec with `[Inferred]`/`[Stated]` provenance markers
+
+**Output:** A `.md` spec file (same format as `create-spec`, compatible with all downstream tools)
 
 ### 2. Analyze the Spec (Optional)
 
@@ -149,6 +169,29 @@ The orchestrator:
 - `sdd-specs/references/complexity-signals.md` — Complexity detection thresholds
 - `sdd-specs/references/recommendation-triggers.md` — Best-practice trigger patterns
 - `sdd-specs/references/templates/` — Three depth-level templates
+
+### inverted-spec
+
+**Phases:** 5
+
+| Phase | Purpose |
+|-------|---------|
+| 1. Input & Context | Codebase path, scope, depth, spec name, initial context |
+| 2. Deep Analysis | Invoke deep-analysis for comprehensive codebase understanding |
+| 3. Curation Interview | Feature selection, gap-filling, optional research, assumption validation |
+| 4. Summary & Approval | Present compiled findings for user review |
+| 5. Spec Generation | Compile spec from template with provenance annotations |
+
+**Spec type:** `Inverted` — reverse-engineered from codebase (distinct from create-spec's "New product"/"New feature")
+
+**Provenance annotations:** `[Inferred]` (code-derived), `[Stated]` (user-provided), `[Researched]` (external research)
+
+**Agents invoked:** `code-explorer` + `code-synthesizer` (via deep-analysis), `researcher` (optional research)
+
+**Key references:**
+- `inverted-spec/references/curation-interview.md` — 4-stage interview procedures
+- `inverted-spec/references/analysis-to-spec-mapping.md` — How analysis maps to spec sections
+- `inverted-spec/references/compilation-guide.md` — Header format, provenance rules, compilation steps
 
 ### analyze-spec
 
@@ -529,6 +572,12 @@ skills/sdd/
 │       ├── orchestration.md               # Detailed orchestration loop
 │       ├── execution-workflow.md          # Agent phase procedures
 │       └── verification-patterns.md       # Pass/fail rules
+├── inverted-spec/
+│   ├── SKILL.md                           # 5-phase reverse-engineering workflow
+│   └── references/
+│       ├── curation-interview.md          # 4-stage interview procedures
+│       ├── analysis-to-spec-mapping.md    # Analysis-to-spec section mapping
+│       └── compilation-guide.md           # Header format, provenance, compilation
 ├── sdd-specs/
 │   ├── SKILL.md                           # Spec materials reference
 │   └── references/
@@ -554,4 +603,4 @@ skills/sdd/
 └── README.md                              # This file
 ```
 
-33 markdown files total: 7 SKILL.md + 2 agents + 24 references
+37 markdown files total: 8 SKILL.md + 2 agents + 27 references

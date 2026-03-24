@@ -8,7 +8,7 @@ Skills are organized into a 4-type taxonomy:
 
 | Type | Count | Purpose |
 |------|-------|---------|
-| **Workflow** | 13 | Multi-phase orchestrations with agent coordination |
+| **Workflow** | 14 | Multi-phase orchestrations with agent coordination |
 | **Dispatcher** | 3 | Thin wrappers for shared agent dispatch |
 | **Reference** | 9 | Knowledge bases loaded on demand by other skills |
 | **Utility** | 3 | Standalone single-purpose tools |
@@ -27,13 +27,13 @@ Agents are nested inside their owning skills. When a second skill needs the same
 
 **Utilities:** git-commit, document-changes, project-learnings
 
-### SDD Pipeline (6 skills)
+### SDD Pipeline (8 skills)
 
 Four-stage spec-driven development: `create-spec` → [`analyze-spec`] → `create-tasks` → `execute-tasks`
 
 `analyze-spec` is an optional quality gate that scores specs across 4 dimensions before task decomposition.
 
-Supported by `sdd-specs` (templates) and `sdd-tasks` (task schema) reference skills. See [`skills/sdd/README.md`](skills/sdd/README.md) for the full pipeline developer guide.
+Supported by `sdd-specs` (templates) and `sdd-tasks` (task schema) reference skills. Supplemented by `inverted-spec` — a special-use-case skill that reverse-engineers specs from existing codebases. See [`skills/sdd/README.md`](skills/sdd/README.md) for the full pipeline developer guide.
 
 ### Meta (2 skills)
 
@@ -52,7 +52,7 @@ Supported by `sdd-specs` (templates) and `sdd-tasks` (task schema) reference ski
 skills/
 ├── core/              # 20 general-purpose skills
 ├── meta/              # 2 skill-authoring skills
-├── sdd/               # 6 spec-driven development skills
+├── sdd/               # 8 spec-driven development skills
 ├── manifest.json      # Skill registry
 └── README.md          # Full architecture docs
 internal/

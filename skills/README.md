@@ -34,6 +34,7 @@ This makes skills portable across harnesses with different capabilities.
 | `analyze-spec` | _(none)_ | sdd-specs | Optional quality gate that scores specs across 4 dimensions (requirements, risk, quality, completeness). Supports auto-fix and interactive review modes. |
 | `create-tasks` | _(none)_ | sdd-tasks, sdd-specs | Spec-to-task decomposition with 6 layer patterns, dependency inference, and producer-consumer detection. Generates `.agents/tasks/` JSON files from `create-spec` output. |
 | `execute-tasks` | task-executor | sdd-tasks | Wave-based task execution with dependency resolution, structured verification, and shared execution context. Reads `.agents/tasks/` JSON files, manages sessions in `.agents/sessions/`. |
+| `inverted-spec` | _(none)_ | deep-analysis, research, sdd-specs | Reverse-engineers specs from existing codebases via deep analysis, feature curation, and gap-filling interview. Supplementary to the SDD pipeline — not a core pipeline stage. |
 
 ### Agent Skills (shared agent dispatch)
 
@@ -41,7 +42,7 @@ This makes skills portable across harnesses with different capabilities.
 |-------|--------------|---------|
 | `code-exploration` | code-explorer | deep-analysis, bug-killer, docs-manager, codebase-analysis, create-spec |
 | `code-architecture` | code-architect | feature-dev, codebase-analysis |
-| `research` | researcher | create-spec _(single-consumer exception)_ |
+| `research` | researcher | create-spec, inverted-spec |
 
 ### Knowledge Skills (no agents)
 
@@ -80,7 +81,7 @@ All agents live inside the skill that owns them:
 |-------|----------|--------|-----------|---------|
 | `code-explorer` | `core/code-exploration/agents/` | Yes | deep-analysis, bug-killer, docs-manager, codebase-analysis, create-spec | Focused area exploration worker. Reads files, searches patterns, produces structured reports. |
 | `code-architect` | `core/code-architecture/agents/` | Yes | feature-dev, codebase-analysis | Designs implementation blueprints with minimal, flexible, and project-aligned approaches. |
-| `researcher` | `sdd/research/agents/` | Yes | create-spec | Researches best practices, compliance requirements, technology comparisons, and domain knowledge for spec enrichment. |
+| `researcher` | `sdd/research/agents/` | Yes | create-spec, inverted-spec | Researches best practices, compliance requirements, technology comparisons, and domain knowledge for spec enrichment. |
 | `code-synthesizer` | `core/deep-analysis/agents/` | No | deep-analysis | Merges exploration findings into unified analysis. Has bash access for git history and dependency analysis. |
 | `code-reviewer` | `core/feature-dev/agents/` | No | feature-dev | Quality review with confidence-scored findings. |
 | `bug-investigator` | `core/bug-killer/agents/` | No | bug-killer | Diagnostic investigation agent for testing debugging hypotheses. |
@@ -205,6 +206,12 @@ skills/
 │   │   │   └── verification-patterns.md
 │   │   └── scripts/
 │   │       └── poll-for-results.sh
+│   ├── inverted-spec/                 (supplementary: reverse-engineer specs from code)
+│   │   ├── SKILL.md
+│   │   └── references/
+│   │       ├── curation-interview.md
+│   │       ├── analysis-to-spec-mapping.md
+│   │       └── compilation-guide.md
 │   └── research/                      (agent skill: researcher)
 │       ├── SKILL.md
 │       └── agents/

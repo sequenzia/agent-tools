@@ -14,6 +14,63 @@ Where:
 - `:id` is automatically resolved by `glab` to the current project's numeric ID
 - `:iid` is the MR IID (the number shown in the GitLab UI)
 
+## Permalink URL Construction
+
+Findings in the structured report and summary note include clickable links to the exact source code lines on GitLab. These are blob permalinks pinned to the specific commit that was reviewed.
+
+### URL Pattern
+
+```
+{project_base_url}/-/blob/{head_sha}/{file_path}#L{line_start}-{line_end}
+```
+
+For single-line findings where `line_start == line_end`, use `#L{line_start}` (omit the range).
+
+### Components
+
+| Component | Source | Description |
+|-----------|--------|-------------|
+| `project_base_url` | Derived from `.web_url` | The project's base URL, obtained by stripping `/-/merge_requests/{iid}` from the MR's `web_url` |
+| `head_sha` | `.diff_refs.head_sha` | The head commit SHA -- ensures the link points to the exact code version that was reviewed |
+| `file_path` | Finding's `file_path` field | Relative path from repo root (e.g., `src/auth/login.py`). URL-encode if it contains spaces or special characters |
+| `#L{start}-{end}` | Finding's `line_start` and `line_end` | Line range anchor. GitLab uses a single `L` prefix: `#L40-58`, not `#L40-L58` |
+
+### Deriving project_base_url
+
+Strip the `/-/merge_requests/{iid}` suffix from `web_url`:
+
+```
+web_url:          https://gitlab.company.com/group/project/-/merge_requests/123
+project_base_url: https://gitlab.company.com/group/project
+```
+
+This works for all GitLab instances (self-hosted and gitlab.com) and for projects nested in subgroups (e.g., `org/team/subteam/project`), because `/-/merge_requests/{iid}` is a standard GitLab URL convention.
+
+### Markdown Link Formats
+
+**In the report** (finding line references):
+```markdown
+[Lines 40-58](https://gitlab.company.com/group/project/-/blob/abc1234/src/auth/login.py#L40-58)
+```
+
+**In the summary note** (Critical/High one-liners):
+```markdown
+[src/auth/login.py:40](https://gitlab.company.com/group/project/-/blob/abc1234/src/auth/login.py#L40-58)
+```
+
+**In the summary note** (Medium/Low per-file lines):
+```markdown
+[Line 40](https://gitlab.company.com/group/project/-/blob/abc1234/src/auth/login.py#L40-58)
+```
+
+### Local Mode Fallback
+
+When running in local mode (no `glab`, no MR data), `project_base_url` and `head_sha` are not available. Fall back to plain text references without links:
+- Report: `**Lines {line_start}-{line_end}**`
+- Summary note: `**{file_path}:{line_start}**`
+
+---
+
 ## Position Data Construction
 
 Each line-level comment requires position data that tells GitLab exactly where in the diff to anchor the comment.
@@ -97,7 +154,7 @@ glab api projects/:id/merge_requests/{mr_iid}/discussions -X POST \
 When line-level positioning fails, post as a general MR note:
 
 ```bash
-glab mr note {mr_iid} -m "[{SEVERITY}] {file_path}:{line_start} -- {description}
+glab mr note {mr_iid} -m "[{SEVERITY}] [{file_path}:{line_start}]({project_base_url}/-/blob/{head_sha}/{file_path}#L{line_start}-{line_end}) -- {description}
 
 {context}
 
@@ -106,7 +163,8 @@ glab mr note {mr_iid} -m "[{SEVERITY}] {file_path}:{line_start} -- {description}
 
 **Notes:**
 - `glab mr note` posts a general comment on the MR (not anchored to a specific diff line).
-- Include `{file_path}:{line_start}` in the body so the reader can manually locate the relevant code.
+- Include a permalink `[{file_path}:{line_start}]({permalink_url})` so the reader can navigate directly to the relevant code. See "Permalink URL Construction" above for the URL pattern.
+- When `project_base_url` is unavailable (local mode), fall back to plain text `{file_path}:{line_start}`.
 - This is the fallback when diff_refs are unavailable or position data is invalid.
 
 ### Posting a Summary Note
@@ -117,13 +175,13 @@ glab mr note {mr_iid} -m "## MR Review Summary
 **Statistics:** {n} findings ({critical} critical, {high} high, {medium} medium, {low} low) | {files} files analyzed
 
 ### Critical/High Issues
-- **{file_path}:{line_start}** [{severity}] {description}
-- **{file_path}:{line_start}** [{severity}] {description}
+- **[{file_path}:{line_start}]({project_base_url}/-/blob/{head_sha}/{file_path}#L{line_start}-{line_end})** [{severity}] {description}
+- **[{file_path}:{line_start}]({project_base_url}/-/blob/{head_sha}/{file_path}#L{line_start}-{line_end})** [{severity}] {description}
 
 ### Additional Findings (Medium/Low)
 **{file_path}:**
-- Line {line_start}: [{severity}] {description} -- {suggested_action}
-- Line {line_start}: [{severity}] {description} -- {suggested_action}"
+- [Line {line_start}]({project_base_url}/-/blob/{head_sha}/{file_path}#L{line_start}-{line_end}): [{severity}] {description} -- {suggested_action}
+- [Line {line_start}]({project_base_url}/-/blob/{head_sha}/{file_path}#L{line_start}-{line_end}): [{severity}] {description} -- {suggested_action}"
 ```
 
 ### Checking for Force Push (Stale diff_refs)

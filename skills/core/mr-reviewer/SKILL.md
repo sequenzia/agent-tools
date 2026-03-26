@@ -146,6 +146,11 @@ glab mr view <iid> --output json
 | Changed files | `.changes[].new_path` | Agent dispatch |
 | diff_refs (base, head, start SHA) | `.diff_refs.*` | GitLab comment positioning |
 | Web URL | `.web_url` | Report |
+| Project base URL | Derived: strip `/-/merge_requests/{iid}` from `.web_url` | Permalinks in report and comments |
+
+**Derived values:**
+- `project_base_url`: Strip `/-/merge_requests/{iid}` from `web_url`. Example: `https://gitlab.company.com/group/project/-/merge_requests/123` becomes `https://gitlab.company.com/group/project`. Works for all GitLab instances including projects nested in subgroups.
+- `head_sha` (from `diff_refs`): Used for both comment positioning (Section 5) and permalink construction. See `references/gitlab-api-patterns.md` "Permalink URL Construction" for the full pattern.
 
 **Check out the MR branch** so agents can read actual code:
 
@@ -291,7 +296,7 @@ The report is always generated before GitLab comment posting so the user has com
 
 #### `{file_path}`
 
-- **Lines {line_start}-{line_end}** | `{category}` | Source: {source} | Confidence: {confidence}%
+- **[Lines {line_start}-{line_end}]({project_base_url}/-/blob/{head_sha}/{file_path}#L{line_start}-{line_end})** | `{category}` | Source: {source} | Confidence: {confidence}%
   {If merged finding with sub_findings, render each as a labeled bullet.}
   {description}
   **Context:** {context}
@@ -314,6 +319,8 @@ The report is always generated before GitLab comment posting so the user has com
 
 {Numbered list of prioritized action items based on findings.}
 ````
+
+**Permalink availability:** Line references use clickable GitLab blob permalinks constructed from `project_base_url` and `head_sha` (see Section 1.2 and `references/gitlab-api-patterns.md` "Permalink URL Construction"). For single-line findings (`line_start == line_end`), use `#L{line_start}` instead of a range. In local mode where `project_base_url` is unavailable, fall back to plain text: `**Lines {line_start}-{line_end}**`.
 
 ### 4.2 Clean Review (No Findings)
 
@@ -365,6 +372,8 @@ After line-level comments, post a single summary note via `glab mr note`:
 - Medium/Low findings grouped by file with inline suggested actions
 - Agent gap notes if any failed
 - Review notes reference if provided
+
+All file and line references in the summary note use markdown permalink format so developers can click through to the code. See `references/gitlab-api-patterns.md` "Permalink URL Construction" for the URL pattern and "Posting a Summary Note" for the template. When `project_base_url` is unavailable (local mode), use plain text references instead.
 
 Truncate if > 25 Medium/Low findings: show first 15 files, then count of remaining.
 

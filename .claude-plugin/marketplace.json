@@ -1,0 +1,33 @@
+{
+  "name": "agent-tools",
+  "metadata": {
+    "description": "Custom Skills, Subagents & Hooks for AI agents"
+  },
+  "owner": {
+    "name": "Stephen Sequenzia",
+    "email": "sequenzia@gmail.com"
+  },
+  "plugins": [
+    {
+      "name": "agent-tools-core",
+      "version": "0.1.0",
+      "description": "Core skills for AI agents",
+      "source": "./plugins/core",
+      "license": "MIT"
+    },
+    {
+      "name": "agent-tools-meta",
+      "version": "0.1.0",
+      "description": "Meta skills for AI agents",
+      "source": "./plugins/meta",
+      "license": "MIT"
+    },
+    {
+      "name": "agent-tools-sdd",
+      "version": "0.1.0",
+      "description": "SDD skills for AI agents",
+      "source": "./plugins/sdd",
+      "license": "MIT"
+    }
+  ]
+}

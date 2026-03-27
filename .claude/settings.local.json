@@ -1,6 +1,14 @@
 {
   "enabledPlugins": {
+    "agent-alchemy-core-tools@agent-alchemy": true,
+    "agent-alchemy-dev-tools@agent-alchemy": true,
+    "agent-alchemy-git-tools@agent-alchemy": true,
+    "agent-alchemy-sdd-tools@agent-alchemy": true,
+    "playwright@claude-plugins-official": true,
+    "typescript-lsp@claude-plugins-official": true,
+    "skill-creator@claude-plugins-official": true,
+    "pyright-lsp@claude-plugins-official": true,
     "plugin-dev@claude-plugins-official": true,
-    "skill-creator@claude-plugins-official": true
+    "chrome-devtools-mcp@claude-plugins-official": true
   }
 }

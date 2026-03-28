@@ -333,62 +333,13 @@ For each feature, apply the standard layer pattern. See `references/decompositio
 
 ### Task Structure
 
-Each task follows the sdd-tasks schema (imperative `title`, present-continuous `active_form`). Acceptance criteria and testing requirements are structured as top-level fields:
+Each task follows the sdd-tasks schema loaded in Phase 1 (imperative `title`, present-continuous `active_form`, structured `acceptance_criteria` and `testing_requirements`). See the sdd-tasks reference for the full field list and JSON examples.
 
-```json
-{
-  "id": "task-NNN",
-  "title": "Create User data model",
-  "active_form": "Creating User data model",
-  "description": "{What needs to be done}\n\n{Technical details if applicable}\n\nSource: {spec_path} Section {number}",
-  "acceptance_criteria": {
-    "functional": [
-      "Core behavior criterion"
-    ],
-    "edge_cases": [
-      "Boundary condition criterion"
-    ],
-    "error_handling": [
-      "Error scenario criterion"
-    ],
-    "performance": []
-  },
-  "testing_requirements": [
-    { "type": "unit", "target": "What to test" },
-    { "type": "integration", "target": "What to test" }
-  ],
-  "status": "pending",
-  "blocked_by": [],
-  "owner": null,
-  "created_at": "{ISO-8601}",
-  "updated_at": "{ISO-8601}",
-  "metadata": { ... }
-}
-```
+**Create-tasks conventions** applied on top of the base schema:
 
-### SDD Task Metadata Extensions
-
-In addition to the standard metadata keys from sdd-tasks (`priority`, `complexity`, `task_group`, `task_uid`), SDD tasks use these spec-specific keys:
-
-| Key | Type | Required | Description |
-|-----|------|----------|-------------|
-| `source_section` | string | Yes | Spec section reference (e.g., "7.3 Data Models") |
-| `spec_path` | string | Yes | Path to the source spec file |
-| `feature_name` | string | Yes | Parent feature name from spec |
-| `task_uid` | string | Yes | Composite key: `{spec_path}:{feature}:{type}:{seq}` |
-| `task_group` | string | Yes | Slug derived from spec title — REQUIRED |
-| `spec_phase` | integer | Conditional | Phase number (omit if no phases) |
-| `spec_phase_name` | string | Conditional | Phase name (omit if no phases) |
-| `produces_for` | string[] | Optional | IDs of downstream tasks that consume this task's output |
-
-### Acceptance Criteria Categories
-
-| Category | What to Include |
-|----------|-----------------|
-| **Functional** | Core behavior, expected outputs, state changes |
-| **Edge Cases** | Boundaries, empty/null, max values, concurrent operations |
-| **Error Handling** | Invalid input, failures, timeouts, graceful degradation |
-| **Performance** | Response times, throughput, resource limits (if applicable) |
+- **Description format**: End each task description with `Source: {spec_path} Section {number}` to trace back to the originating spec section
+- **Phase metadata**: Include `spec_phase` (integer) and `spec_phase_name` (string) only when the spec has phases. Omit both fields entirely for phaseless specs
+- **task_group is mandatory**: Every task MUST have `metadata.task_group` set to the slug derived from the spec title. Tasks without `task_group` are invisible to group-filtered execution
 
 ### Testing Requirements Generation
 
@@ -413,27 +364,6 @@ Generate testing requirements by combining:
 | P1 (High) | `high` |
 | P2 (Medium) | `medium` |
 | P3 (Low) | `low` |
-
-### Complexity Estimation
-
-| Size | Scope |
-|------|-------|
-| XS | Single simple function (<20 lines) |
-| S | Single file, straightforward (20-100 lines) |
-| M | Multiple files, moderate logic (100-300 lines) |
-| L | Multiple components, significant logic (300-800 lines) |
-| XL | System-wide, complex integration (>800 lines) |
-
-### Task UID Format
-
-```
-{spec_path}:{feature_slug}:{task_type}:{sequence}
-
-Examples:
-- specs/SPEC-Auth.md:user-auth:model:001
-- specs/SPEC-Auth.md:user-auth:api-login:001
-- specs/SPEC-Auth.md:session-mgmt:test:001
-```
 
 ---
 
@@ -583,14 +513,15 @@ Build all tasks in memory and write as individual files:
 2. **Assign sequential IDs**: `task-001`, `task-002`, ... using the task_uid-to-ID mapping
 3. **Set blocked_by**: Using the internal UID-to-ID mapping from Phase 6
 4. **Set produces_for**: Using the detection results from Phase 7
-5. **Create directory structure**: If `.agents/tasks/` does not exist, create the full structure:
-   ```bash
-   mkdir -p .agents/tasks/{_manifests,backlog,pending,in-progress,completed}
+5. **Create directory structure**: If `.agents/tasks/` does not exist, create the top-level structure:
    ```
-   Always ensure group subdirectories exist before writing task files:
-   ```bash
-   mkdir -p .agents/tasks/{pending,backlog}/{group}
+   .agents/tasks/_manifests/
+   .agents/tasks/backlog/
+   .agents/tasks/pending/
+   .agents/tasks/in-progress/
+   .agents/tasks/completed/
    ```
+   Then create group subdirectories **only for statuses that will receive tasks**. If all tasks are pending (phaseless spec or all selected phases), only create `pending/{group}/`. If some tasks are backlogged, also create `backlog/{group}/`. Do not pre-create empty group directories — this avoids leaving blank directories that contain no task files. The Write tool creates parent directories automatically, so this step is for clarity; writing a task file to a path will also create its parent directories.
 6. **Write manifest**: Write `.agents/tasks/_manifests/{group}.json` with task statistics
 7. **Write task files**: Write each task as an individual file to the appropriate directory:
    - Current-phase tasks → `.agents/tasks/pending/{group}/task-NNN.json`
@@ -604,15 +535,16 @@ Build all tasks in memory and write as individual files:
   "spec_path": "{spec-path}",
   "created_at": "{ISO-8601}",
   "updated_at": "{ISO-8601}",
-  "total_tasks": "{count}",
-  "pending_count": "{count}",
-  "backlog_count": "{count}",
-  "dependency_count": "{count}",
-  "producer_consumer_count": "{count}",
-  "complexity_breakdown": { "{level}": "{count}" },
-  "priority_breakdown": { "{level}": "{count}" }
+  "total_tasks": 0,
+  "pending_count": 0,
+  "backlog_count": 0,
+  "dependency_count": 0,
+  "producer_consumer_count": 0,
+  "complexity_breakdown": {},
+  "priority_breakdown": {}
 }
 ```
+Replace zero values with computed statistics after writing all task files. All count fields must be integers, not strings.
 
 **Computing statistics:**
 - `total_tasks`: Count of all task files written
@@ -718,13 +650,14 @@ Degrade gracefully — if phase headers can't be parsed, log a warning and gener
 
 ## Anti-Pattern Validation
 
-Before confirming task creation in Phase 8, validate against common anti-patterns. Load `../sdd-tasks/references/anti-patterns.md` for the full reference if issues are detected.
+Run these checks on every task generation, before presenting the Phase 8 preview:
 
-Check for:
-- **AP-01**: Circular dependencies — detect cycles in the dependency graph
-- **AP-02**: Too-granular tasks — flag tasks that change fewer than ~10 lines
-- **AP-05**: Duplicate task creation — verify task_uid uniqueness
-- **AP-07**: Missing task_group — every task MUST have `task_group` metadata
+- **AP-01 Circular dependencies**: Walk the `blocked_by` graph and detect cycles. Any cycle is a hard error — tasks in a cycle can never start.
+- **AP-02 Too-granular tasks**: Flag tasks whose scope is less than ~10 lines of code. These should be merged with a related task to avoid overhead.
+- **AP-05 Duplicate task creation**: Verify that every `task_uid` in the generated set is unique. Duplicates indicate a decomposition error.
+- **AP-07 Missing task_group**: Every task must have `metadata.task_group`. Tasks without it are invisible to group-filtered execution.
+
+If any check fails, surface the failures as a warnings section in the Phase 8 preview output so the user can decide whether to proceed. Load `../sdd-tasks/references/anti-patterns.md` for remediation guidance on specific failures.
 
 ---
 

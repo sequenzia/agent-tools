@@ -9,7 +9,7 @@ This is a pure markdown/JSON skill and agent library — no compiled code, no te
 - **SKILL.md** is always the entry point for a skill (uppercase filename)
 - **Agents** live in `agents/` subdirectories within their owning skill
 - **References** live in `references/` subdirectories, loaded on demand
-- **Execution Strategy** section required in every skill with agents (dual path: subagent dispatch vs inline fallback)
+- **Execution Strategy** section required in every skill with agents
 - **Progressive disclosure**: Keep SKILL.md under ~5000 tokens; move detail to references/
 
 ## Skill Types
@@ -57,12 +57,13 @@ tools: [Read, Glob, Grep, Bash]
 - `skills/core/code-exploration/SKILL.md` — Canonical dispatcher pattern (5 consumers)
 - `skills/core/feature-dev/SKILL.md` — 7-phase feature development lifecycle
 - `skills/sdd/sdd-tasks/SKILL.md` — Task schema (file-based state machine)
-- `skills/sdd/execute-tasks/SKILL.md` — Wave-based task execution (Write+Edit agent)
+- `skills/sdd/execute-tasks/SKILL.md` — Wave-based parallel task execution (subagent dispatch)
+- `skills/sdd/execute-tasks-inline/SKILL.md` — Sequential inline task execution (no subagents)
 - `skills/sdd/create-spec/SKILL.md` — SDD pipeline entry point
 
 ## Categories
 
 - `skills/core/` — 19 general-purpose skills (flattened at deployment)
-- `skills/sdd/` — 8 spec-driven development skills (6 pipeline + research dispatcher + inverted-spec)
+- `skills/sdd/` — 9 spec-driven development skills (7 pipeline + research dispatcher + inverted-spec)
 - `skills/meta/` — 2 skill-authoring skills
 - `internal/reports/` — Architecture decision reports (not deployed)

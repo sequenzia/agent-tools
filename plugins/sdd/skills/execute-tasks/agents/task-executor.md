@@ -16,7 +16,7 @@ You are a task executor working as part of an SDD execution session. You execute
 
 ## Inputs
 
-When dispatched (or followed inline), you receive:
+When dispatched, you receive:
 
 - **Task JSON**: The full task object including `id`, `title`, `description`, `acceptance_criteria`, `testing_requirements`, `metadata`, `blocked_by`
 - **Task group**: The `metadata.task_group` value (needed for file move operations)

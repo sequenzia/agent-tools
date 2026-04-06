@@ -1,6 +1,6 @@
-# Orchestration Reference
+# Orchestration Reference (Inline)
 
-This reference provides the detailed 9-step orchestration loop for executing SDD tasks in dependency order. The execute-tasks skill uses this procedure to manage the full execution session.
+This reference provides the detailed 9-step orchestration loop for executing SDD tasks sequentially in a single context. The execute-tasks-inline skill uses this procedure to manage the full execution session.
 
 All task management is file-based: tasks are JSON files in `.agents/tasks/` directories, managed via Read, Write, and Glob per `sdd-tasks/references/operations.md`.
 
@@ -18,9 +18,9 @@ This ensures atomic, reliable updates regardless of file size or content changes
 
 ### Purpose
 
-Reduce orchestrator context consumption by moving agent result data to disk. Instead of embedding full agent output (~100+ lines per task) into the orchestrator's context window, agents write a compact result file (~18 lines) as their **very last action**. The orchestrator reads these files after polling for completion.
+Provide a persistent record of each task's outcome for session archival and retry context. Unlike the subagent version (where result files serve as completion signals for polling), in inline mode the orchestrator already has the result — the file is written for record-keeping.
 
-### File Format (Standard)
+### File Format
 
 Agents write `result-{id}.md` in `.agents/sessions/__live_session__/`:
 
@@ -42,17 +42,12 @@ attempt: {n}/{max}
 {None or brief descriptions}
 ```
 
-### Ordering Invariant
+### Usage
 
-Agents MUST write files in this order:
-1. `context-{id}.md` FIRST (learnings for context merge)
-2. `result-{id}.md` LAST (completion signal for orchestrator polling)
-
-The result file's existence serves as the completion signal. If it exists, the context file is guaranteed to exist (or the agent intentionally skipped it).
-
-### Fallback
-
-If an agent crashes before writing its result file, the orchestrator treats the task as FAIL with reason "Agent did not produce result file." The task stays in `in-progress/` for retry.
+- Written after each task for record-keeping and retry context
+- For failed tasks being retried, the previous result file provides failure details
+- Retained for FAIL tasks in the archived session for post-analysis
+- Deleted for PASS tasks during dependency level cleanup
 
 ## Step 1: Load Task List
 
@@ -86,7 +81,7 @@ For each task file read, extract:
 - `title` for display
 - `status` from the JSON (must match the directory it lives in)
 - `blocked_by` array for dependency resolution
-- `metadata.priority` for wave sorting
+- `metadata.priority` for level sorting
 - `metadata.task_group` for group filtering
 - `acceptance_criteria` for verification
 - Full file path for later read/move operations
@@ -102,32 +97,29 @@ Handle edge cases before proceeding:
 
 ## Step 3: Build Execution Plan
 
-### 3a: Resolve Max Parallel
+### 3a: Note on Parallelism
 
-Determine the maximum number of concurrent tasks per wave using this precedence:
-1. `--max-parallel` CLI argument (highest priority)
-2. `max_parallel` setting in `.agents/settings.md`
-3. Default: 5
+The inline version executes all tasks sequentially regardless of dependency level size. Dependency levels define execution order — all tasks in a level have their dependencies satisfied and can be executed in any order within the level. The `--max-parallel` argument is not supported.
 
 ### 3b: Build Dependency Graph
 
 Collect all pending tasks and build a dependency graph from `blocked_by` relationships.
 
-If a specific `task-id` was provided, the plan contains only that task (single-task mode, effectively `max_parallel = 1`).
+If a specific `task-id` was provided, the plan contains only that task (single-task mode).
 
-### 3c: Assign Tasks to Waves
+### 3c: Assign Tasks to Dependency Levels
 
-Use topological sorting to assign tasks to dependency-based waves:
-- **Wave 1**: All pending tasks with empty `blocked_by` list (no dependencies)
-- **Wave 2**: Tasks whose dependencies are ALL in Wave 1 or already completed
-- **Wave 3**: Tasks whose dependencies are ALL in Wave 1, Wave 2, or already completed
-- Continue until all tasks are assigned to waves
+Use topological sorting to assign tasks to dependency-based levels:
+- **Level 1**: All pending tasks with empty `blocked_by` list (no dependencies)
+- **Level 2**: Tasks whose dependencies are ALL in Level 1 or already completed
+- **Level 3**: Tasks whose dependencies are ALL in Level 1, Level 2, or already completed
+- Continue until all tasks are assigned to levels
 
 If task group filtering is active, only include tasks matching the specified group.
 
-### 3d: Sort Within Waves
+### 3d: Sort Within Levels
 
-Within each wave, sort by priority:
+Within each dependency level, sort by priority:
 1. `critical` tasks first
 2. `high` tasks next
 3. `medium` tasks next
@@ -135,8 +127,6 @@ Within each wave, sort by priority:
 5. Tasks without priority metadata last
 
 Break ties by "unblocks most others" — tasks that appear in the most `blocked_by` lists of other tasks execute first.
-
-If a wave contains more tasks than `max_parallel`, split into sub-waves of `max_parallel` size, maintaining the priority ordering.
 
 ### 3e: Circular Dependency Detection
 
@@ -151,7 +141,6 @@ Expected format:
 # Agent Settings
 
 ## Execution
-- max_parallel: 5
 - default_retries: 3
 ```
 
@@ -163,23 +152,23 @@ Display the execution plan:
 
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-EXECUTION PLAN
+EXECUTION PLAN (Sequential)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Tasks to execute: {count}
 Retry limit: {retries} per task
-Max parallel: {max_parallel} per wave
+Execution: Sequential (inline)
 
-WAVE 1 ({n} tasks):
+DEPENDENCY LEVEL 1 ({n} tasks):
   1. [{id}] {title} ({priority})
   2. [{id}] {title} ({priority})
   ...
 
-WAVE 2 ({n} tasks):
+DEPENDENCY LEVEL 2 ({n} tasks):
   3. [{id}] {title} ({priority}) — after [{dep_ids}]
   4. [{id}] {title} ({priority}) — after [{dep_ids}]
   ...
 
-{Additional waves...}
+{Additional levels...}
 
 BLOCKED (unresolvable dependencies):
   [{id}] {title} — blocked by: {blocker ids}
@@ -280,11 +269,11 @@ Create `.agents/sessions/__live_session__/` (and `.agents/sessions/` parent if n
    ```markdown
    # Execution Progress
    Status: Initializing
-   Wave: 0 of {total_waves}
-   Max Parallel: {max_parallel}
+   Execution: Sequential (inline)
+   Dependency Level: 0 of {total_levels}
    Updated: {ISO 8601 timestamp}
 
-   ## Active Tasks
+   ## Active Task
 
    ## Completed This Session
    ```
@@ -307,150 +296,133 @@ This prevents the execution context from growing unbounded across multiple execu
 
 ## Step 7: Execute Loop
 
-Execute tasks in waves. No user interaction between waves.
+Execute tasks sequentially through dependency levels. No user interaction between tasks. Track a running task count for context compaction.
 
-### 7a: Initialize Wave
+### 7a: Initialize Dependency Level
 
 1. Find all unblocked tasks: Glob `.agents/tasks/pending/{group}/*.json` (or all groups if no filter), Read each, check `blocked_by` against the completed set (Glob `.agents/tasks/completed/{group}/*.json`, collect IDs from filenames)
 2. Filter: keep tasks where every ID in `blocked_by` exists in the completed set
 3. Sort by priority (same rules as Step 3d)
-4. Take up to `max_parallel` tasks for this wave
-5. If no unblocked tasks remain, exit the loop
+4. If no unblocked tasks remain, exit the loop
 
-### 7b: Snapshot Execution Context
+### 7b: Execute Tasks Sequentially
 
-Read `.agents/sessions/__live_session__/execution_context.md` and hold it as the baseline for this wave. All agents in this wave will read from this same snapshot. This prevents concurrent agents from seeing partial context writes from sibling tasks.
+For each task in the current dependency level:
 
-### 7c: Launch Wave
-
-1. **Mark tasks in_progress**: For each task in the wave, move its file from `pending/{group}/` to `in-progress/{group}/`:
+1. **Mark task in_progress**: Move its file from `pending/{group}/` to `in-progress/{group}/`:
    - Read the task JSON
    - Update `status` to `"in_progress"`, set `owner` to `{task_execution_id}`, update `updated_at`
    - Write to `.agents/tasks/in-progress/{group}/task-{id}.json` (create group subdirectory if needed)
    - Delete `.agents/tasks/pending/{group}/task-{id}.json`
 
-2. Record `wave_start_time`
-
-3. Write the complete `progress.md` using Write (read-modify-write pattern):
+2. **Update progress.md** using Write (read-modify-write pattern):
    ```markdown
    # Execution Progress
    Status: Executing
-   Wave: {current_wave} of {total_waves}
-   Max Parallel: {max_parallel}
+   Execution: Sequential (inline)
+   Dependency Level: {current_level} of {total_levels}
    Updated: {ISO 8601 timestamp}
 
-   ## Active Tasks
+   ## Active Task
    - [{id}] {title} — {active_form}
-   - [{id}] {title} — {active_form}
-   ...
 
    ## Completed This Session
-   {accumulated completed tasks from prior waves}
+   {accumulated completed tasks from prior levels}
    ```
 
-4. **Dispatch agents:**
+3. **Context refresh**: Re-read `.agents/sessions/__live_session__/execution_context.md` in full. This is the critical step that makes the "File as External Memory" pattern work — it places all cross-task learnings at the top of the recency window, ensuring they survive harness context compression.
 
-   Dispatch one task-executor subagent per task in the wave, all in parallel in a single message turn. For each task, the dispatch prompt includes:
-   - The full task JSON content (id, title, description, acceptance_criteria, testing_requirements, metadata)
-   - Session path: `.agents/sessions/__live_session__/`
-   - Context write path: `.agents/sessions/__live_session__/context-{id}.md`
-   - Result write path: `.agents/sessions/__live_session__/result-{id}.md`
-   - The task-executor agent instructions from `agents/task-executor.md`
-   - Task group name (for file move operations)
-   - Retry context if this is a retry attempt
-   - Producer context (if applicable): For each task in the wave, check if any of its `blocked_by` tasks have a `produces_for` array containing this task's ID. If so, read the completed producer's result file (`result-{producer_id}.md`) from the session directory. Include the producer task's title and the "Files Modified" section from its result as additional context in the dispatch prompt. This gives the executor knowledge of what artifacts its upstream dependencies created.
+4. **Check for producer context**: If any of the task's `blocked_by` tasks have a `produces_for` array containing this task's ID, read the completed producer's result file (`result-{producer_id}.md`) from the session directory. Note the producer task's title and the "Files Modified" section to understand what artifacts were created upstream.
 
-5. **Poll for completion**:
+5. **Execute 4-phase workflow inline**:
 
-   After dispatching all agents, poll for result files using the poll script:
+   **Phase 1 — Understand:**
+   - `execution_context.md` was just read (step 3) — review Project Patterns, Key Decisions, Known Issues, File Map, and recent Task History
+   - Read task JSON from `in-progress/{group}/task-{id}.json`
+   - Parse `acceptance_criteria` and `testing_requirements`
+   - Read project conventions (CLAUDE.md, AGENTS.md, or similar)
+   - Explore affected files via Glob/Grep
+   - Read key files that will be modified
+   - If retry: read previous result file, assess codebase state (run linter/tests), decide whether to build on partial work or revert
 
-   ```bash
-   bash {skill_path}/scripts/poll-for-results.sh \
-     .agents/sessions/__live_session__ {task_id_1} {task_id_2} ...
+   **Phase 2 — Implement:**
+   - Read target files before modifying
+   - Follow implementation order (data → service → interface → tests)
+   - Match existing patterns and conventions
+   - Run mid-implementation checks (linter, existing tests)
+   - Write tests per `testing_requirements`
+
+   **Phase 3 — Verify:**
+   - Walk each `acceptance_criteria` category (Functional, Edge Cases, Error Handling, Performance)
+   - Check `testing_requirements`
+   - Run tests and linter
+   - Apply pass threshold rules per `../execute-tasks/references/verification-patterns.md`
+
+   **Phase 4 — Complete (Inline-Specific):**
+   - Determine status (PASS/PARTIAL/FAIL)
+   - If PASS: move task file from `in-progress/{group}/` to `completed/{group}/` (read JSON, update `status` to `"completed"`, update `updated_at`, write to new path, delete old file)
+   - If PARTIAL or FAIL: leave in `in-progress/`
+
+6. **Write result file**: Write `result-{id}.md` to `.agents/sessions/__live_session__/` using the standard format. This is for record-keeping and retry context.
+
+7. **Update execution_context.md directly**: Read the current file, then append to the `## Task History` section:
+
+   ```markdown
+   ### Task [{id}]: {title} - {PASS/PARTIAL/FAIL}
+   - Files modified: {list of files created or changed}
+   - Key learnings: {patterns discovered, conventions noted, useful file locations}
+   - Issues encountered: {problems hit, workarounds applied, things that didn't work}
    ```
 
-   **IMPORTANT**: Specify `timeout: 2760000` (46 minutes) on the Bash invocation. This must exceed the script's internal 45-minute timeout to ensure the script finishes before the Bash tool kills it.
+   Also update Project Patterns, Key Decisions, Known Issues, and File Map sections as relevant. Write the complete updated file.
 
-   Replace `{task_id_N}` with the actual task IDs for this wave (the numeric/string portion, e.g., `task-001`).
-
-   **Parse the output**:
-   - `POLL_RESULT: ALL_DONE` — all agents finished. Proceed to 7d.
-   - `POLL_RESULT: TIMEOUT` — not all agents finished within the timeout. Log the `Waiting on:` line and proceed to 7d (missing result files are handled as FAIL).
-   - Bash tool timeout or no recognizable output — treat as timeout. Proceed to 7d.
-
-### 7d: Process Results (Batch)
-
-After polling completes, process results:
-
-1. **Read result files**: For each task in the wave, read `.agents/sessions/__live_session__/result-{id}.md`. Parse:
-   - `status` line → PASS, PARTIAL, or FAIL
-   - `attempt` line → attempt number
-   - `## Verification` section → criterion pass counts
-   - `## Files Modified` section → changed file list
-   - `## Issues` section → failure details
-
-2. **Handle missing result files** (agent crash recovery): If a result file is missing after polling:
-   - Check if `context-{id}.md` exists (agent may have crashed between context and result write)
-   - Treat as FAIL with reason "Agent did not produce result file"
-   - The task stays in `in-progress/` for retry
-
-3. **Measure duration** (best effort): If the harness provides per-agent timing metadata, use it. Otherwise set to "N/A".
-
-4. Log a status line for each task: `[{id}] {title}: {PASS|PARTIAL|FAIL}`
-
-5. **Batch update `task_log.md`**: Read the current file once, append ALL wave rows, Write the complete file once:
+8. **Update task_log.md**: Read the current file, append the task row, Write the complete file:
    ```markdown
    | {id} | {title} | {PASS/PARTIAL/FAIL} | {attempt}/{max_retries} | {duration} |
    ```
 
-6. **Batch update `progress.md`**: Read the current file once, move ALL completed tasks from Active to Completed, Write the complete file once:
+9. **Update progress.md**: Read the current file, move the task from Active to Completed, Write the complete file:
    ```markdown
-   ## Active Tasks
-   {only tasks still running, if any}
+   ## Active Task
 
    ## Completed This Session
-   - [{id}] {title} — PASS ({duration})
-   - [{id}] {title} — FAIL ({duration})
+   - [{id}] {title} — {PASS|PARTIAL|FAIL} ({duration})
    {prior completed entries}
    ```
 
-### 7e: Within-Wave Retry
+10. **Context compaction check**: Increment the running task count. If `count % 5 == 0`, compact `execution_context.md`:
+    - Read the file
+    - Count Task History entries
+    - If more than 5 entries: keep the last 5 in full, summarize all older entries into a "Prior Tasks Summary" paragraph at the top of the Task History section
+    - Keep Project Patterns, Key Decisions, Known Issues, File Map sections in full
+    - Write the compacted file
 
-After batch processing identifies failed tasks:
+### 7c: Inline Retry
 
-1. Collect all failed tasks with retries remaining
-2. For each retriable task:
-   - Read the failure details from `result-{id}.md` (Issues section and Verification section)
-   - Delete the old `result-{id}.md` file before re-dispatching
-   - Dispatch a new task-executor subagent with failure context in the prompt
-   - Update `progress.md` active task entry: `- [{id}] {title} — Retrying ({n}/{max})`
-3. After dispatching retry agents:
-   - Poll for retry result files using `scripts/poll-for-results.sh` (same pattern as 7c step 5, with only the retry task IDs)
-   - Process retry results using the same batch approach as 7d
-   - Repeat 7e if any retries still have attempts remaining
-4. If retries exhausted for a task:
+After executing a task, if the result is FAIL and retries remain:
+
+1. Read the failure details from `result-{id}.md` (Issues section and Verification section)
+2. Delete the old `result-{id}.md`
+3. Re-read `execution_context.md` (context refresh)
+4. Re-execute the 4-phase workflow inline with retry context:
+   - Phase 1 includes: read previous failure details, assess codebase state (run linter/tests to see what previous attempt left behind), decide whether to build on partial work or revert and try differently
+5. Process the retry result using steps 6-10 from 7b
+6. If retries exhausted for a task:
    - Leave task as `in_progress` (do not move to `pending/` or `completed/`)
    - Log final failure
    - Retain the result file for post-analysis
+   - Continue to next task
 
-### 7f: Merge Context and Clean Up After Wave
+### 7d: Complete Dependency Level and Archive
 
-After ALL agents in the current wave have completed (including retries):
+After ALL tasks in the current dependency level have been processed (including retries):
 
-1. Read `.agents/sessions/__live_session__/execution_context.md`
-2. Read all `context-{id}.md` files from `.agents/sessions/__live_session__/` in task ID order
-3. Append each file's full content to the end of the `## Task History` section
-4. Write the complete updated `execution_context.md` using Write
-5. Delete the `context-{id}.md` files
-6. **Clean up result files**: Delete `result-{id}.md` for PASS tasks. Retain `result-{id}.md` for FAIL tasks (available for post-session analysis in the archived session folder)
-
-### 7g: Rebuild Next Wave and Archive
-
-1. **Archive completed task files**: For each PASS task in this wave, copy the task JSON from `.agents/tasks/completed/{group}/` to `.agents/sessions/__live_session__/tasks/` (the task-executor already moved the file to `completed/` in Phase 4)
-2. **Re-scan for unblocked tasks**: Glob `.agents/tasks/pending/{group}/*.json` (or all groups), Read each, check `blocked_by` against the updated completed set
-3. If newly unblocked tasks found, form the next wave using priority sort from Step 3d
-4. If no unblocked tasks remain, exit the loop
-5. Loop back to 7a
+1. **Archive completed task files**: For each PASS task in this level, copy the task JSON from `.agents/tasks/completed/{group}/` to `.agents/sessions/__live_session__/tasks/` (the task was already moved to `completed/` in Phase 4)
+2. **Clean up result files**: Delete `result-{id}.md` for PASS tasks. Retain `result-{id}.md` for FAIL tasks (available for post-session analysis in the archived session folder)
+3. **Re-scan for unblocked tasks**: Glob `.agents/tasks/pending/{group}/*.json` (or all groups), Read each, check `blocked_by` against the updated completed set
+4. If newly unblocked tasks found, form the next dependency level using priority sort from Step 3d
+5. If no unblocked tasks remain, exit the loop
+6. Loop back to 7a
 
 ## Step 8: Session Summary
 
@@ -458,11 +430,11 @@ Write the complete `progress.md` with final status using Write:
 ```markdown
 # Execution Progress
 Status: Complete
-Wave: {total_waves} of {total_waves}
-Max Parallel: {max_parallel}
+Execution: Sequential (inline)
+Dependency Level: {total_levels} of {total_levels}
 Updated: {ISO 8601 timestamp}
 
-## Active Tasks
+## Active Task
 
 ## Completed This Session
 {all completed task entries}
@@ -478,8 +450,8 @@ Tasks executed: {total attempted}
   Passed: {count}
   Failed: {count} (after {total retries} total retry attempts)
 
-Waves completed: {wave_count}
-Max parallel: {max_parallel}
+Dependency levels completed: {level_count}
+Execution: Sequential (inline)
 
 Remaining:
   Pending: {count}
@@ -524,7 +496,8 @@ If no meaningful project-wide changes occurred, skip this step.
 ## Notes
 
 - Tasks are managed through file-based operations on `.agents/tasks/` (Read, Write, Glob)
-- Each task is handled by the `task-executor` agent in isolation
-- The execution context file enables knowledge sharing across task boundaries
+- Each task is executed inline within the orchestrator's context
+- The execution context file enables knowledge sharing across task boundaries via the "File as External Memory" pattern
+- Context compaction (every ~5 tasks) prevents the execution context from growing unbounded
 - Failed tasks remain as `in_progress` for manual review or re-execution
-- Run the execute-tasks skill again to pick up where you left off — it will execute any remaining unblocked tasks
+- Run the execute-tasks-inline skill again to pick up where you left off — it will execute any remaining unblocked tasks

@@ -2,11 +2,12 @@
 name: execute-tasks
 description: >-
   Execute pending SDD tasks in dependency order with wave-based concurrent
-  execution and structured verification. Reads task files from .agents/tasks/
-  and manages execution sessions in .agents/sessions/. Supports task group
-  filtering and configurable parallelism. Use when user says "execute tasks",
-  "run tasks", "start execution", "work on tasks", or wants to execute
-  generated tasks autonomously.
+  execution via subagent dispatch and structured verification. Requires a
+  harness that supports subagent dispatch (parallel task-executor agents).
+  Reads task files from .agents/tasks/ and manages execution sessions in
+  .agents/sessions/. Supports task group filtering and configurable parallelism.
+  Use when user says "execute tasks", "run tasks", "start execution",
+  "work on tasks", or wants to execute generated tasks autonomously.
 metadata:
   argument-hint: "[task-id] [--task-group <group>] [--retries <n>] [--max-parallel <n>]"
   type: workflow
@@ -198,11 +199,11 @@ Tasks within an execution session share learnings through `.agents/sessions/__li
 - **Autonomous execution loop**: After the user confirms the execution plan, no further prompts occur between tasks. The loop runs without interruption once started.
 - **Result file protocol**: Each agent writes a compact `result-{id}.md` (~18 lines) as its very last action. The orchestrator polls for these files via `scripts/poll-for-results.sh`, then reads them for processing.
 - **Batched session file updates**: All updates to `task_log.md` and `progress.md` are batched into a single read-modify-write cycle per file per wave.
-- **Wave-based parallelism**: Tasks at the same dependency level run simultaneously (when subagent dispatch is available), up to `max_parallel` concurrent agents per wave.
+- **Wave-based parallelism**: Tasks at the same dependency level run simultaneously, up to `max_parallel` concurrent agents per wave.
 - **One agent per task, multiple per wave**: Each task gets a fresh agent invocation with isolated context.
 - **Per-task context isolation**: Each agent writes to `context-{id}.md`. The orchestrator merges these after each wave.
 - **Within-wave retry**: Failed tasks with retries remaining are re-dispatched with failure context from the previous result file.
-- **Configurable parallelism**: Default 5 concurrent tasks, configurable via `--max-parallel` argument or `.agents/settings.md`. Set to 1 for sequential execution.
+- **Configurable parallelism**: Default 5 concurrent tasks, configurable via `--max-parallel` argument or `.agents/settings.md`.
 - **Configurable retries**: Default 3 attempts per task, configurable via `--retries` argument.
 - **Dynamic unblocking**: After each wave completes, the dependency graph is refreshed and newly unblocked tasks join the next wave.
 - **Honest failure handling**: After retries exhausted, tasks stay `in_progress` (not completed), and execution continues with the next wave.
@@ -255,11 +256,7 @@ Tasks within an execution session share learnings through `.agents/sessions/__li
 
 ## Execution Strategy
 
-Execute agents respecting the wave-based dependency graph.
-
-**If subagent dispatch is available:** For each wave, dispatch one task-executor subagent per task in the wave, passing the contents of `agents/task-executor.md` as the task instructions along with the task JSON content, session paths (context write path, result write path), and retry context if applicable. Dispatch all wave agents in parallel in a single message turn. After dispatch, poll for result files using `scripts/poll-for-results.sh` via a single Bash invocation (with `timeout: 2760000`). When polling completes, process results as described in `references/orchestration.md` Step 7d.
-
-**If subagent dispatch is not available:** For each wave, execute tasks sequentially. For each task: read `agents/task-executor.md` and follow its 4-phase workflow inline using the task's details. Write the same context and result files as the subagent path. After completing each task inline, process its result immediately before moving to the next task in the wave. Skip the polling step — result files are written synchronously.
+Execute agents respecting the wave-based dependency graph. For each wave, dispatch one task-executor subagent per task in the wave, passing the contents of `agents/task-executor.md` as the task instructions along with the task JSON content, session paths (context write path, result write path), and retry context if applicable. Dispatch all wave agents in parallel in a single message turn. After dispatch, poll for result files using `scripts/poll-for-results.sh` via a single Bash invocation (with `timeout: 2760000`). When polling completes, process results as described in `references/orchestration.md` Step 7d.
 
 ## Agent Coordination
 

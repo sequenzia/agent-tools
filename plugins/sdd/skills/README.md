@@ -7,7 +7,7 @@ A complete guide to the Spec-Driven Development pipeline — from requirements g
 The SDD pipeline transforms natural language requirements into executed code through four stages:
 
 ```
-create-spec → [analyze-spec] → create-tasks → execute-tasks
+create-spec → [analyze-spec] → create-tasks → execute-tasks (or execute-tasks-inline)
 ```
 
 Each stage produces file-based artifacts consumed by the next. Two reference skills (`sdd-specs` and `sdd-tasks`) provide shared schema definitions, templates, and patterns.
@@ -17,7 +17,8 @@ flowchart LR
     CS["1. create-spec"]:::primary -->|".md spec"| AS["2. analyze-spec"]:::warning
     AS -.->|"improved spec"| CT["3. create-tasks"]:::primary
     CS -->|".md spec"| CT
-    CT -->|".agents/tasks/ JSON"| ET["4. execute-tasks"]:::primary
+    CT -->|".agents/tasks/ JSON"| ET["4a. execute-tasks"]:::primary
+    CT -->|".agents/tasks/ JSON"| ETI["4b. execute-tasks-inline"]:::primary
     IS["inverted-spec"]:::supplementary -.->|".md spec"| AS
     IS -.->|".md spec"| CT
 
@@ -31,7 +32,8 @@ flowchart LR
 | 1 | `create-spec` | workflow | Adaptive interview + spec compilation |
 | 2 | `analyze-spec` | workflow | Optional quality gate — scores spec across 4 dimensions |
 | 3 | `create-tasks` | workflow | Decomposes spec features into dependency-tracked JSON tasks |
-| 4 | `execute-tasks` | workflow | Wave-based parallel execution with verification |
+| 4a | `execute-tasks` | workflow | Wave-based parallel execution with subagent dispatch |
+| 4b | `execute-tasks-inline` | workflow | Sequential inline execution without subagents |
 | — | `sdd-specs` | reference | Spec templates, question banks, complexity signals |
 | — | `sdd-tasks` | reference | Task JSON schema, lifecycle, execution patterns |
 
@@ -231,7 +233,9 @@ The process:
 - `create-tasks/references/dependency-inference.md` — Automatic dependency rules
 - `create-tasks/references/testing-requirements.md` — Test type mappings
 
-### execute-tasks
+### execute-tasks (Subagent Dispatch)
+
+Requires a harness that supports subagent dispatch (e.g., Claude Code with Agent tool). Dispatches parallel task-executor agents per wave for concurrent execution.
 
 **Steps:** 9
 
@@ -257,14 +261,43 @@ The process:
 
 **Key behaviors:**
 - **Autonomous after confirmation** — No user prompts between tasks once execution starts
+- **Wave-based parallelism** — Subagent dispatch for concurrent task execution within waves
 - **Single-session invariant** — `.lock` file prevents concurrent executions
 - **Interrupted session recovery** — Stale sessions archived, `in_progress` tasks reset to `pending`
 - **Dynamic unblocking** — Dependency graph refreshed after each wave
 
 **Key references:**
 - `execute-tasks/references/orchestration.md` — 9-step procedure details
-- `execute-tasks/references/execution-workflow.md` — 4-phase agent workflow
-- `execute-tasks/references/verification-patterns.md` — Verification and pass/fail rules
+- `execute-tasks/references/execution-workflow.md` — 4-phase agent workflow (shared with inline variant)
+- `execute-tasks/references/verification-patterns.md` — Verification and pass/fail rules (shared with inline variant)
+
+### execute-tasks-inline (Sequential)
+
+Optimized for harnesses without subagent dispatch. Executes all tasks sequentially in the orchestrator's own context using a "File as External Memory" pattern for cross-task knowledge sharing.
+
+**Steps:** Same 9-step loop as `execute-tasks`, but Step 8 (Execute Loop) is fundamentally different:
+- Tasks execute sequentially, one at a time
+- `execution_context.md` is re-read before each task (context refresh) and updated directly after
+- No subagent dispatch, no polling, no per-task context files
+- Context compaction every ~5 tasks prevents unbounded growth
+
+**Configuration:**
+
+| Setting | Default | CLI Flag | Settings File |
+|---------|---------|----------|---------------|
+| Max retries per task | 3 | `--retries N` | `.agents/settings.md` |
+| Task group filter | all | `--task-group slug` | — |
+
+**Key behaviors:**
+- **Sequential execution** — All tasks execute inline, one at a time
+- **File as External Memory** — `execution_context.md` serves as persistent cross-task memory
+- **Context compaction** — Task History compacted every ~5 tasks to prevent bloat
+- **Same session management** — Lock files, interrupted recovery, archival all identical
+
+**Key references:**
+- `execute-tasks-inline/references/orchestration.md` — Inline-specific 9-step procedure
+- `execute-tasks/references/execution-workflow.md` — 4-phase workflow (shared)
+- `execute-tasks/references/verification-patterns.md` — Verification and pass/fail rules (shared)
 
 ### Supplementary: inverted-spec
 
@@ -397,11 +430,19 @@ backlog ──→ pending ──→ in_progress ──→ completed
 
 ### Context Sharing Model
 
+**Subagent variant (`execute-tasks`):**
 1. **Before wave:** Orchestrator snapshots `execution_context.md`
 2. **During wave:** Each agent reads the snapshot, writes to isolated `context-{id}.md`
 3. **After wave:** Orchestrator merges all `context-{id}.md` into `execution_context.md`
 
 This eliminates write contention — agents never write to the same file.
+
+**Inline variant (`execute-tasks-inline`):**
+1. **Before each task:** Orchestrator re-reads `execution_context.md` (context refresh)
+2. **During task:** Orchestrator executes the 4-phase workflow inline
+3. **After each task:** Orchestrator updates `execution_context.md` directly (no merge step)
+
+No `context-{id}.md` files are created. The file serves as "external memory" — re-reading it before each task ensures cross-task learnings survive harness context compression.
 
 ### Result File Protocol
 
@@ -570,13 +611,17 @@ skills/sdd/
 │       ├── dependency-inference.md        # Dependency rules
 │       └── testing-requirements.md        # Test type mappings
 ├── execute-tasks/
-│   ├── SKILL.md                           # 9-step orchestration
+│   ├── SKILL.md                           # 9-step orchestration (subagent dispatch)
 │   ├── agents/
 │   │   └── task-executor.md               # 4-phase agent workflow
 │   └── references/
-│       ├── orchestration.md               # Detailed orchestration loop
-│       ├── execution-workflow.md          # Agent phase procedures
-│       └── verification-patterns.md       # Pass/fail rules
+│       ├── orchestration.md               # Subagent orchestration loop
+│       ├── execution-workflow.md          # Agent phase procedures (shared)
+│       └── verification-patterns.md       # Pass/fail rules (shared)
+├── execute-tasks-inline/
+│   ├── SKILL.md                           # 9-step orchestration (sequential inline)
+│   └── references/
+│       └── orchestration.md               # Inline orchestration loop
 ├── inverted-spec/
 │   ├── SKILL.md                           # 5-phase reverse-engineering workflow
 │   └── references/
@@ -608,4 +653,4 @@ skills/sdd/
 └── README.md                              # This file
 ```
 
-37 markdown files total: 8 SKILL.md + 2 agents + 27 references
+39 markdown files total: 9 SKILL.md + 2 agents + 28 references

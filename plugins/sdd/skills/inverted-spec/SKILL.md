@@ -11,7 +11,10 @@ description: >-
 metadata:
   argument-hint: "<path to codebase or directory>"
   type: workflow
-allowed-tools: Read Write Glob Grep Bash
+  harness-hints:
+    prefer-non-streaming: true
+    reason: "Phase 5 generates large markdown documents (400-1200 lines) that may exceed streaming buffer limits"
+allowed-tools: Read Write Edit Glob Grep Bash
 ---
 
 # Inverted Spec
@@ -69,6 +72,17 @@ If you need the user to make a choice or provide input, use `question`.
 - **DO** write the spec file to the output path as normal
 
 The spec is a planning artifact itself — generating it IS the planning activity.
+
+### Streaming & Harness Compatibility
+
+This skill's Phase 5 (Spec Generation) generates large markdown documents that can exceed streaming buffer limits in some coding agent harnesses (Cursor, Cline, Windsurf, etc.), causing EOF errors mid-generation.
+
+**Mitigations built into this skill:**
+- Phase 5 writes the spec incrementally across multiple tool calls rather than in a single Write
+- For full-tech depth, a compilation checkpoint creates a turn boundary before the largest section
+- Each write pass targets ~200-300 filled lines maximum
+
+**Harness configuration recommendation**: If your harness supports it, configure this skill to use non-streaming mode (complete response before rendering) to avoid EOF errors on long generations.
 
 ## Load Reference Skills
 
@@ -348,7 +362,7 @@ Read references/analysis-to-spec-mapping.md
 Read references/compilation-guide.md
 ```
 
-The mapping reference details how analysis findings transform into spec sections. The compilation guide defines the header format, provenance annotations, and step-by-step compilation procedure.
+The mapping reference details how analysis findings transform into spec sections. The compilation guide defines the header format, provenance annotations, step-by-step compilation procedure, and incremental writing strategy.
 
 ### Diagram Guidance (Detailed/Full-Tech Only)
 
@@ -360,32 +374,17 @@ Read ../../core/technical-diagrams/SKILL.md
 
 Apply its styling rules when generating Mermaid diagrams — use `classDef` with `color:#000` for all node styles. Skip for "High-level overview" depth.
 
-### Compilation Steps
+### Incremental Compilation Strategy
 
-1. Read the appropriate template
-2. Apply the inverted-spec header format (from `compilation-guide.md`)
-3. Map analysis findings to template sections (from `analysis-to-spec-mapping.md`)
-4. Weave in user-provided context from the interview
-5. Add provenance annotations: `[Inferred]` for code-derived, `[Stated]` for user-provided
-6. Fill gaps by inferring logical requirements (flag assumptions clearly)
-7. Add acceptance criteria for functional requirements
-8. Define implementation phases with completion criteria
-9. Review for completeness
+Phase 5 writes the spec incrementally to avoid streaming timeouts in third-party harnesses. The number of write passes depends on depth level:
 
-### Confirm Output Path
+| Depth Level | Write Passes | Turn Boundary |
+|-------------|-------------|---------------|
+| High-level overview | 1 (single Write) | None needed |
+| Detailed specifications | 3 passes (Write + 2 Edits) | None needed |
+| Full technical documentation | 4 passes (Write + 3 Edits) | Checkpoint after Pass 2 |
 
-```yaml
-question:
-  header: "Output Path"
-  text: "Where should I save the spec? Default: specs/SPEC-{name}.md"
-  options:
-    - label: "Use default path"
-  custom: true
-```
-
-### Write the Spec
-
-Write the compiled spec to the confirmed output path. Present the completed spec location to the user.
+The compilation guide (`references/compilation-guide.md`) contains the full step-by-step procedure including preparation steps, pass-by-pass writing instructions, and the compilation checkpoint.
 
 ---
 

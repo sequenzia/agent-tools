@@ -10,6 +10,9 @@ description: >-
 metadata:
   argument-hint: "[spec-path]"
   type: workflow
+  harness-hints:
+    prefer-non-streaming: true
+    reason: "Phases 5A/5B rewrite full spec documents that may exceed streaming buffer limits"
 allowed-tools: Read Write Edit Glob Grep Bash
 ---
 
@@ -65,6 +68,16 @@ If you need the user to make a choice or provide input, use `question`.
 ### Deduplication Rule
 
 If the same underlying issue surfaces in multiple analysis dimensions, create one finding tagged with the primary dimension. Note the cross-dimension impact in the finding's Issue or Impact field.
+
+### Streaming & Harness Compatibility
+
+This skill's Phases 5A and 5B rewrite full spec documents, which can exceed streaming buffer limits in some coding agent harnesses (Cursor, Cline, Windsurf, etc.), causing EOF errors mid-generation.
+
+**Mitigations built into this skill:**
+- Phases 5A/5B apply changes per-section using Edit rather than rewriting the entire spec via a single Write
+- Each Edit call targets one section's worth of changes, keeping individual payloads small
+
+**Harness configuration recommendation**: If your harness supports it, configure this skill to use non-streaming mode (complete response before rendering) to avoid EOF errors on long generations.
 
 ## Load Reference Skills
 
@@ -223,9 +236,9 @@ If **Report only**: Present the report file location. Workflow complete.
 ## Phase 5A: Auto-Implement All
 
 1. Read the current spec fresh (avoid stale data)
-2. Apply all recommendations from all findings as a single batch rewrite
-3. Validate the updated spec against the depth-level template for structural conformance
-4. Write the updated spec in-place using the `Write` tool
+2. Group all findings by the spec section they affect
+3. For each section with findings, apply the recommended fixes using the `Edit` tool — target the specific section content rather than rewriting the entire file. This keeps each Edit call's payload to one section's worth of changes, avoiding streaming timeouts in third-party harnesses.
+4. Validate the updated spec against the depth-level template for structural conformance
 5. Update the `.analysis.md` report:
    - Mark all findings as "Resolved"
    - Add the Resolution Summary section with score changes
@@ -269,9 +282,9 @@ If the user raises new concerns: analyze them inline, create new findings, and w
 
 1. Collect all accepted and modified findings
 2. Read the current spec fresh
-3. Apply changes as a batch rewrite (only accepted/modified findings)
-4. Validate against the depth-level template
-5. Write updated spec in-place
+3. Group accepted changes by spec section
+4. For each section with changes, apply fixes using the `Edit` tool — target the specific section content rather than rewriting the entire file. This keeps each Edit call's payload small, avoiding streaming timeouts in third-party harnesses.
+5. Validate against the depth-level template
 6. Update the `.analysis.md` report with resolution statuses and score changes
 7. Write updated report
 8. Present completion summary: resolved count, skipped count, sections modified, before/after scores

@@ -10,6 +10,9 @@ description: >-
 metadata:
   argument-hint: "[task-id] [--task-group <group>] [--retries <n>] [--max-parallel <n>]"
   type: workflow
+  harness-hints:
+    prefer-non-streaming: true
+    reason: "Long-running autonomous execution with session file accumulation may exceed streaming limits"
   agents:
     - name: task-executor
       file: agents/task-executor.md

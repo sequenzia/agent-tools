@@ -11,6 +11,9 @@ description: >-
 metadata:
   argument-hint: "[spec-path] [--phase <phases>]"
   type: workflow
+  harness-hints:
+    prefer-non-streaming: true
+    reason: "Generates 50-100+ individual task files that may produce long streaming responses"
 allowed-tools: Read Write Glob Grep Bash
 ---
 

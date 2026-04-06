@@ -9,7 +9,10 @@ description: >-
 metadata:
   argument-hint: "[context-file-or-text]"
   type: workflow
-allowed-tools: Read Write Glob Grep Bash
+  harness-hints:
+    prefer-non-streaming: true
+    reason: "Phase 5 generates large markdown documents (400-1200 lines) that may exceed streaming buffer limits"
+allowed-tools: Read Write Edit Glob Grep Bash
 ---
 
 # Create Spec
@@ -85,6 +88,17 @@ question:
 - **DO** write the spec file to the output path as normal
 
 The spec is a planning artifact itself — generating it IS the planning activity.
+
+### Streaming & Harness Compatibility
+
+This skill's Phase 5 (Spec Compilation) generates large markdown documents that can exceed streaming buffer limits in some coding agent harnesses (Cursor, Cline, Windsurf, etc.), causing EOF errors mid-generation.
+
+**Mitigations built into this skill:**
+- Phase 5 writes the spec incrementally across multiple tool calls rather than in a single Write
+- For full-tech depth, a compilation checkpoint creates a turn boundary before the largest section
+- Each write pass targets ~200-300 filled lines maximum
+
+**Harness configuration recommendation**: If your harness supports it, configure this skill to use non-streaming mode (complete response before rendering) to avoid EOF errors on long generations.
 
 ## Load Reference Skills
 
@@ -292,6 +306,35 @@ Read ../technical-diagrams/SKILL.md
 ```
 
 Apply its styling rules when generating Mermaid diagrams in the spec — use `classDef` with `color:#000` for all node styles. For "High-level overview" depth, skip diagram loading.
+
+### Incremental Compilation Strategy
+
+Phase 5 writes the spec incrementally to avoid streaming timeouts in third-party harnesses. The number of write passes depends on depth level:
+
+| Depth Level | Write Passes | Turn Boundary |
+|-------------|-------------|---------------|
+| High-level overview | 1 (single Write) | None needed |
+| Detailed specifications | 3 passes (Write + 2 Edits) | None needed |
+| Full technical documentation | 4 passes (Write + 3 Edits) | Checkpoint after Pass 2 |
+
+**Pass structure:**
+1. **Pass 1 (Write)**: Create the file with header metadata and early sections (Executive Summary through User Research)
+2. **Pass 2 (Edit)**: Append requirements sections (Functional + Non-Functional Requirements)
+3. **Pass 3 (Edit)**: Append technical sections (Architecture/Considerations, Codebase Context)
+4. **Pass 4 (Edit, full-tech only)**: Append closing sections (Scope through Appendix)
+
+For high-level depth, all content fits in Pass 1. For detailed depth, Passes 2 and 3 may be combined if the content is manageable.
+
+**Compilation checkpoint (full-tech only):** After completing Pass 2, use the `question` tool to create a turn boundary before the heavy architecture section:
+
+```yaml
+question:
+  header: "Compilation Progress"
+  text: "Requirements sections written successfully. Continuing with technical architecture and remaining sections."
+  options:
+    - label: "Continue"
+  custom: false
+```
 
 ### Compilation Steps, Writing Guidelines & Core Principles
 

@@ -1,6 +1,6 @@
 # SDD Pipeline Developer Guide
 
-A complete guide to the Spec-Driven Development pipeline — from requirements gathering through autonomous task execution.
+A complete guide to the Spec-Driven Development pipeline — from requirements gathering through autonomous task execution. For a more comprehensive overview of the SDD skills, see [Deep Dive](./DEEP-DIVE.md).
 
 ## Pipeline Overview
 
@@ -19,12 +19,9 @@ flowchart LR
     CS -->|".md spec"| CT
     CT -->|".agents/tasks/ JSON"| ET["4a. execute-tasks"]:::primary
     CT -->|".agents/tasks/ JSON"| ETI["4b. execute-tasks-inline"]:::primary
-    IS["inverted-spec"]:::supplementary -.->|".md spec"| AS
-    IS -.->|".md spec"| CT
 
     classDef primary fill:#dbeafe,stroke:#2563eb,color:#000
     classDef warning fill:#fef3c7,stroke:#d97706,color:#000
-    classDef supplementary fill:#f3e8ff,stroke:#7c3aed,color:#000
 ```
 
 | Stage | Skill | Type | Purpose |
@@ -36,6 +33,7 @@ flowchart LR
 | 4b | `execute-tasks-inline` | workflow | Sequential inline execution without subagents |
 | — | `sdd-specs` | reference | Spec templates, question banks, complexity signals |
 | — | `sdd-tasks` | reference | Task JSON schema, lifecycle, execution patterns |
+| — | `research` | dispatcher | Researcher agent for best practices and compliance research |
 
 > **Supplementary:** `inverted-spec` is a special-use-case skill that reverse-engineers specs from existing codebases. Its output is compatible with the pipeline (it produces the same `.md` spec format), but it operates outside the standard pipeline flow. See [inverted-spec](#inverted-spec) below.
 
@@ -298,6 +296,29 @@ Optimized for harnesses without subagent dispatch. Executes all tasks sequential
 - `execute-tasks-inline/references/orchestration.md` — Inline-specific 9-step procedure
 - `execute-tasks/references/execution-workflow.md` — 4-phase workflow (shared)
 - `execute-tasks/references/verification-patterns.md` — Verification and pass/fail rules (shared)
+
+### research (Dispatcher)
+
+Wraps the `researcher` agent for invocation by other skills. Not used standalone — currently consumed by `create-spec` for proactive best-practice research during the interview.
+
+**Agent:** `researcher` (`research/agents/researcher.md`)
+
+**Inputs** (provided by calling skill):
+- **Research topic** — the subject to investigate (e.g., "GDPR data retention requirements")
+- **Context** — why this research is needed, what project or spec it informs
+- **Specific questions** — 1-3 focused questions the research should answer
+- **Depth level** — brief summary vs. comprehensive analysis
+
+**Execution:**
+- If subagent dispatch is available: dispatches researcher as a subagent
+- If not: reads `agents/researcher.md` and follows its instructions inline
+
+**Researcher agent approach (tiered):**
+1. **Tier 1:** Official documentation, specifications, standards (via web search)
+2. **Tier 2:** Codebase patterns and existing implementations
+3. **Tier 3:** Built-in knowledge (fallback)
+
+**Topics:** Compliance/regulatory (GDPR, HIPAA, PCI-DSS, SOC 2, WCAG), technology/architecture, best practices, competitive analysis
 
 ### Supplementary: inverted-spec
 
@@ -590,7 +611,7 @@ Shared knowledge base for task management.
 ## File Map
 
 ```
-skills/sdd/
+plugins/sdd/skills/
 ├── create-spec/
 │   ├── SKILL.md                           # 5-phase spec creation workflow
 │   └── references/
@@ -614,10 +635,12 @@ skills/sdd/
 │   ├── SKILL.md                           # 9-step orchestration (subagent dispatch)
 │   ├── agents/
 │   │   └── task-executor.md               # 4-phase agent workflow
-│   └── references/
-│       ├── orchestration.md               # Subagent orchestration loop
-│       ├── execution-workflow.md          # Agent phase procedures (shared)
-│       └── verification-patterns.md       # Pass/fail rules (shared)
+│   ├── references/
+│   │   ├── orchestration.md               # Subagent orchestration loop
+│   │   ├── execution-workflow.md          # Agent phase procedures (shared)
+│   │   └── verification-patterns.md       # Pass/fail rules (shared)
+│   └── scripts/
+│       └── poll-for-results.sh            # Polls for result files (45min timeout)
 ├── execute-tasks-inline/
 │   ├── SKILL.md                           # 9-step orchestration (sequential inline)
 │   └── references/
@@ -653,4 +676,4 @@ skills/sdd/
 └── README.md                              # This file
 ```
 
-39 markdown files total: 9 SKILL.md + 2 agents + 28 references
+40 files total: 9 SKILL.md + 2 agents + 28 references + 1 script (poll-for-results.sh)

@@ -29,7 +29,7 @@ function makeTaskWithPath(
     metadata?: Record<string, unknown>;
     blocked_by?: (number | string)[];
     acceptance_criteria?: Record<string, string[]>;
-    testing_requirements?: string[];
+    testing_requirements?: (string | { type: string; target: string })[];
   },
 ): TaskWithPath {
   return {
@@ -479,6 +479,26 @@ describe("TaskDetailPanel", () => {
       expect(
         screen.getByText("Integration: Test API endpoints"),
       ).toBeDefined();
+    });
+
+    it("displays testing requirements from object format", () => {
+      const task = makeTaskWithPath(1, "Task", "pending", {
+        testing_requirements: [
+          { type: "unit", target: "Schema validation" },
+          { type: "integration", target: "API endpoints" },
+        ],
+      });
+
+      render(
+        <TaskDetailPanel
+          task={task}
+          allTasks={makeTasksByStatus()}
+          onClose={defaultOnClose}
+        />,
+      );
+
+      expect(screen.getByText("unit: Schema validation")).toBeDefined();
+      expect(screen.getByText("integration: API endpoints")).toBeDefined();
     });
 
     it("shows placeholder when no testing requirements", () => {

@@ -11,7 +11,7 @@ export interface Task {
   description: string;
   status: string;
   acceptance_criteria?: AcceptanceCriteria;
-  testing_requirements?: string[];
+  testing_requirements?: (string | { type: string; target: string; [key: string]: unknown })[];
   blocked_by?: (string | number)[];
   blocks?: (string | number)[];
   metadata?: TaskMetadata;

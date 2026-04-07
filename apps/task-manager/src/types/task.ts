@@ -46,6 +46,19 @@ export const TaskMetadataSchema = z
   .passthrough();
 export type TaskMetadata = z.infer<typeof TaskMetadataSchema>;
 
+// --- Testing Requirements ---
+
+export const TestingRequirementSchema = z.union([
+  z.string(),
+  z
+    .object({
+      type: z.string(),
+      target: z.string(),
+    })
+    .passthrough(),
+]);
+export type TestingRequirement = z.infer<typeof TestingRequirementSchema>;
+
 // --- Task ---
 
 export const TaskSchema = z
@@ -55,7 +68,7 @@ export const TaskSchema = z
     description: z.string(),
     status: TaskStatusSchema,
     acceptance_criteria: AcceptanceCriteriaSchema.optional(),
-    testing_requirements: z.array(z.string()).optional(),
+    testing_requirements: z.array(TestingRequirementSchema).optional(),
     blocked_by: z.array(z.union([z.string(), z.number()])).optional(),
     blocks: z.array(z.union([z.string(), z.number()])).optional(),
     metadata: TaskMetadataSchema.optional(),

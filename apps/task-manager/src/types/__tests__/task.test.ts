@@ -227,6 +227,40 @@ describe("TaskSchema", () => {
     });
     expect(result.success).toBe(false);
   });
+
+  it("accepts testing_requirements as array of objects (canonical SDD format)", () => {
+    const task = {
+      ...minimalTask,
+      testing_requirements: [
+        { type: "unit", target: "Schema validation" },
+        { type: "integration", target: "Database persistence" },
+      ],
+    };
+    const result = TaskSchema.safeParse(task);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.testing_requirements).toHaveLength(2);
+      expect(result.data.testing_requirements![0]).toEqual({
+        type: "unit",
+        target: "Schema validation",
+      });
+    }
+  });
+
+  it("accepts testing_requirements as mixed array (strings and objects)", () => {
+    const task = {
+      ...minimalTask,
+      testing_requirements: [
+        "Manual: check it works",
+        { type: "unit", target: "Schema validation" },
+      ],
+    };
+    const result = TaskSchema.safeParse(task);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.testing_requirements).toHaveLength(2);
+    }
+  });
 });
 
 // --- Parse error messages ---
@@ -485,6 +519,7 @@ describe("module exports", () => {
     expect(mod.ComplexitySchema).toBeDefined();
     expect(mod.AcceptanceCriteriaSchema).toBeDefined();
     expect(mod.TaskMetadataSchema).toBeDefined();
+    expect(mod.TestingRequirementSchema).toBeDefined();
     expect(mod.parseTask).toBeInstanceOf(Function);
     expect(mod.safeParseTask).toBeInstanceOf(Function);
     expect(mod.parseTaskManifest).toBeInstanceOf(Function);

@@ -608,7 +608,7 @@ export function TaskDetailPanel({
                     className="flex items-start gap-2 text-sm text-gray-700 dark:text-gray-300"
                   >
                     <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-gray-400 dark:bg-gray-500" />
-                    <span>{req}</span>
+                    <span>{typeof req === "string" ? req : `${req.type}: ${req.target}`}</span>
                   </li>
                 ))}
               </ul>

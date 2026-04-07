@@ -41,7 +41,7 @@ function makeTaskWithPath(
     metadata?: Record<string, unknown>;
     blocked_by?: (number | string)[];
     acceptance_criteria?: Record<string, string[]>;
-    testing_requirements?: string[];
+    testing_requirements?: (string | { type: string; target: string })[];
   },
 ): TaskWithPath {
   return {

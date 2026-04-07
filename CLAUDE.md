@@ -67,3 +67,26 @@ tools: [Read, Glob, Grep, Bash]
 - `skills/sdd/` — 9 spec-driven development skills (7 pipeline + research dispatcher + inverted-spec)
 - `skills/meta/` — 2 skill-authoring skills
 - `internal/reports/` — Architecture decision reports (not deployed)
+- `apps/task-manager/` — Tauri 2.x desktop app for SDD task management
+
+## Task Manager App (`apps/task-manager/`)
+
+Tauri 2.x + React 19 + Vite + TypeScript desktop app for visualizing and managing SDD tasks.
+
+### Tech Stack
+- **Backend**: Rust (Tauri 2.10.3), chrono, notify-debouncer-mini, serde_json
+- **Frontend**: React 19, TypeScript 5.8, Zustand v5, Zod v4, dnd-kit v6, react-markdown
+- **Tooling**: Vite 7.x, vitest, ESLint 9 (pinned, not 10), Tailwind CSS v4
+- **Testing**: vitest + jsdom + @testing-library/react
+
+### Project Structure
+- `src/` — React frontend (components, services, stores, hooks, types)
+- `src-tauri/` — Rust backend (tasks.rs, watcher.rs, specs.rs, session.rs, discovery.rs)
+- `src-tauri/capabilities/default.json` — Tauri plugin permissions
+
+### Key Commands
+- `npm run tauri dev` — Development with HMR
+- `npm run tauri build` — macOS .app + .dmg production build
+- `npm test` — Run vitest test suite
+- `npm run lint` — ESLint check
+- Cargo: `~/.cargo/bin/cargo` (not in default PATH)

@@ -318,7 +318,7 @@ describe("KanbanBoard", () => {
       });
 
       for (const column of BOARD_COLUMNS) {
-        expect(screen.getByText(COLUMN_LABELS[column])).toBeDefined();
+        expect(screen.getAllByText(COLUMN_LABELS[column]).length).toBeGreaterThan(0);
       }
     });
 

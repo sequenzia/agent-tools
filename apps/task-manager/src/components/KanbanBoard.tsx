@@ -83,6 +83,16 @@ const COLUMN_HEADER_COLORS: Record<BoardColumn, string> = {
   completed: "bg-green-400 dark:bg-green-500",
 };
 
+/** Border color classes for column containers, matching header accent colors. */
+const COLUMN_BORDER_COLORS: Record<BoardColumn, string> = {
+  backlog: "border-gray-200 dark:border-gray-700",
+  pending: "border-yellow-200 dark:border-yellow-700",
+  blocked: "border-orange-200 dark:border-orange-700",
+  in_progress: "border-blue-200 dark:border-blue-700",
+  failed: "border-red-200 dark:border-red-700",
+  completed: "border-green-200 dark:border-green-700",
+};
+
 /** Timeout for IPC write operations (ms). */
 const IPC_TIMEOUT_MS = 5000;
 
@@ -248,6 +258,63 @@ function BoardFilterBar({
           {group}
         </button>
       ))}
+    </div>
+  );
+}
+
+// --- Board Metrics Bar ---
+
+/** Bar showing task count metrics across all board columns. */
+function BoardMetricsBar({ boardTasks }: { boardTasks: BoardTasks }) {
+  const total =
+    boardTasks.backlog.length +
+    boardTasks.pending.length +
+    boardTasks.blocked.length +
+    boardTasks.in_progress.length +
+    boardTasks.failed.length +
+    boardTasks.completed.length;
+
+  if (total === 0) return null;
+
+  const completedCount = boardTasks.completed.length;
+  const completionPct = Math.round((completedCount / total) * 100);
+
+  const metrics: { label: string; count: number; column: BoardColumn }[] = [
+    { label: "Backlog", count: boardTasks.backlog.length, column: "backlog" },
+    { label: "Pending", count: boardTasks.pending.length, column: "pending" },
+    { label: "Blocked", count: boardTasks.blocked.length, column: "blocked" },
+    { label: "In Progress", count: boardTasks.in_progress.length, column: "in_progress" },
+    { label: "Failed", count: boardTasks.failed.length, column: "failed" },
+    { label: "Completed", count: completedCount, column: "completed" },
+  ];
+
+  return (
+    <div
+      className="flex items-center gap-4 border-b border-gray-200 px-4 py-2 dark:border-gray-700"
+      data-testid="board-metrics-bar"
+      role="status"
+      aria-label={`Task metrics: ${total} total, ${completionPct}% completed`}
+    >
+      <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+        {total} {total === 1 ? "task" : "tasks"}
+      </span>
+
+      <div className="flex items-center gap-3">
+        {metrics.map(({ label, count, column }) => (
+          <span key={column} className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+            <span
+              className={`inline-block h-2 w-2 rounded-full ${COLUMN_HEADER_COLORS[column]}`}
+              aria-hidden="true"
+            />
+            {label}
+            <span className="font-medium text-gray-700 dark:text-gray-300">{count}</span>
+          </span>
+        ))}
+      </div>
+
+      <span className="ml-auto text-xs font-medium text-gray-600 dark:text-gray-400">
+        {completionPct}% complete
+      </span>
     </div>
   );
 }
@@ -527,7 +594,7 @@ function KanbanColumn({
   return (
     <div
       ref={setNodeRef}
-      className={`flex h-full flex-1 min-w-[250px] flex-col rounded-lg bg-gray-50 transition-all duration-150 dark:bg-gray-900 ${dropStateClass}`}
+      className={`flex h-full flex-1 min-w-[250px] flex-col rounded-lg border bg-gray-50 transition-all duration-150 dark:bg-gray-900 ${COLUMN_BORDER_COLORS[column]} ${dropStateClass}`}
       data-testid={`column-${column}`}
       data-keyboard-dnd-target={isKeyboardDndTarget ? "true" : undefined}
       role="region"
@@ -1093,6 +1160,9 @@ export function KanbanBoard({ projectPath }: KanbanBoardProps) {
           onToggleGroup={toggleTaskGroup}
           onClearFilter={handleClearFilter}
         />
+
+        {/* Task metrics summary */}
+        {boardTasks && <BoardMetricsBar boardTasks={boardTasks} />}
 
         {/* Board area with horizontal scrolling */}
         <div

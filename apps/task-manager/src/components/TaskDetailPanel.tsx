@@ -377,22 +377,21 @@ export function TaskDetailPanel({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex justify-end"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-6"
       data-testid="task-detail-overlay"
       onClick={handleOverlayClick}
     >
-      {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/30" aria-hidden="true" />
-
-      {/* Slide-out panel */}
+      {/* Centered modal */}
       <div
         ref={panelRef}
-        className="relative z-10 flex h-full w-full max-w-lg flex-col bg-white shadow-xl dark:bg-gray-900"
+        className="flex w-full max-w-4xl flex-col rounded-xl border border-gray-200 bg-white shadow-2xl dark:border-gray-700 dark:bg-gray-900"
+        style={{ maxHeight: "90vh" }}
         data-testid="task-detail-panel"
         role="dialog"
         aria-modal="true"
         aria-label={`Task details: ${t.title}`}
         tabIndex={-1}
+        onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div className="flex items-start justify-between border-b border-gray-200 p-4 dark:border-gray-700">

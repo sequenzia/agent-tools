@@ -53,10 +53,11 @@ A visual management layer makes the SDD pipeline accessible to a broader audienc
 
 | Metric | Current Baseline | Target | Measurement Method | Timeline |
 |--------|------------------|--------|-------------------|----------|
-| Time to understand pipeline state | Minutes (manual file inspection) | Seconds (visual scan) | User testing | Phase 2 |
+| Time to understand pipeline state | 2-5 minutes (manual file inspection) | < 10 seconds (visual scan) | User testing | Phase 2 |
 | Task state change workflow | CLI + manual file moves | Single drag-and-drop action | Feature completion | Phase 2 |
 | Dependency visibility | Read JSON `blocked_by` arrays | Interactive graph visualization | Feature completion | Phase 2 |
 | Project switching overhead | Navigate filesystem, re-orient | Click project in sidebar | Feature completion | Phase 3 |
+| Spec-to-task traceability | No direct linking | Navigate from spec section to related tasks in < 3 clicks | Feature completion | Phase 3 |
 
 ### 3.3 Non-Goals
 
@@ -81,6 +82,7 @@ A visual management layer makes the SDD pipeline accessible to a broader audienc
 - **Role/Description**: A developer or team lead evaluating the SDD pipeline for adoption
 - **Goals**: Understand the SDD workflow visually, assess pipeline maturity, see how tasks flow through the system
 - **Pain Points**: The file-based state model is opaque without tooling, hard to demo or present to stakeholders
+- **Context**: Evaluating SDD for team adoption; may not have existing `.agents/tasks/` directories; needs to understand the pipeline visually without prior CLI experience
 
 ### 4.2 User Journey Map
 
@@ -151,7 +153,7 @@ A visual management layer makes the SDD pipeline accessible to a broader audienc
 - [ ] Dependency graph visualization showing this task's upstream blockers and downstream dependents
 - [ ] Link to the spec section referenced in `metadata.source_section` (opens spec viewer)
 - [ ] Execution history showing past attempts (from session result files if available)
-- [ ] Inline editing of editable fields: priority, complexity, blocked_by, acceptance criteria
+- [ ] All fields displayed as read-only in Phase 2; inline editing (priority, complexity, blocked_by, acceptance criteria) is deferred to US-004 (Phase 3)
 
 **Edge Cases**:
 - Task with no dependencies: Show "No dependencies" instead of empty graph
@@ -266,7 +268,7 @@ A visual management layer makes the SDD pipeline accessible to a broader audienc
 - [ ] Dashboard activates automatically when `.agents/sessions/__live_session__/` directory is detected
 
 **Edge Cases**:
-- Execution interrupted (`.lock` file present but no active process): Show "interrupted session" state with recovery options
+- Execution interrupted (`.lock` file present but no active process): Show "interrupted session" state with recovery options: (1) Clear stale lock and mark session as interrupted, (2) Archive interrupted session to history, (3) Link to CLI command for resuming execution
 - Multiple task groups executing simultaneously: Support switching between active sessions
 - Very long execution (50+ tasks): Timeline should be scrollable with summary statistics
 
@@ -378,6 +380,7 @@ flowchart TD
     end
 
     A <-->|IPC| G
+    B <-->|IPC| G
     C <-->|IPC| F
     D <-->|IPC| G
     E <-->|IPC| I
@@ -448,6 +451,8 @@ stateDiagram-v2
     Completed --> [*]
 ```
 
+> **Note on derived UI states**: The "Blocked" and "Failed" columns shown on the Kanban board (Section 5.1) are **UI-derived states**, not filesystem directories. "Blocked" displays pending tasks with unresolved `blocked_by` references. "Failed" displays tasks that returned to `pending/` after a failed verification attempt, identified by execution result metadata. Both physically reside in their respective state directories (`pending/`, etc.).
+
 #### Wave Execution Model
 
 Tasks are assigned to waves by topological dependency level:
@@ -466,6 +471,8 @@ Active execution creates `.agents/sessions/__live_session__/` containing:
 - `progress.md` — Current wave and completion status
 - `result-{id}.md` — Per-task completion signal with outcome (PASS/PARTIAL/FAIL)
 - `.lock` — Concurrency guard
+
+Upon execution completion, `__live_session__/` is renamed to a timestamped directory (e.g., `2026-04-06T14-30-00/`) by the SDD pipeline. The Session History feature (Phase 4) reads these archived directories.
 
 ## 8. Scope Definition
 
@@ -630,7 +637,7 @@ Active execution creates `.agents/sessions/__live_session__/` containing:
 
 | # | Question | Owner | Due Date | Resolution |
 |---|----------|-------|----------|------------|
-| 1 | Exact set of extended columns — should "Review" be a column, or is it covered by the existing states? | Product | Phase 2 | |
+| 1 | Exact set of extended columns — should "Review" be a column, or is it covered by the existing states? | Product | Phase 2 | Covered by Blocked/Failed extended columns per US-001 AC |
 | 2 | Keyboard shortcut scheme — vim-style, VS Code-style, or custom? | Product | Phase 5 | |
 | 3 | Should the app display session result file content (full markdown) or just summary data? | Product | Phase 4 | |
 | 4 | Auto-discovery depth limit — how deep should root directory scanning go? | Product | Phase 3 | |

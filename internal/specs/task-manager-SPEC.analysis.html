@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Spec Analysis Review</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0d1117;
+    --bg-surface: #161b22;
+    --bg-elevated: #1c2128;
+    --border: #30363d;
+    --border-active: #58a6ff;
+    --text: #e6edf3;
+    --text-muted: #8b949e;
+    --text-heading: #f0f6fc;
+    --amber: #d29922;
+    --amber-bg: rgba(210, 153, 34, 0.12);
+    --green: #3fb950;
+    --green-bg: rgba(63, 185, 80, 0.12);
+    --red: #f85149;
+    --red-bg: rgba(248, 81, 73, 0.12);
+    --purple: #bc8cff;
+    --purple-bg: rgba(188, 140, 255, 0.12);
+    --blue: #58a6ff;
+    --blue-bg: rgba(88, 166, 255, 0.12);
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  /* Header */
+  .header {
+    background: var(--bg-surface);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .header-left { display: flex; align-items: center; gap: 16px; }
+  .header h1 { font-size: 18px; color: var(--text-heading); font-weight: 600; }
+  .header-meta { display: flex; gap: 16px; font-size: 13px; color: var(--text-muted); }
+  .header-meta span { display: flex; align-items: center; gap: 4px; }
+
+  /* Dashboard */
+  .dashboard {
+    background: var(--bg-surface);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+  .stats { display: flex; gap: 24px; }
+  .stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+  }
+  .stat-value { font-size: 24px; font-weight: 700; }
+  .stat-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+  .stat-bar {
+    width: 100%;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    margin-top: 4px;
+    overflow: hidden;
+  }
+  .stat-bar-fill { height: 100%; border-radius: 2px; transition: width 0.3s; }
+
+  /* Filter bar */
+  .filters { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .filter-tabs { display: flex; gap: 2px; background: var(--bg); border-radius: 6px; padding: 2px; }
+  .filter-tab {
+    padding: 6px 14px;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 13px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.15s;
+    font-family: inherit;
+  }
+  .filter-tab:hover { color: var(--text); }
+  .filter-tab.active { background: var(--bg-elevated); color: var(--text); }
+  .filter-tab .count {
+    display: inline-block;
+    margin-left: 4px;
+    font-size: 11px;
+    background: var(--border);
+    padding: 0 6px;
+    border-radius: 10px;
+  }
+
+  select.severity-filter {
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--border);
+    padding: 6px 28px 6px 10px;
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+    font-family: inherit;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238b949e' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+  }
+
+  /* Main layout */
+  .main { display: flex; height: calc(100vh - 140px); overflow: hidden; }
+
+  /* Left panel -- spec content */
+  .spec-panel {
+    flex: 6;
+    overflow-y: auto;
+    padding: 24px;
+    border-right: 1px solid var(--border);
+  }
+  .spec-content {
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    font-size: 13px;
+    line-height: 1.8;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+  }
+  .spec-content h1, .spec-content h2, .spec-content h3, .spec-content h4 {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    color: var(--text-heading);
+    margin: 20px 0 8px;
+    line-height: 1.3;
+  }
+  .spec-content h1 { font-size: 22px; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+  .spec-content h2 { font-size: 18px; }
+  .spec-content h3 { font-size: 15px; }
+  .spec-content h4 { font-size: 14px; }
+  .spec-content strong { color: var(--text-heading); }
+  .spec-content code {
+    background: var(--bg-elevated);
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 12px;
+  }
+  .spec-content ul, .spec-content ol { padding-left: 24px; margin: 4px 0; }
+  .spec-content li { margin: 2px 0; }
+
+  /* Annotated section */
+  .annotated-line {
+    border-left: 3px solid transparent;
+    padding-left: 8px;
+    margin-left: -11px;
+    cursor: pointer;
+    transition: background 0.15s;
+    border-radius: 0 4px 4px 0;
+  }
+  .annotated-line:hover { background: var(--bg-elevated); }
+  .annotated-line.severity-warning { border-left-color: var(--amber); }
+  .annotated-line.severity-critical { border-left-color: var(--purple); }
+  .annotated-line.severity-suggestion { border-left-color: var(--blue); }
+  .annotated-line.status-approved { border-left-color: var(--green); }
+  .annotated-line.status-rejected { border-left-color: var(--red); }
+  .annotated-line.selected { background: var(--bg-elevated); }
+
+  .annotation-marker {
+    display: inline-block;
+    font-size: 10px;
+    padding: 1px 6px;
+    border-radius: 3px;
+    margin-left: 8px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    vertical-align: middle;
+    cursor: pointer;
+  }
+  .annotation-marker.severity-warning { background: var(--amber-bg); color: var(--amber); }
+  .annotation-marker.severity-critical { background: var(--purple-bg); color: var(--purple); }
+  .annotation-marker.severity-suggestion { background: var(--blue-bg); color: var(--blue); }
+
+  /* Editable blocks */
+  [contenteditable="true"] {
+    outline: none;
+    border: 1px dashed transparent;
+    padding: 2px 4px;
+    margin: -2px -4px;
+    border-radius: 3px;
+    transition: border-color 0.15s;
+  }
+  [contenteditable="true"]:focus {
+    border-color: var(--border-active);
+    background: var(--bg-elevated);
+  }
+
+  /* Right panel -- findings */
+  .findings-panel {
+    flex: 4;
+    overflow-y: auto;
+    padding: 16px;
+    background: var(--bg-surface);
+  }
+  .findings-list { display: flex; flex-direction: column; gap: 8px; }
+
+  .finding-card {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .finding-card:hover { border-color: var(--border-active); }
+  .finding-card.selected { border-color: var(--border-active); box-shadow: 0 0 0 1px var(--border-active); }
+  .finding-card.status-approved { border-left: 3px solid var(--green); }
+  .finding-card.status-rejected { border-left: 3px solid var(--red); }
+
+  .finding-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 8px;
+  }
+  .finding-id { font-size: 11px; color: var(--text-muted); font-weight: 600; }
+  .finding-title { font-size: 14px; font-weight: 600; color: var(--text-heading); margin-bottom: 4px; }
+
+  .badge {
+    display: inline-block;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 500;
+  }
+  .badge-critical { background: var(--purple-bg); color: var(--purple); }
+  .badge-warning { background: var(--amber-bg); color: var(--amber); }
+  .badge-suggestion { background: var(--blue-bg); color: var(--blue); }
+
+  .category-badge {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+  }
+
+  .finding-issue {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+    line-height: 1.5;
+  }
+
+  .finding-detail { margin-bottom: 10px; }
+  .finding-detail-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+  }
+  .finding-detail-text {
+    font-size: 13px;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    background: var(--bg-elevated);
+    padding: 8px 10px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    white-space: pre-wrap;
+    word-wrap: break-word;
+  }
+  .finding-detail-text.current { border-left: 3px solid var(--red); }
+  .finding-detail-text.proposed { border-left: 3px solid var(--green); }
+
+  .finding-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+    flex-wrap: wrap;
+  }
+
+  .btn {
+    padding: 6px 14px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+    font-family: inherit;
+    font-weight: 500;
+    transition: all 0.15s;
+    background: var(--bg-elevated);
+    color: var(--text);
+  }
+  .btn:hover { border-color: var(--text-muted); }
+  .btn-approve { border-color: var(--green); color: var(--green); }
+  .btn-approve:hover { background: var(--green-bg); }
+  .btn-reject { border-color: var(--red); color: var(--red); }
+  .btn-reject:hover { background: var(--red-bg); }
+  .btn-primary { background: var(--blue); color: #fff; border-color: var(--blue); }
+  .btn-primary:hover { opacity: 0.9; }
+
+  .comment-area {
+    width: 100%;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    padding: 8px 10px;
+    font-size: 13px;
+    font-family: inherit;
+    resize: vertical;
+    min-height: 60px;
+    margin-top: 8px;
+  }
+  .comment-area:focus { outline: none; border-color: var(--border-active); }
+
+  .status-badge {
+    display: inline-block;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 600;
+  }
+  .status-pending { background: var(--amber-bg); color: var(--amber); }
+  .status-approved { background: var(--green-bg); color: var(--green); }
+  .status-rejected { background: var(--red-bg); color: var(--red); }
+
+  .finding-location {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+  }
+
+  /* Prompt output panel */
+  .prompt-panel {
+    background: var(--bg-surface);
+    border-top: 1px solid var(--border);
+    padding: 16px 24px;
+  }
+  .prompt-panel.hidden { display: none; }
+  .prompt-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  .prompt-header h3 { font-size: 14px; color: var(--text-heading); }
+  .prompt-actions { display: flex; gap: 8px; }
+  .prompt-content {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px 14px;
+    font-size: 13px;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    max-height: 200px;
+    overflow-y: auto;
+    line-height: 1.6;
+  }
+
+  /* Notification toast */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--green);
+    color: var(--green);
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-size: 13px;
+    z-index: 1000;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: all 0.2s;
+    pointer-events: none;
+  }
+  .toast.show { opacity: 1; transform: translateY(0); }
+
+  /* Empty state */
+  .empty-state {
+    text-align: center;
+    padding: 60px 24px;
+    color: var(--text-muted);
+  }
+  .empty-state h3 { font-size: 16px; margin-bottom: 8px; color: var(--text); }
+
+  /* Responsive */
+  @media (max-width: 900px) {
+    .main { flex-direction: column; height: auto; }
+    .spec-panel { border-right: none; border-bottom: 1px solid var(--border); max-height: 50vh; }
+    .findings-panel { max-height: 50vh; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<header class="header">
+  <div class="header-left">
+    <h1 id="spec-name"></h1>
+  </div>
+  <div class="header-meta">
+    <span id="depth-level"></span>
+    <span id="analyzed-at"></span>
+  </div>
+</header>
+
+<!-- Dashboard -->
+<div class="dashboard">
+  <div class="stats" id="stats"></div>
+  <div class="filters">
+    <div class="filter-tabs" id="status-filters"></div>
+    <select class="severity-filter" id="severity-filter">
+      <option value="all">All Severities</option>
+      <option value="critical">Critical</option>
+      <option value="warning">Warning</option>
+      <option value="suggestion">Suggestion</option>
+    </select>
+  </div>
+</div>
+
+<!-- Main content -->
+<div class="main">
+  <div class="spec-panel">
+    <div class="spec-content" id="spec-content"></div>
+  </div>
+  <div class="findings-panel">
+    <div class="findings-list" id="findings-list"></div>
+  </div>
+</div>
+
+<!-- Prompt output -->
+<div class="prompt-panel hidden" id="prompt-panel">
+  <div class="prompt-header">
+    <h3>Prompt from Approved Changes (<span id="approved-count">0</span>)</h3>
+    <div class="prompt-actions">
+      <button class="btn btn-primary" onclick="copyPrompt()">Copy Prompt</button>
+      <button class="btn" onclick="downloadSpec()">Download Modified Spec</button>
+    </div>
+  </div>
+  <div class="prompt-content" id="prompt-content"></div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// === DATA INJECTION ===
+const SPEC_CONTENT = {"path":"/Users/sequenzia/dev/repos/agent-tools/internal/specs/task-manager-SPEC.md","name":"Task Manager PRD","depthLevel":"Detailed","analyzedAt":"2026-04-06 12:00","content":"# Task Manager PRD\n\n**Version**: 1.0\n**Author**: Stephen Sequenzia\n**Date**: 2026-04-06\n**Status**: Draft\n**Spec Type**: New Product\n**Spec Depth**: Detailed Specifications\n**Description**: A kanban board desktop app that visualizes the SDD (Spec-Driven Development) pipeline lifecycle, displaying tasks created from specs and their progress through development stages.\n\n---\n\n## 1. Executive Summary\n\nTask Manager is a standalone desktop application built with React + Vite + Tauri that provides a visual management layer over the SDD pipeline\u2019s file-based task system. It enables developers to monitor task execution in real-time, navigate across multiple projects and task groups, view full spec lifecycles, and directly manipulate task state through drag-and-drop \u2014 all by reading and writing the same JSON files that the SDD pipeline operates on.\n\n## 2. Problem Statement\n\n### 2.1 The Problem\n\nThe SDD pipeline manages all task state through JSON files in filesystem directories (`.agents/tasks/{status}/{group}/`). Developers using the pipeline have no visual way to:\n- See which tasks are running during wave-based execution\n- Understand dependency relationships between tasks\n- Track overall progress across a project\u2019s task groups\n- View the full lifecycle from spec creation through task completion\n\n### 2.2 Current State\n\nUsers must manually inspect JSON files and directory structures to understand pipeline state. During `execute-tasks` wave execution, progress is only visible through CLI output. There is no persistent overview of where things stand across specs and task groups, and no way to visualize the dependency graph that drives wave formation.\n\n### 2.3 Impact Analysis\n\nWithout visual tooling, SDD users:\n- Lose context switching between CLI output and file inspection\n- Cannot quickly identify blocked tasks or execution bottlenecks\n- Have difficulty understanding wave formation and why certain tasks wait\n- Must mentally reconstruct the dependency graph from `blocked_by` arrays scattered across JSON files\n\n### 2.4 Business Value\n\nA visual management layer makes the SDD pipeline accessible to a broader audience, reduces cognitive overhead for existing users, and enables faster debugging of execution issues. It transforms the SDD pipeline from a CLI-only developer tool into a managed workflow system with professional-grade observability.\n\n## 3. Goals & Success Metrics\n\n### 3.1 Primary Goals\n\n1. Provide real-time visibility into task execution during SDD pipeline runs\n2. Enable persistent overview of pipeline state across multiple projects and task groups\n3. Allow direct task manipulation (state changes, field editing) through an intuitive board UI\n4. Display the full spec lifecycle from creation through analysis to task execution\n\n### 3.2 Success Metrics\n\n| Metric | Current Baseline | Target | Measurement Method | Timeline |\n|--------|------------------|--------|-------------------|----------|\n| Time to understand pipeline state | Minutes (manual file inspection) | Seconds (visual scan) | User testing | Phase 2 |\n| Task state change workflow | CLI + manual file moves | Single drag-and-drop action | Feature completion | Phase 2 |\n| Dependency visibility | Read JSON `blocked_by` arrays | Interactive graph visualization | Feature completion | Phase 2 |\n| Project switching overhead | Navigate filesystem, re-orient | Click project in sidebar | Feature completion | Phase 3 |\n\n### 3.3 Non-Goals\n\n- Replacing the CLI for spec creation or task execution\n- Providing a collaborative multi-user editing experience\n- Cloud-based storage or synchronization\n- Mobile or tablet interface\n\n## 4. User Research\n\n### 4.1 Target Users\n\n#### Primary Persona: SDD Pipeline Developer\n\n- **Role/Description**: A developer who uses the SDD pipeline (create-spec, create-tasks, execute-tasks) as part of their development workflow\n- **Goals**: Monitor execution progress, understand task dependencies, quickly identify blockers, manage task state without leaving a visual context\n- **Pain Points**: No visual overview of pipeline state, must read raw JSON to understand task details, cannot easily track wave execution in real-time\n- **Context**: Uses the SDD pipeline alongside a code editor and terminal; typically managing one or more active projects with task groups at various stages\n\n#### Secondary Persona: SDD Pipeline Evaluator\n\n- **Role/Description**: A developer or team lead evaluating the SDD pipeline for adoption\n- **Goals**: Understand the SDD workflow visually, assess pipeline maturity, see how tasks flow through the system\n- **Pain Points**: The file-based state model is opaque without tooling, hard to demo or present to stakeholders\n\n### 4.2 User Journey Map\n\n```\n[Open App] --> [Select/Discover Project] --> [View Task Board] --> [Monitor Execution OR Edit Tasks] --> [Drill into Task Detail / Spec View]\n```\n\n**Typical flow**: User opens Task Manager, selects a project from the sidebar (or it auto-discovers projects). They see the kanban board with tasks organized by state. During an active `execute-tasks` run, they switch to the execution dashboard to monitor wave progress. They click a task card to see its full detail, dependency graph, and linked spec section.\n\n## 5. Functional Requirements\n\n### 5.1 Feature: Kanban Task Board\n\n**Priority**: P0 (Critical)\n\n#### User Stories\n\n**US-001**: As an SDD user, I want to see all tasks organized by state in a kanban board so that I can quickly understand where every task stands.\n\n**Acceptance Criteria**:\n- [ ] Board displays columns for core states: Backlog, Pending, In Progress, Completed\n- [ ] Board displays extended columns for derived states: Blocked (tasks with unresolved `blocked_by`), Failed (tasks that failed verification)\n- [ ] Each task appears as a card showing: title, priority badge, complexity badge, task group, and dependency count\n- [ ] Cards are color-coded or badged by priority (critical/high/medium/low)\n- [ ] Column headers show task count\n- [ ] Board updates in real-time when task files change on disk\n\n**Edge Cases**:\n- Empty project (no tasks): Show empty state with guidance\n- Very large task groups (50+ tasks): Cards should be scrollable within columns, no layout overflow\n- Task file with invalid JSON: Show error indicator on the card, don\u2019t crash the board\n\n---\n\n### 5.2 Feature: Drag-and-Drop Task State Management\n\n**Priority**: P0 (Critical)\n\n#### User Stories\n\n**US-002**: As an SDD user, I want to drag a task card between columns so that I can change its state without editing JSON files.\n\n**Acceptance Criteria**:\n- [ ] Dragging a card from one column to another triggers a filesystem operation: the JSON file moves from `.agents/tasks/{old-status}/{group}/` to `.agents/tasks/{new-status}/{group}/`\n- [ ] The `status` field inside the JSON file is updated to match the new directory\n- [ ] The `updated_at` timestamp is set to the current ISO 8601 time\n- [ ] UI updates optimistically (card moves immediately), with rollback if the filesystem operation fails\n- [ ] Invalid transitions are prevented (e.g., moving to \\\"In Progress\\\" when `blocked_by` tasks are not all completed)\n- [ ] JSON schema validation runs before writing the modified file to disk\n\n**Edge Cases**:\n- File locked by concurrent `execute-tasks` process: Rollback UI, show notification\n- File moved externally between drag start and drop: Detect conflict via timestamp, refresh from disk\n- Dragging to the same column: No-op, no filesystem write\n\n---\n\n### 5.3 Feature: Task Detail View\n\n**Priority**: P0 (Critical)\n\n#### User Stories\n\n**US-003**: As an SDD user, I want to click a task card and see its full details so that I can understand its requirements, dependencies, and execution history.\n\n**Acceptance Criteria**:\n- [ ] Detail panel (slide-out or modal) displays all task JSON fields: id, title, description, status, acceptance criteria (functional, edge cases, error handling, performance), testing requirements, blocked_by, metadata (priority, complexity, task_group, spec_path, feature_name, source_section, spec_phase, produces_for)\n- [ ] Dependency graph visualization showing this task\u2019s upstream blockers and downstream dependents\n- [ ] Link to the spec section referenced in `metadata.source_section` (opens spec viewer)\n- [ ] Execution history showing past attempts (from session result files if available)\n- [ ] Inline editing of editable fields: priority, complexity, blocked_by, acceptance criteria\n\n**Edge Cases**:\n- Task with no dependencies: Show \\\"No dependencies\\\" instead of empty graph\n- Referenced spec file doesn\u2019t exist: Show \\\"Spec not found\\\" with the path\n- Circular dependency detected: Highlight the cycle in the dependency graph\n\n---\n\n### 5.4 Feature: Task Field Editing\n\n**Priority**: P1 (High)\n\n#### User Stories\n\n**US-004**: As an SDD user, I want to edit task fields directly in the UI so that I can adjust priority, complexity, or dependencies without opening JSON files.\n\n**Acceptance Criteria**:\n- [ ] Editable fields: `metadata.priority`, `metadata.complexity`, `blocked_by`, `acceptance_criteria` sub-fields\n- [ ] Field editing uses appropriate input types (dropdown for priority/complexity, multi-select for blocked_by, text area for criteria)\n- [ ] Changes write directly to the task\u2019s JSON file on disk\n- [ ] JSON schema validation runs before every write\n- [ ] `updated_at` timestamp is refreshed on save\n\n**Edge Cases**:\n- Adding a `blocked_by` reference to a non-existent task ID: Validate and warn\n- Editing a task that is currently `in_progress` during execution: Allow but show warning that changes may be overwritten\n\n---\n\n### 5.5 Feature: Real-Time File Watching\n\n**Priority**: P0 (Critical)\n\n#### User Stories\n\n**US-005**: As an SDD user, I want the board to automatically update when tasks change on disk so that I can watch execution progress in real-time.\n\n**Acceptance Criteria**:\n- [ ] Tauri Rust backend watches all `.agents/tasks/` subdirectories for the active project(s)\n- [ ] File create, move, modify, and delete events are detected and pushed to the React frontend via Tauri IPC events\n- [ ] Frontend reconciles file events into board state updates (card appears/moves/updates/disappears)\n- [ ] Debounced event processing to handle rapid file changes during wave execution (batch updates within ~100ms window)\n- [ ] Watch is active for all loaded projects simultaneously\n\n**Edge Cases**:\n- Rapid burst of events during wave execution (10+ files moving at once): Batch into single UI update\n- Watched directory deleted: Show project disconnected state, offer to re-scan\n- File system events for non-task files in the directory: Ignore gracefully\n\n---\n\n### 5.6 Feature: Multi-Project Navigation\n\n**Priority**: P1 (High)\n\n#### User Stories\n\n**US-006**: As an SDD user, I want to browse and switch between multiple project directories so that I can manage all my SDD projects from one app.\n\n**Acceptance Criteria**:\n- [ ] Sidebar or navigation panel lists all discovered/configured projects\n- [ ] Each project shows its task groups with task count summaries (pending/in-progress/completed)\n- [ ] Clicking a project loads its task board; clicking a task group filters the board to that group\n- [ ] Multiple task groups within a project can be viewed simultaneously\n- [ ] Projects can be manually added by selecting a directory\n- [ ] Project auto-discovery: user configures root directories, app scans for `.agents/tasks/` patterns within them\n\n**Edge Cases**:\n- Root directory contains hundreds of subdirectories: Scan asynchronously, show progress, limit depth\n- Project directory is removed or renamed: Mark as disconnected, offer to remove from list\n- Two projects with the same name: Differentiate by path in the UI\n\n---\n\n### 5.7 Feature: Spec Lifecycle View\n\n**Priority**: P1 (High)\n\n#### User Stories\n\n**US-007**: As an SDD user, I want to see the full spec lifecycle alongside tasks so that I can trace requirements back to their source and understand the pipeline\u2019s progression.\n\n**Acceptance Criteria**:\n- [ ] Spec viewer displays rendered markdown content of the spec file (referenced by `metadata.spec_path` in tasks)\n- [ ] Spec analysis results displayed if `.analysis.md` file exists alongside the spec\n- [ ] Pipeline stage indicator shows: Spec Created \\u2192 Analyzed (optional) \\u2192 Tasks Generated \\u2192 Execution In Progress/Complete\n- [ ] Tasks linked to specific spec sections (via `metadata.source_section`) are navigable from the spec view\n- [ ] Spec viewer supports section-level anchoring for deep links from task detail view\n\n**Edge Cases**:\n- Spec file modified after tasks were generated: Show \\\"spec modified since task generation\\\" indicator\n- No analysis file exists: Skip analysis stage in pipeline indicator\n- Spec references sections that don\u2019t match task metadata: Show best-effort matching\n\n---\n\n### 5.8 Feature: Execution Dashboard\n\n**Priority**: P1 (High)\n\n#### User Stories\n\n**US-008**: As an SDD user, I want a full execution dashboard during wave-based task execution so that I can monitor progress, view logs, and understand the dependency flow in real-time.\n\n**Acceptance Criteria**:\n- [ ] Wave progress display: current wave number, total waves (estimated), tasks in current wave, overall completion percentage\n- [ ] Per-task execution status within the active wave: queued, running, passed, partial, failed\n- [ ] Streaming execution logs: display content from session result files (`result-{id}.md`) as they appear\n- [ ] Dependency graph animation: highlight tasks as they transition through states, show wave boundaries\n- [ ] Context file monitor: display updates to `execution_context.md` as learnings accumulate\n- [ ] Session timeline: chronological view of task start/complete events with durations\n- [ ] Dashboard activates automatically when `.agents/sessions/__live_session__/` directory is detected\n\n**Edge Cases**:\n- Execution interrupted (`.lock` file present but no active process): Show \\\"interrupted session\\\" state with recovery options\n- Multiple task groups executing simultaneously: Support switching between active sessions\n- Very long execution (50+ tasks): Timeline should be scrollable with summary statistics\n\n---\n\n### 5.9 Feature: Dependency Graph Visualization\n\n**Priority**: P2 (Medium)\n\n#### User Stories\n\n**US-009**: As an SDD user, I want to see an interactive dependency graph so that I can understand task relationships and wave formation.\n\n**Acceptance Criteria**:\n- [ ] Full dependency graph rendered for the active task group showing all tasks and their `blocked_by` relationships\n- [ ] Nodes colored by current state (backlog/pending/in-progress/completed/failed)\n- [ ] Wave boundaries visually indicated (grouping tasks by their topological level)\n- [ ] Click a node to navigate to its task detail view\n- [ ] `produces_for` relationships shown with distinct edge style (e.g., dashed vs solid)\n- [ ] Graph layout adapts to task count (small graphs: force-directed; large graphs: layered/hierarchical)\n\n**Edge Cases**:\n- Circular dependencies: Highlight the cycle with warning color, show diagnostic message\n- Disconnected subgraphs (independent task chains): Render as separate clusters\n- Single task with no dependencies: Show as isolated node\n\n---\n\n### 5.10 Feature: Conflict Detection & Data Integrity\n\n**Priority**: P2 (Medium)\n\n#### User Stories\n\n**US-010**: As an SDD user, I want the app to detect concurrent modifications to task files so that my changes don\u2019t accidentally overwrite pipeline state changes.\n\n**Acceptance Criteria**:\n- [ ] Before writing any task file, compare current file modification timestamp against last-read timestamp\n- [ ] If timestamps differ (external modification detected), refresh from disk and notify user\n- [ ] JSON schema validation against the SDD task schema runs before every write operation\n- [ ] Schema validation checks: required fields present, `status` matches target directory, `blocked_by` IDs reference existing tasks, valid priority/complexity enum values, valid ISO 8601 timestamps\n- [ ] Invalid writes are rejected with a descriptive error message\n\n**Edge Cases**:\n- File deleted between read and write: Detect missing file, show \\\"task removed externally\\\" notification\n- Schema validation fails due to unknown future fields: Allow unknown fields (forward-compatible), only validate known required fields\n\n## 6. Non-Functional Requirements\n\n### 6.1 Performance\n\n- App startup to rendered board: < 2 seconds for a project with < 100 tasks\n- File change event to UI update: < 200ms latency\n- Drag-and-drop state change (optimistic UI): < 50ms visual feedback\n- Dependency graph rendering: < 1 second for graphs with up to 100 nodes\n- Project auto-discovery scan: < 5 seconds for root directories with < 1000 subdirectories\n\n### 6.2 Security\n\n- No network access required \\u2014 the app operates entirely on the local filesystem\n- File operations limited to configured project directories (no access outside user-specified paths)\n- No sensitive data handling (task files contain project metadata, not credentials)\n- Tauri\u2019s security model: CSP headers, IPC allowlisting for only required commands\n\n### 6.3 Scalability\n\n- Support up to 10 concurrent projects with up to 500 tasks each\n- Handle rapid file change bursts (20+ events within 100ms) during wave execution without UI lag\n- Memory usage proportional to number of loaded tasks (not unbounded growth from file watching)\n\n### 6.4 Accessibility\n\n- Keyboard navigation for all board interactions (move between columns, select cards, open detail)\n- Screen reader labels for task cards, status columns, and dashboard elements\n- Sufficient color contrast for all state indicators (don\u2019t rely on color alone \\u2014 use icons/badges too)\n- Focus management when opening/closing detail panels and dialogs\n\n## 7. Technical Considerations\n\n### 7.1 Architecture Overview\n\nThe application follows a two-layer architecture:\n\n1. **Tauri Rust Backend**: Handles all filesystem operations (reading task JSON, watching directories, moving files), exposes functionality to the frontend via Tauri\u2019s IPC command system, and manages the native desktop window.\n\n2. **React Frontend**: Renders the kanban board, task detail views, dependency graphs, and execution dashboard. Communicates with the Rust backend exclusively through Tauri IPC commands and event listeners.\n\n```mermaid\nflowchart TD\n    subgraph desktop[\\\"Tauri Desktop Shell\\\"]\n        subgraph frontend[\\\"React + Vite Frontend\\\"]\n            A[Kanban Board]:::primary\n            B[Task Detail]:::primary\n            C[Execution Dashboard]:::primary\n            D[Spec Viewer]:::primary\n            E[Project Navigator]:::primary\n        end\n        subgraph backend[\\\"Rust Backend\\\"]\n            F[File Watcher Service]:::secondary\n            G[Task File Manager]:::secondary\n            H[Schema Validator]:::secondary\n            I[Project Scanner]:::secondary\n        end\n    end\n    subgraph filesystem[\\\"Local Filesystem\\\"]\n        J[\\\".agents/tasks/{status}/{group}/\\\"]:::neutral\n        K[\\\"specs/*.md\\\"]:::neutral\n        L[\\\".agents/sessions/\\\"]:::neutral\n    end\n\n    A <-->|IPC| G\n    C <-->|IPC| F\n    D <-->|IPC| G\n    E <-->|IPC| I\n    F -->|watch events| J\n    F -->|watch events| L\n    G <-->|read/write| J\n    G -->|read| K\n    H <-->|validate| G\n    I -->|scan| J\n\n    classDef primary fill:#dbeafe,stroke:#2563eb,color:#000\n    classDef secondary fill:#f3e8ff,stroke:#7c3aed,color:#000\n    classDef neutral fill:#f3f4f6,stroke:#6b7280,color:#000\n```\n\n### 7.2 Tech Stack\n\n- **Frontend**: React 19, Vite, TypeScript\n- **Backend**: Tauri 2.x (Rust)\n- **State Management**: Zustand or Jotai (lightweight, well-suited for file-backed state)\n- **UI Components**: Tailwind CSS for styling; a drag-and-drop library (e.g., dnd-kit) for kanban interactions\n- **Graph Rendering**: D3.js or React Flow for interactive dependency graph visualization\n- **Markdown Rendering**: react-markdown or similar for spec file display\n- **File Watching**: Tauri\u2019s `notify` crate (Rust-side file system watcher)\n- **Packaging**: Tauri bundler for macOS (DMG/app bundle), with cross-platform potential for Linux/Windows\n\n### 7.3 Integration Points\n\n| System | Integration Type | Purpose |\n|--------|-----------------|--------|\n| SDD Task Files | Filesystem (JSON read/write) | Primary data source \\u2014 task state, metadata, dependencies |\n| SDD Spec Files | Filesystem (Markdown read) | Spec lifecycle display, section linking from tasks |\n| SDD Session Files | Filesystem (Markdown read) | Execution dashboard \\u2014 logs, context, progress, results |\n| SDD Manifest Files | Filesystem (JSON read) | Task group discovery and summary statistics |\n\n### 7.4 Technical Constraints\n\n- Must not require a running server process beyond the Tauri app itself\n- Must work with the existing SDD file format \\u2014 no modifications to task JSON schema or directory structure\n- File operations must be atomic where possible (write to temp file, then rename) to prevent corruption\n- Must handle the case where `execute-tasks` is actively modifying files concurrently\n\n### 7.5 SDD Pipeline Context\n\nThe app integrates with the SDD pipeline\u2019s file-based state machine. Key structures:\n\n#### Task State Directories\n\n```\n.agents/tasks/\n\\u251c\\u2500\\u2500 backlog/{group}/task-NNN.json      # Future phase tasks\n\\u251c\\u2500\\u2500 pending/{group}/task-NNN.json      # Ready to execute\n\\u251c\\u2500\\u2500 in-progress/{group}/task-NNN.json  # Currently executing\n\\u251c\\u2500\\u2500 completed/{group}/task-NNN.json    # Finished and verified\n\\u2514\\u2500\\u2500 _manifests/{group}.json            # Group-level statistics\n```\n\n#### Task State Machine\n\n```mermaid\nstateDiagram-v2\n    [*] --> Backlog : created (future phase)\n    [*] --> Pending : created (current phase)\n    Backlog --> Pending : phase activated\n    Pending --> InProgress : execution starts\n    InProgress --> Completed : verification PASS\n    InProgress --> Pending : verification FAIL (retry)\n    Completed --> [*]\n```\n\n#### Wave Execution Model\n\nTasks are assigned to waves by topological dependency level:\n- **Wave 1**: Tasks with no `blocked_by` dependencies\n- **Wave 2**: Tasks whose dependencies were all completed in Wave 1\n- **Wave N**: Tasks whose dependencies were all completed in prior waves\n\nWithin each wave, up to `max_parallel` tasks execute concurrently (default: 5).\n\n#### Session Structure\n\nActive execution creates `.agents/sessions/__live_session__/` containing:\n- `execution_plan.md` \\u2014 Saved wave plan\n- `execution_context.md` \\u2014 Shared cross-task learnings\n- `task_log.md` \\u2014 Execution history table\n- `progress.md` \\u2014 Current wave and completion status\n- `result-{id}.md` \\u2014 Per-task completion signal with outcome (PASS/PARTIAL/FAIL)\n- `.lock` \\u2014 Concurrency guard\n\n## 8. Scope Definition\n\n### 8.1 In Scope\n\n- Kanban board with extended state columns\n- Drag-and-drop task state management with filesystem writes\n- Full task detail view with dependency graph and spec linking\n- Inline task field editing (priority, complexity, dependencies, acceptance criteria)\n- Real-time file watching with push-based UI updates\n- Multi-project navigation with project auto-discovery\n- Full spec lifecycle view (creation, analysis, task generation, execution)\n- Execution dashboard with wave progress, logs, graph animation, context updates, session timeline\n- JSON schema validation on all write operations\n- Conflict detection for concurrent filesystem access\n- Optimistic UI with rollback on filesystem operation failure\n- macOS desktop app (Tauri)\n\n### 8.2 Out of Scope\n\n- **Triggering execute-tasks from the UI**: Execution is initiated from the CLI; the app is a monitoring/management layer\n- **Creating specs from the UI**: Spec creation uses the CLI\u2019s interactive interview process\n- **User authentication/accounts**: Local desktop app with no user identity concept\n- **Cloud sync/remote collaboration**: All data is local filesystem; no network features\n- **Creating new tasks from the UI**: Tasks are generated by the `create-tasks` skill from a spec\n- **Mobile/tablet interface**: Desktop-only application\n\n### 8.3 Future Considerations\n\n- Cross-platform builds (Linux, Windows) via Tauri\u2019s multi-platform support\n- CLI command integration (trigger execution from the UI with user confirmation)\n- Task creation UI for manual task authoring\n- Execution history analytics (success rates, average task duration, common failure patterns)\n- Theme customization (light/dark mode, custom color schemes)\n- Plugin system for custom board views or integrations\n\n## 9. Implementation Plan\n\n### 9.1 Phase 1: Foundation\n\n**Completion Criteria**: A Tauri desktop app that can open a project directory and display a list of tasks read from JSON files.\n\n| Deliverable | Description | Dependencies |\n|-------------|-------------|-------------|\n| Tauri app scaffold | React + Vite + Tauri project with TypeScript, Tailwind CSS, and development tooling | None |\n| Rust file reading layer | Tauri commands to read task JSON files from `.agents/tasks/` directories, parse and validate structure | Tauri scaffold |\n| Task data model | TypeScript types matching the SDD task JSON schema, with Zod or similar for runtime validation | None |\n| Basic task list view | React component rendering tasks as cards in a simple list (no board layout yet) | Rust file reading, Task data model |\n| Project directory selection | File picker dialog to select a project directory, persist selection | Tauri scaffold |\n\n**Checkpoint Gate**: App launches, reads a real `.agents/tasks/` directory, and displays task cards with correct data.\n\n---\n\n### 9.2 Phase 2: Core Board\n\n**Completion Criteria**: A functional kanban board with drag-and-drop state management, task detail panel, and real-time updates.\n\n| Deliverable | Description | Dependencies |\n|-------------|-------------|-------------|\n| Kanban board layout | Column-based board rendering tasks by state (Backlog, Pending, Blocked, In Progress, Failed, Completed) | Phase 1 |\n| Drag-and-drop engine | dnd-kit integration for dragging cards between columns, with transition validation | Kanban board |\n| Task state write-back | Rust commands to move task JSON files between directories and update `status`/`updated_at` fields | Rust file reading |\n| Optimistic UI pattern | Immediate UI update on drag, filesystem write, rollback on failure | Drag-and-drop, Task state write-back |\n| JSON schema validation | Rust-side validation against SDD task schema before every write | Task state write-back |\n| Task detail panel | Slide-out panel showing full task data, acceptance criteria, metadata, and description | Kanban board |\n| Dependency graph (basic) | Visualize `blocked_by` relationships for a single task in the detail panel | Task detail panel |\n| Real-time file watching | Rust `notify` crate watching task directories, IPC events to frontend, debounced UI reconciliation | Phase 1 |\n\n**Checkpoint Gate**: Users can view tasks on a board, drag to change state, see task details, and watch the board update when files change externally.\n\n---\n\n### 9.3 Phase 3: Multi-Project & Spec Lifecycle\n\n**Completion Criteria**: Users can manage multiple projects, view task groups, and see the full spec lifecycle.\n\n| Deliverable | Description | Dependencies |\n|-------------|-------------|-------------|\n| Project sidebar | Navigation panel listing projects with task group summaries | Phase 2 |\n| Multi-project file watching | Extend watcher to monitor multiple project directories simultaneously | Real-time file watching |\n| Task group filtering | Filter board view by task group; show multiple groups | Kanban board |\n| Project auto-discovery | Scan configured root directories for `.agents/tasks/` patterns | Project sidebar |\n| Spec file reader | Rust command to read and serve spec markdown files | Rust file reading |\n| Spec viewer component | Rendered markdown display of spec content with section anchoring | Spec file reader |\n| Spec lifecycle indicator | Pipeline stage display (Created \\u2192 Analyzed \\u2192 Tasks Generated \\u2192 Executing \\u2192 Complete) | Spec viewer |\n| Task-to-spec linking | Navigate from task detail `source_section` to corresponding spec section | Task detail, Spec viewer |\n| Task field inline editing | Editable fields (priority, complexity, blocked_by, acceptance criteria) with write-back | JSON schema validation |\n| Conflict detection | Timestamp-based detection of external modifications before write operations | Task state write-back |\n\n**Checkpoint Gate**: Users can switch between projects, view task groups, read specs alongside tasks, and edit task fields.\n\n---\n\n### 9.4 Phase 4: Execution Dashboard\n\n**Completion Criteria**: Full execution monitoring with wave progress, logs, dependency animation, and session timeline.\n\n| Deliverable | Description | Dependencies |\n|-------------|-------------|-------------|\n| Session detection | Watch for `.agents/sessions/__live_session__/` creation, auto-activate dashboard | Real-time file watching |\n| Wave progress display | Current wave, estimated total, per-task status (queued/running/passed/partial/failed), completion bar | Session detection |\n| Result file streaming | Watch and display `result-{id}.md` files as they appear during execution | Session detection |\n| Execution context monitor | Display `execution_context.md` updates (learnings, decisions, issues) | Session detection |\n| Session timeline | Chronological event log with task start/complete times and durations | Session detection |\n| Full dependency graph | Interactive graph for entire task group with wave boundaries, state coloring, `produces_for` edges | Dependency graph (basic) |\n| Graph animation | Animate node state transitions during execution (pending \\u2192 in-progress \\u2192 completed) | Full dependency graph, Session detection |\n| Session history | List archived sessions from `.agents/sessions/`, view past execution summaries | Spec lifecycle |\n\n**Checkpoint Gate**: During an `execute-tasks` run, the dashboard shows real-time wave progress, streaming logs, animated dependency graph, and a session timeline.\n\n---\n\n### 9.5 Phase 5: Polish & Discovery\n\n**Completion Criteria**: Production-ready desktop app with refined UX, keyboard navigation, and robust error handling.\n\n| Deliverable | Description | Dependencies |\n|-------------|-------------|-------------|\n| Keyboard navigation | Full keyboard support: navigate columns, select cards, open detail, drag via keyboard | All board features |\n| Accessibility audit | Screen reader labels, focus management, ARIA attributes, color contrast verification | All UI components |\n| Error boundary handling | Graceful recovery from invalid JSON, missing files, watch failures, IPC errors | All features |\n| App settings | Persistent configuration: root directories for auto-discovery, UI preferences | Project auto-discovery |\n| macOS packaging | Tauri bundler configuration for DMG distribution, app icon, signing | All features |\n| Performance optimization | Virtualized lists for large task groups, memoized graph rendering, efficient re-renders | All features |\n\n**Checkpoint Gate**: App is packaged as a macOS DMG, passes accessibility audit, handles all error cases gracefully, and performs within NFR targets.\n\n## 10. Dependencies\n\n### 10.1 Technical Dependencies\n\n| Dependency | Owner | Status | Risk if Delayed |\n|------------|-------|--------|----------------|\n| Tauri 2.x stable release | Tauri team | Available | Low \\u2014 already stable |\n| SDD task JSON schema stability | SDD project | Stable | Medium \\u2014 schema changes would require app updates |\n| React 19 | React team | Available | Low |\n| dnd-kit or equivalent DnD library | Open source | Available | Low |\n| D3.js or React Flow for graph rendering | Open source | Available | Low |\n\n### 10.2 Data Format Dependencies\n\n| Format | Source | Stability |\n|--------|--------|----------|\n| Task JSON schema (`.agents/tasks/{status}/{group}/task-NNN.json`) | SDD `sdd-tasks` skill | Stable (v2.0) |\n| Manifest JSON (`.agents/tasks/_manifests/{group}.json`) | SDD `create-tasks` skill | Stable |\n| Spec markdown format (`specs/*-SPEC.md`) | SDD `create-spec` skill | Stable |\n| Session file structure (`.agents/sessions/`) | SDD `execute-tasks` skill | Stable |\n\n## 11. Risks & Mitigations\n\n| Risk | Impact | Likelihood | Mitigation Strategy |\n|------|--------|------------|--------------------|\n| Race condition with execute-tasks modifying files concurrently | High | High | Conflict detection via timestamps; optimistic UI with rollback; never hold file locks |\n| SDD task schema changes breaking the app | Medium | Low | Validate against schema with forward-compatibility (allow unknown fields); version check on startup |\n| Large task groups (500+ tasks) causing UI performance issues | Medium | Medium | Virtual scrolling for card lists; debounced file watch events; lazy-load task detail data |\n| Tauri fs.watch missing rapid file events during wave execution | Medium | Medium | Debounce with reconciliation \\u2014 periodically re-scan directory to catch missed events |\n| Cross-platform Tauri behavior differences | Low | Medium | Target macOS first; test Linux/Windows in future phases |\n| Dependency graph rendering slow for complex task chains | Medium | Low | Use hierarchical layout for large graphs; limit initial render to visible viewport |\n\n## 12. Open Questions\n\n| # | Question | Owner | Due Date | Resolution |\n|---|----------|-------|----------|------------|\n| 1 | Exact set of extended columns \\u2014 should \\\"Review\\\" be a column, or is it covered by the existing states? | Product | Phase 2 | |\n| 2 | Keyboard shortcut scheme \\u2014 vim-style, VS Code-style, or custom? | Product | Phase 5 | |\n| 3 | Should the app display session result file content (full markdown) or just summary data? | Product | Phase 4 | |\n| 4 | Auto-discovery depth limit \\u2014 how deep should root directory scanning go? | Product | Phase 3 | |\n| 5 | Should the dependency graph support manual layout adjustment (drag nodes) or auto-layout only? | Product | Phase 4 | |\n\n## 13. Appendix\n\n### 13.1 Glossary\n\n| Term | Definition |\n|------|------------|\n| SDD | Spec-Driven Development \\u2014 a pipeline that transforms natural language specs into executable development tasks |\n| Task | A single unit of work represented as a JSON file in `.agents/tasks/`, with acceptance criteria and dependencies |\n| Task Group | A named collection of tasks generated from a spec (directory name under `.agents/tasks/{status}/`) |\n| Wave | A set of tasks with no unresolved dependencies that can execute concurrently |\n| Spec | A structured requirements document (markdown) created by the `create-spec` skill |\n| Manifest | A JSON file (`.agents/tasks/_manifests/{group}.json`) tracking group-level task statistics |\n| Session | An execution run tracked in `.agents/sessions/`, containing logs, context, and results |\n| blocked_by | An array of task IDs that must be completed before a task can start |\n| produces_for | Metadata indicating which downstream tasks consume this task\u2019s output |\n| Acceptance Criteria | Structured verification requirements: functional, edge cases, error handling, performance |\n\n### 13.2 References\n\n- SDD Task Schema: `skills/sdd/sdd-tasks/SKILL.md`\n- SDD Create Spec: `skills/sdd/create-spec/SKILL.md`\n- SDD Create Tasks: `skills/sdd/create-tasks/SKILL.md`\n- SDD Execute Tasks: `skills/sdd/execute-tasks/SKILL.md`\n- SDD Execute Tasks Inline: `skills/sdd/execute-tasks-inline/SKILL.md`\n- Tauri Documentation: https://tauri.app/\n- dnd-kit Documentation: https://dndkit.com/\n- React Flow Documentation: https://reactflow.dev/\n\n---\n\n*Document generated by SDD Tools*"};
+const FINDINGS_DATA = [{"id":"FIND-001","title":"State Machine Diagram Omits Failed State","category":"Inconsistencies","severity":"warning","location":"Section 7.5 \"Task State Machine\" (line 440)","lineNumber":440,"currentText":"```mermaid\nstateDiagram-v2\n    [*] --> Backlog : created (future phase)\n    [*] --> Pending : created (current phase)\n    Backlog --> Pending : phase activated\n    Pending --> InProgress : execution starts\n    InProgress --> Completed : verification PASS\n    InProgress --> Pending : verification FAIL (retry)\n    Completed --> [*]\n```","issue":"The state machine diagram shows only Backlog, Pending, InProgress, and Completed states with InProgress transitioning back to Pending on verification FAIL. However, the Kanban board (US-001, line 105) defines a \"Failed\" column for tasks that failed verification. The state machine does not represent this Failed state, creating ambiguity about whether Failed is a distinct filesystem state or a derived UI concept.","impact":"Implementers may not know whether to create a .agents/tasks/failed/ directory or derive Failed status from task metadata. This directly affects the core data model.","proposedText":null,"status":"pending"},{"id":"FIND-002","title":"Filesystem Location of Derived-State Tasks Unspecified","category":"Ambiguities","severity":"warning","location":"Section 5.1 (line 105) and Section 7.5 (line 429)","lineNumber":105,"currentText":"- [ ] Board displays extended columns for derived states: Blocked (tasks with unresolved `blocked_by`), Failed (tasks that failed verification)","issue":"The board defines Blocked and Failed as extended columns, but the Task State Directories structure (line 429-436) only lists backlog/, pending/, in-progress/, completed/, and _manifests/. It is unclear whether Blocked and Failed tasks physically reside in their own directories or are derived from tasks in other directories.","impact":"Without clarity, the Rust file reading layer and drag-and-drop state management cannot be implemented correctly. Dragging a task into the Failed column would need to know which directory to write to.","proposedText":"- [ ] Board displays extended columns for derived states: Blocked (pending tasks with unresolved `blocked_by` -- no separate directory), Failed (tasks marked with failure metadata in their last execution result -- physically remain in `pending/` after retry)","status":"pending"},{"id":"FIND-003","title":"No Success Metric for Goal 4 (Spec Lifecycle)","category":"Missing Information","severity":"warning","location":"Section 3.2 \"Success Metrics\" (line 54)","lineNumber":54,"currentText":null,"issue":"Goal 4 states \"Display the full spec lifecycle from creation through analysis to task execution\" but the Success Metrics table has no metric that measures spec lifecycle visibility. The four metrics cover pipeline state understanding, task state changes, dependency visibility, and project switching -- none address spec traceability.","impact":"Without a metric, there is no way to measure whether the Spec Lifecycle View (Feature 5.7) achieves its intended goal.","proposedText":"| Spec-to-task traceability | Manual cross-referencing of spec sections and task files | Navigate from spec section to related tasks in < 3 clicks | Feature completion | Phase 3 |","status":"pending"},{"id":"FIND-004","title":"Feature Scope Overlap Between Task Detail View and Task Field Editing","category":"Inconsistencies","severity":"warning","location":"Section 5.3 (line 154) and Section 5.4 (line 163)","lineNumber":154,"currentText":"- [ ] Inline editing of editable fields: priority, complexity, blocked_by, acceptance criteria","issue":"US-003 acceptance criteria includes inline editing of editable fields (priority, complexity, blocked_by, acceptance criteria) which is the exact scope of the separate feature US-004 (Task Field Editing, P1). This creates ambiguity about whether inline editing is part of the Task Detail View (P0, Phase 2) or Task Field Editing (P1, Phase 3).","impact":"The implementation plan places Task Field Editing in Phase 3 but the Task Detail View in Phase 2 includes it. Developers may implement editing in Phase 2 based on US-003 AC, making Phase 3's editing deliverable redundant.","proposedText":"- [ ] Read-only display of editable fields (priority, complexity, blocked_by, acceptance criteria) -- inline editing deferred to US-004 in Phase 3","status":"pending"},{"id":"FIND-005","title":"Architecture Diagram Missing Task Detail IPC Connection","category":"Missing Information","severity":"warning","location":"Section 7.1 \"Architecture Overview\" (line 357)","lineNumber":380,"currentText":null,"issue":"The Mermaid architecture diagram shows IPC connections for Kanban Board (A to G), Execution Dashboard (C to F), Spec Viewer (D to G), and Project Navigator (E to I), but Task Detail (B) has no IPC connection to any backend service. Task Detail needs to read task data, display dependencies, and support inline editing.","impact":"The diagram gives an incomplete picture of the system's IPC surface, which could mislead implementers about required Tauri commands.","proposedText":"Add line: B <-->|IPC| G (connecting Task Detail to Task File Manager)","status":"pending"},{"id":"FIND-006","title":"Success Metric Baselines Are Qualitative","category":"Ambiguities","severity":"suggestion","location":"Section 3.2 \"Success Metrics\" (line 56)","lineNumber":56,"currentText":"| Time to understand pipeline state | Minutes (manual file inspection) | Seconds (visual scan) | User testing | Phase 2 |","issue":"The Time to understand pipeline state metric uses \"Minutes\" as the baseline and \"Seconds\" as the target. These are qualitative ranges rather than specific measurable values, making user testing lack a clear pass/fail threshold.","impact":"User testing (the stated measurement method) would lack a clear pass/fail threshold.","proposedText":"| Time to understand pipeline state | 2-5 minutes (manual file inspection) | < 10 seconds (visual scan) | User testing | Phase 2 |","status":"pending"},{"id":"FIND-007","title":"Secondary Persona Missing Context Field","category":"Missing Information","severity":"suggestion","location":"Section 4.1 \"Target Users\" (line 79)","lineNumber":79,"currentText":"#### Secondary Persona: SDD Pipeline Evaluator\n\n- **Role/Description**: A developer or team lead evaluating the SDD pipeline for adoption\n- **Goals**: Understand the SDD workflow visually, assess pipeline maturity, see how tasks flow through the system\n- **Pain Points**: The file-based state model is opaque without tooling, hard to demo or present to stakeholders","issue":"The primary persona (SDD Pipeline Developer) includes a Context field describing their working environment, but the secondary persona (SDD Pipeline Evaluator) lacks this field.","impact":"Minor -- the evaluator's context can be inferred, but explicit context improves persona utility for implementers.","proposedText":"#### Secondary Persona: SDD Pipeline Evaluator\n\n- **Role/Description**: A developer or team lead evaluating the SDD pipeline for adoption\n- **Goals**: Understand the SDD workflow visually, assess pipeline maturity, see how tasks flow through the system\n- **Pain Points**: The file-based state model is opaque without tooling, hard to demo or present to stakeholders\n- **Context**: Evaluating SDD for team adoption; may not have existing .agents/tasks/ directories; needs to understand the pipeline visually without prior CLI experience","status":"pending"},{"id":"FIND-008","title":"Open Question #1 Partially Answered by Existing AC","category":"Inconsistencies","severity":"suggestion","location":"Section 12 \"Open Questions\" (line 633)","lineNumber":633,"currentText":"| 1 | Exact set of extended columns \u2014 should \"Review\" be a column, or is it covered by the existing states? | Product | Phase 2 | |","issue":"Open Question #1 asks whether Review should be a column, but US-001 acceptance criteria already define the extended columns as Blocked and Failed with no mention of Review. The question appears to be implicitly answered by the spec itself.","impact":"Open questions with implicit answers can cause confusion about what is actually undecided.","proposedText":"| 1 | Exact set of extended columns \u2014 should \"Review\" be a column, or is it covered by the existing states? | Product | Phase 2 | Resolved: US-001 AC defines extended columns as Blocked and Failed. Review is not included as a separate column. |","status":"pending"},{"id":"FIND-009","title":"Recovery Options for Interrupted Sessions Undefined","category":"Ambiguities","severity":"suggestion","location":"Section 5.8 \"Execution Dashboard\" (line 269)","lineNumber":269,"currentText":"- Execution interrupted (`.lock` file present but no active process): Show \"interrupted session\" state with recovery options","issue":"The edge case mentions \"recovery options\" but does not specify what those options are. Possible options could include: resume execution, clear the lock file, archive the session, or restart from the current wave.","impact":"Without defined options, implementers must design the recovery UX themselves, which may not align with the SDD pipeline's actual recovery capabilities.","proposedText":"- Execution interrupted (`.lock` file present but no active process): Show \"interrupted session\" state with recovery options (clear stale .lock file, archive interrupted session to history, display CLI command for resuming execution)","status":"pending"},{"id":"FIND-010","title":"Session Archival Mechanism Not Described","category":"Missing Information","severity":"suggestion","location":"Section 7.5 \"Session Structure\" (line 460) and Section 9.4 Phase 4 (line 576)","lineNumber":460,"currentText":null,"issue":"Phase 4 deliverables include \"Session history: List archived sessions from .agents/sessions/\" but the Session Structure section only describes __live_session__/. The mechanism by which sessions are archived (renamed, moved to a dated subdirectory) is not documented.","impact":"The session history feature cannot be implemented without understanding the archive format. This may depend on SDD pipeline behavior outside this spec's control.","proposedText":null,"status":"pending"}];
+
+// === STATE ===
+const STATE = {
+  findings: [],
+  selectedId: null,
+  statusFilter: 'all',
+  severityFilter: 'all',
+  comments: {}
+};
+
+function init() {
+  STATE.findings = FINDINGS_DATA.map(f => ({
+    ...f,
+    status: f.status || 'pending'
+  }));
+  renderHeader();
+  renderStats();
+  renderFilters();
+  renderSpec();
+  renderFindings();
+  updatePromptPanel();
+}
+
+// === RENDERING ===
+
+function renderHeader() {
+  document.getElementById('spec-name').textContent = SPEC_CONTENT.name || 'Spec Analysis';
+  document.getElementById('depth-level').textContent = SPEC_CONTENT.depthLevel || '';
+  document.getElementById('analyzed-at').textContent = SPEC_CONTENT.analyzedAt || '';
+  document.title = `Review: ${SPEC_CONTENT.name || 'Spec Analysis'}`;
+}
+
+function renderStats() {
+  const counts = { total: STATE.findings.length, critical: 0, warning: 0, suggestion: 0, pending: 0, approved: 0, rejected: 0 };
+  STATE.findings.forEach(f => {
+    counts[f.severity]++;
+    counts[f.status]++;
+  });
+
+  const el = document.getElementById('stats');
+  el.innerHTML = [
+    statHTML('Total', counts.total, ''),
+    statHTML('Critical', counts.critical, 'var(--purple)'),
+    statHTML('Warning', counts.warning, 'var(--amber)'),
+    statHTML('Suggestion', counts.suggestion, 'var(--blue)'),
+    statHTML('Pending', counts.pending, 'var(--amber)'),
+    statHTML('Approved', counts.approved, 'var(--green)'),
+    statHTML('Rejected', counts.rejected, 'var(--red)')
+  ].join('');
+}
+
+function statHTML(label, value, color) {
+  const pct = STATE.findings.length ? (value / STATE.findings.length * 100) : 0;
+  return `<div class="stat">
+    <div class="stat-value" style="color:${color || 'var(--text)'}">${value}</div>
+    <div class="stat-label">${label}</div>
+    <div class="stat-bar"><div class="stat-bar-fill" style="width:${pct}%;background:${color || 'var(--border)'}"></div></div>
+  </div>`;
+}
+
+function renderFilters() {
+  const counts = { all: STATE.findings.length, pending: 0, approved: 0, rejected: 0 };
+  STATE.findings.forEach(f => counts[f.status]++);
+
+  const tabs = [
+    { key: 'all', label: 'All' },
+    { key: 'pending', label: 'Pending' },
+    { key: 'approved', label: 'Approved' },
+    { key: 'rejected', label: 'Rejected' }
+  ];
+
+  document.getElementById('status-filters').innerHTML = tabs.map(t =>
+    `<button class="filter-tab${STATE.statusFilter === t.key ? ' active' : ''}"
+      onclick="setStatusFilter('${t.key}')">${t.label}<span class="count">${counts[t.key]}</span></button>`
+  ).join('');
+}
+
+function renderSpec() {
+  const content = SPEC_CONTENT.content || '';
+  const el = document.getElementById('spec-content');
+  const lines = content.split('\n');
+  const findingsByLine = {};
+  STATE.findings.forEach(f => {
+    if (f.lineNumber) {
+      if (!findingsByLine[f.lineNumber]) findingsByLine[f.lineNumber] = [];
+      findingsByLine[f.lineNumber].push(f);
+    }
+  });
+
+  let html = '';
+  lines.forEach((line, i) => {
+    const lineNum = i + 1;
+    const findings = findingsByLine[lineNum];
+    if (findings) {
+      const f = findings[0];
+      const statusClass = f.status !== 'pending' ? ` status-${f.status}` : '';
+      const selectedClass = f.id === STATE.selectedId ? ' selected' : '';
+      const markers = findings.map(ff =>
+        `<span class="annotation-marker severity-${ff.severity}" onclick="selectFinding('${ff.id}')" title="${escapeAttr(ff.title)}">${ff.id}</span>`
+      ).join('');
+      html += `<div class="annotated-line severity-${f.severity}${statusClass}${selectedClass}" data-finding-id="${f.id}" onclick="selectFinding('${f.id}')">${renderMarkdownLine(line)}${markers}</div>`;
+    } else {
+      html += `<div>${renderMarkdownLine(line)}</div>`;
+    }
+  });
+
+  el.innerHTML = html;
+}
+
+function renderFindings() {
+  const filtered = STATE.findings.filter(f => {
+    if (STATE.statusFilter !== 'all' && f.status !== STATE.statusFilter) return false;
+    if (STATE.severityFilter !== 'all' && f.severity !== STATE.severityFilter) return false;
+    return true;
+  });
+
+  const el = document.getElementById('findings-list');
+
+  if (filtered.length === 0) {
+    el.innerHTML = `<div class="empty-state"><h3>No findings match filters</h3><p>Try changing the status or severity filter.</p></div>`;
+    return;
+  }
+
+  el.innerHTML = filtered.map(f => {
+    const isSelected = f.id === STATE.selectedId;
+    const comment = STATE.comments[f.id] || '';
+    return `
+    <div class="finding-card${isSelected ? ' selected' : ''} status-${f.status}" onclick="selectFinding('${f.id}')">
+      <div class="finding-header">
+        <div>
+          <span class="finding-id">${esc(f.id)}</span>
+          <span class="badge badge-${f.severity}">${esc(f.severity)}</span>
+          <span class="status-badge status-${f.status}">${esc(f.status)}</span>
+        </div>
+      </div>
+      <div class="finding-title">${esc(f.title)}</div>
+      <div class="category-badge">${esc(f.category)}</div>
+      <div class="finding-location">${esc(f.location)}</div>
+      <div class="finding-issue">${esc(f.issue)}</div>
+      ${f.impact ? `<div class="finding-issue" style="font-style:italic">${esc(f.impact)}</div>` : ''}
+      ${isSelected ? `
+        ${f.currentText ? `
+          <div class="finding-detail" onclick="event.stopPropagation()">
+            <div class="finding-detail-label">Current</div>
+            <div class="finding-detail-text current">${esc(f.currentText)}</div>
+          </div>` : ''}
+        ${f.proposedText ? `
+          <div class="finding-detail" onclick="event.stopPropagation()">
+            <div class="finding-detail-label">Proposed</div>
+            <div class="finding-detail-text proposed">${esc(f.proposedText)}</div>
+          </div>` : ''}
+        <textarea class="comment-area" placeholder="Add a comment (optional)..." oninput="setComment('${f.id}', this.value)" onclick="event.stopPropagation()" onmousedown="event.stopPropagation()">${esc(comment)}</textarea>
+        <div class="finding-actions">
+          ${f.status === 'pending' ? `
+            <button class="btn btn-approve" onclick="event.stopPropagation(); setStatus('${f.id}', 'approved')">Approve</button>
+            <button class="btn btn-reject" onclick="event.stopPropagation(); setStatus('${f.id}', 'rejected')">Reject</button>
+          ` : `
+            <button class="btn" onclick="event.stopPropagation(); setStatus('${f.id}', 'pending')">Reset to Pending</button>
+          `}
+        </div>
+      ` : ''}
+    </div>`;
+  }).join('');
+}
+
+// === MINIMAL MARKDOWN RENDERER ===
+
+function renderMarkdownLine(line) {
+  if (/^#### (.+)/.test(line)) return `<h4>${esc(RegExp.$1)}</h4>`;
+  if (/^### (.+)/.test(line)) return `<h3>${esc(RegExp.$1)}</h3>`;
+  if (/^## (.+)/.test(line)) return `<h2>${esc(RegExp.$1)}</h2>`;
+  if (/^# (.+)/.test(line)) return `<h1>${esc(RegExp.$1)}</h1>`;
+  if (/^[-*] (.+)/.test(line)) return `<li>${inlineMarkdown(RegExp.$1)}</li>`;
+  if (/^\d+\. (.+)/.test(line)) return `<li>${inlineMarkdown(RegExp.$1)}</li>`;
+  if (line.trim() === '') return '<br>';
+  return inlineMarkdown(line);
+}
+
+function inlineMarkdown(text) {
+  let s = esc(text);
+  s = s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  s = s.replace(/`(.+?)`/g, '<code>$1</code>');
+  return s;
+}
+
+// === STATE MUTATIONS ===
+
+function selectFinding(id) {
+  STATE.selectedId = STATE.selectedId === id ? null : id;
+  updateAll();
+}
+
+function setStatusFilter(filter) {
+  STATE.statusFilter = filter;
+  STATE.selectedId = null;
+  updateAll();
+}
+
+function setStatus(id, status) {
+  const f = STATE.findings.find(x => x.id === id);
+  if (f) f.status = status;
+  updateAll();
+  showToast(`${id} ${status}`);
+}
+
+function setComment(id, text) {
+  STATE.comments[id] = text;
+}
+
+function updateAll() {
+  renderStats();
+  renderFilters();
+  renderSpec();
+  renderFindings();
+  updatePromptPanel();
+}
+
+// === PROMPT GENERATION ===
+
+function updatePromptPanel() {
+  const approved = STATE.findings.filter(f => f.status === 'approved');
+  const panel = document.getElementById('prompt-panel');
+  const countEl = document.getElementById('approved-count');
+
+  countEl.textContent = approved.length;
+
+  if (approved.length === 0) {
+    panel.classList.add('hidden');
+    return;
+  }
+
+  panel.classList.remove('hidden');
+
+  const prompt = generatePrompt(approved);
+  document.getElementById('prompt-content').textContent = prompt;
+}
+
+function generatePrompt(approved) {
+  const lines = [`Apply these changes to the spec at: ${SPEC_CONTENT.path}\n`];
+
+  approved.forEach((f, i) => {
+    lines.push(`${i + 1}. ${f.title}`);
+    lines.push(`   Location: ${f.location}`);
+    if (f.currentText && f.proposedText) {
+      lines.push(`   Change: "${f.currentText}" \u2192 "${f.proposedText}"`);
+    } else if (f.proposedText) {
+      lines.push(`   Add: "${f.proposedText}"`);
+    } else {
+      lines.push(`   Issue: ${f.issue}`);
+    }
+    const comment = STATE.comments[f.id];
+    if (comment) {
+      lines.push(`   Note: ${comment}`);
+    }
+    lines.push('');
+  });
+
+  return lines.join('\n');
+}
+
+function copyPrompt() {
+  const approved = STATE.findings.filter(f => f.status === 'approved');
+  const prompt = generatePrompt(approved);
+  navigator.clipboard.writeText(prompt).then(() => {
+    showToast('Prompt copied to clipboard');
+  }).catch(() => {
+    const el = document.getElementById('prompt-content');
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    window.getSelection().removeAllRanges();
+    window.getSelection().addRange(range);
+    showToast('Select All applied -- press Cmd/Ctrl+C');
+  });
+}
+
+function downloadSpec() {
+  const content = SPEC_CONTENT.content || '';
+  let modified = content;
+
+  const approved = STATE.findings.filter(f => f.status === 'approved' && f.currentText && f.proposedText);
+  approved.forEach(f => {
+    modified = modified.replace(f.currentText, f.proposedText);
+  });
+
+  const blob = new Blob([modified], { type: 'text/markdown' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const baseName = (SPEC_CONTENT.path || 'spec').split('/').pop().replace(/\.md$/, '');
+  a.download = `${baseName}.modified.md`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('Modified spec downloaded');
+}
+
+// === HELPERS ===
+
+function esc(str) {
+  if (!str) return '';
+  const d = document.createElement('div');
+  d.textContent = String(str);
+  return d.innerHTML;
+}
+
+function escapeAttr(str) {
+  return esc(str).replace(/"/g, '&quot;');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+// === SEVERITY FILTER ===
+document.getElementById('severity-filter').addEventListener('change', function() {
+  STATE.severityFilter = this.value;
+  STATE.selectedId = null;
+  updateAll();
+});
+
+// === INIT ===
+init();
+<\/script>
+</body>
+</html>

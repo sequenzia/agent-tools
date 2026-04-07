@@ -1,5 +1,5 @@
 import { useEffect, useRef, useCallback, useState } from "react";
-import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+import { ws } from "../services/api-client";
 import { useSessionStore } from "../stores/session-store";
 import type { SessionChangeEvent } from "../services/session-service";
 import {
@@ -9,9 +9,6 @@ import {
   type ProgressData,
   type ExecutionPlanData,
 } from "../services/progress-parser";
-
-/** IPC event name emitted by the Rust session watcher. */
-const EVENT_SESSION_CHANGE = "session-change";
 
 /** Polling interval in ms for refreshing progress data when session is active. */
 const POLL_INTERVAL_MS = 2000;
@@ -143,33 +140,26 @@ export function useWaveProgress(
     }
   }, []);
 
-  // Listen for session-change events from the Rust watcher.
+  // Listen for session-change events via WebSocket.
   useEffect(() => {
     if (!projectPath) return;
 
     mountedRef.current = true;
-    let unlisten: UnlistenFn | null = null;
 
-    const setup = async () => {
-      unlisten = await listen<SessionChangeEvent>(
-        EVENT_SESSION_CHANGE,
-        (event) => {
-          if (!mountedRef.current) return;
-          if (event.payload.project_path !== projectPath) return;
+    const unsub = ws.on<SessionChangeEvent>(
+      "session-change",
+      (payload) => {
+        if (!mountedRef.current) return;
+        if (payload.project_path !== projectPath) return;
 
-          const newStatus = event.payload.status;
-          updateSessionStatus(newStatus);
-        },
-      );
-    };
-
-    setup();
+        const newStatus = payload.status;
+        updateSessionStatus(newStatus);
+      },
+    );
 
     return () => {
       mountedRef.current = false;
-      if (unlisten) {
-        unlisten();
-      }
+      unsub();
     };
   }, [projectPath, updateSessionStatus]);
 

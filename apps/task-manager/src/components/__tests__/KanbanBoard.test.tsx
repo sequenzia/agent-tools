@@ -14,13 +14,14 @@ import { useTaskStore } from "../../stores/task-store";
 import { useProjectStore } from "../../stores/project-store";
 import type { TasksByStatus, TaskWithPath } from "../../services/task-service";
 
-// Mock @tauri-apps/api/core
-vi.mock("@tauri-apps/api/core", () => ({
-  invoke: vi.fn(),
+// Mock api-client
+vi.mock("../../services/api-client", () => ({
+  api: { get: vi.fn(), post: vi.fn(), put: vi.fn(), delete: vi.fn() },
+  ws: { on: vi.fn(() => vi.fn()), send: vi.fn(), connected: vi.fn(() => true), close: vi.fn() },
 }));
 
-import { invoke } from "@tauri-apps/api/core";
-const mockInvoke = vi.mocked(invoke);
+import { api } from "../../services/api-client";
+const mockGet = vi.mocked(api.get);
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -284,7 +285,7 @@ describe("deriveBoardTasks", () => {
 describe("KanbanBoard", () => {
   describe("column rendering", () => {
     it("displays all 6 columns", async () => {
-      mockInvoke.mockResolvedValueOnce({
+      mockGet.mockResolvedValueOnce({
         backlog: [makeTaskResult(1, "Backlog task", "backlog")],
         pending: [],
         in_progress: [],
@@ -303,7 +304,7 @@ describe("KanbanBoard", () => {
     });
 
     it("shows column headers with labels", async () => {
-      mockInvoke.mockResolvedValueOnce({
+      mockGet.mockResolvedValueOnce({
         backlog: [makeTaskResult(1, "Task A", "backlog")],
         pending: [],
         in_progress: [],
@@ -322,7 +323,7 @@ describe("KanbanBoard", () => {
     });
 
     it("shows task count in column headers", async () => {
-      mockInvoke.mockResolvedValueOnce({
+      mockGet.mockResolvedValueOnce({
         backlog: [
           makeTaskResult(1, "Task A", "backlog"),
           makeTaskResult(2, "Task B", "backlog"),
@@ -347,7 +348,7 @@ describe("KanbanBoard", () => {
 
   describe("derived states", () => {
     it("places blocked tasks in the Blocked column", async () => {
-      mockInvoke.mockResolvedValueOnce({
+      mockGet.mockResolvedValueOnce({
         backlog: [],
         pending: [
           makeTaskResult(2, "Blocked task", "pending", {
@@ -369,7 +370,7 @@ describe("KanbanBoard", () => {
     });
 
     it("places failed tasks in the Failed column", async () => {
-      mockInvoke.mockResolvedValueOnce({
+      mockGet.mockResolvedValueOnce({
         backlog: [],
         pending: [
           makeTaskResult(1, "Failed task", "pending", {
@@ -391,7 +392,7 @@ describe("KanbanBoard", () => {
     });
 
     it("keeps unblocked pending tasks in the Pending column", async () => {
-      mockInvoke.mockResolvedValueOnce({
+      mockGet.mockResolvedValueOnce({
         backlog: [],
         pending: [
           makeTaskResult(1, "Normal pending", "pending"),
@@ -417,7 +418,7 @@ describe("KanbanBoard", () => {
 
   describe("empty state and overflow", () => {
     it("shows empty placeholder in columns with no tasks", async () => {
-      mockInvoke.mockResolvedValueOnce({
+      mockGet.mockResolvedValueOnce({
         backlog: [makeTaskResult(1, "Only backlog", "backlog")],
         pending: [],
         in_progress: [],
@@ -442,7 +443,7 @@ describe("KanbanBoard", () => {
     });
 
     it("displays empty board state when no tasks exist", async () => {
-      mockInvoke.mockResolvedValueOnce({
+      mockGet.mockResolvedValueOnce({
         backlog: [],
         pending: [],
         in_progress: [],
@@ -461,7 +462,7 @@ describe("KanbanBoard", () => {
         makeTaskResult(i + 1, `Task ${i + 1}`, "pending"),
       );
 
-      mockInvoke.mockResolvedValueOnce({
+      mockGet.mockResolvedValueOnce({
         backlog: [],
         pending: manyTasks,
         in_progress: [],
@@ -491,7 +492,7 @@ describe("KanbanBoard", () => {
 
   describe("loading and error states", () => {
     it("shows loading spinner while tasks are being fetched", () => {
-      mockInvoke.mockReturnValue(new Promise(() => {}));
+      mockGet.mockReturnValue(new Promise(() => {}));
 
       render(<KanbanBoard projectPath="/test/project" />);
 
@@ -500,7 +501,7 @@ describe("KanbanBoard", () => {
     });
 
     it("displays error state when IPC call fails", async () => {
-      mockInvoke.mockRejectedValueOnce("Backend connection lost");
+      mockGet.mockRejectedValueOnce("Backend connection lost");
 
       render(<KanbanBoard projectPath="/test/project" />);
 
@@ -514,7 +515,7 @@ describe("KanbanBoard", () => {
 
   describe("store reactivity", () => {
     it("updates board when task store changes", async () => {
-      mockInvoke.mockResolvedValueOnce({
+      mockGet.mockResolvedValueOnce({
         backlog: [makeTaskResult(1, "Initial task", "backlog")],
         pending: [],
         in_progress: [],
@@ -528,7 +529,7 @@ describe("KanbanBoard", () => {
       });
 
       // Simulate store update (e.g., from file watcher)
-      mockInvoke.mockResolvedValueOnce({
+      mockGet.mockResolvedValueOnce({
         backlog: [makeTaskResult(1, "Initial task", "backlog")],
         pending: [makeTaskResult(2, "New task", "pending")],
         in_progress: [],
@@ -546,7 +547,7 @@ describe("KanbanBoard", () => {
 
   describe("task card content", () => {
     it("renders task card with priority, complexity, and dependency count", async () => {
-      mockInvoke.mockResolvedValueOnce({
+      mockGet.mockResolvedValueOnce({
         backlog: [],
         pending: [
           makeTaskResult(1, "Full card", "pending", {
@@ -573,7 +574,7 @@ describe("KanbanBoard", () => {
     });
 
     it("renders task card with single dependency count", async () => {
-      mockInvoke.mockResolvedValueOnce({
+      mockGet.mockResolvedValueOnce({
         backlog: [],
         pending: [
           makeTaskResult(1, "Single dep", "pending", {
@@ -596,7 +597,7 @@ describe("KanbanBoard", () => {
 
   describe("task group filtering", () => {
     it("shows all tasks when no filter is active", async () => {
-      mockInvoke.mockResolvedValueOnce({
+      mockGet.mockResolvedValueOnce({
         backlog: [],
         pending: [
           makeTaskResult(1, "Auth task", "pending", {
@@ -624,7 +625,7 @@ describe("KanbanBoard", () => {
         activeTaskGroups: new Set(["auth"]),
       });
 
-      mockInvoke.mockResolvedValueOnce({
+      mockGet.mockResolvedValueOnce({
         backlog: [],
         pending: [
           makeTaskResult(1, "Auth task", "pending", {
@@ -652,7 +653,7 @@ describe("KanbanBoard", () => {
         activeTaskGroups: new Set(["auth", "payments"]),
       });
 
-      mockInvoke.mockResolvedValueOnce({
+      mockGet.mockResolvedValueOnce({
         backlog: [],
         pending: [
           makeTaskResult(1, "Auth task", "pending", {
@@ -684,7 +685,7 @@ describe("KanbanBoard", () => {
         activeTaskGroups: new Set(["auth"]),
       });
 
-      mockInvoke.mockResolvedValueOnce({
+      mockGet.mockResolvedValueOnce({
         backlog: [
           makeTaskResult(1, "Auth backlog", "backlog", {
             metadata: { task_group: "auth" },
@@ -714,7 +715,7 @@ describe("KanbanBoard", () => {
     });
 
     it("shows board filter bar with available groups", async () => {
-      mockInvoke.mockResolvedValueOnce({
+      mockGet.mockResolvedValueOnce({
         backlog: [],
         pending: [
           makeTaskResult(1, "Auth task", "pending", {
@@ -740,7 +741,7 @@ describe("KanbanBoard", () => {
     });
 
     it("does not show filter bar when no groups exist", async () => {
-      mockInvoke.mockResolvedValueOnce({
+      mockGet.mockResolvedValueOnce({
         backlog: [makeTaskResult(1, "Plain task", "backlog")],
         pending: [],
         in_progress: [],

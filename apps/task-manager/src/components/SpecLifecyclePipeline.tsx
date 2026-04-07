@@ -281,47 +281,35 @@ export function SpecLifecyclePipeline({
   // Listen for file watcher events to refresh lifecycle state
   useEffect(() => {
     let cancelled = false;
+    const unsubs: (() => void)[] = [];
 
-    async function setupListener() {
-      try {
-        const { listen } = await import("@tauri-apps/api/event");
+    import("../services/api-client").then(({ ws }) => {
+      if (cancelled) return;
 
-        const unlistenTask = await listen<{ project_path: string }>(
-          "task-file-change",
-          (event) => {
-            if (!cancelled && event.payload.project_path === projectPath) {
-              fetchLifecycle();
-            }
-          },
-        );
+      unsubs.push(
+        ws.on("task-file-change", (payload: { project_path: string }) => {
+          if (!cancelled && payload.project_path === projectPath) {
+            fetchLifecycle();
+          }
+        }),
+      );
 
-        const unlistenSession = await listen<{ project_path: string }>(
-          "session-change",
-          (event) => {
-            if (!cancelled && event.payload.project_path === projectPath) {
-              fetchLifecycle();
-            }
-          },
-        );
-
-        return () => {
-          cancelled = true;
-          unlistenTask();
-          unlistenSession();
-        };
-      } catch {
-        // Event API not available (e.g., in tests)
-        return () => {
-          cancelled = true;
-        };
-      }
-    }
-
-    const cleanupPromise = setupListener();
+      unsubs.push(
+        ws.on("session-change", (payload: { project_path: string }) => {
+          if (!cancelled && payload.project_path === projectPath) {
+            fetchLifecycle();
+          }
+        }),
+      );
+    }).catch(() => {
+      // API not available (e.g., in tests)
+    });
 
     return () => {
       cancelled = true;
-      cleanupPromise.then((cleanup) => cleanup?.());
+      for (const unsub of unsubs) {
+        unsub();
+      }
     };
   }, [projectPath, fetchLifecycle]);
 

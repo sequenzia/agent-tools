@@ -1,7 +1,14 @@
-import { invoke } from "@tauri-apps/api/core";
+/**
+ * Project directory service — replaces Tauri native dialog and plugin-store.
+ *
+ * Uses the Node.js backend API for validation and persistence.
+ * The native directory picker is replaced by a text input in the UI.
+ */
+
+import { api } from "./api-client";
 
 /**
- * Result returned when a project directory is selected or validated.
+ * Result returned when a project directory is validated.
  */
 export interface ProjectDirectoryResult {
   path: string;
@@ -18,28 +25,20 @@ export interface SavedProjectDirectory {
 }
 
 /**
- * Open a native directory picker dialog.
- * Returns the selected directory info, or null if the user cancels.
- */
-export async function selectProjectDirectory(): Promise<ProjectDirectoryResult | null> {
-  return invoke<ProjectDirectoryResult | null>("select_project_directory");
-}
-
-/**
  * Validate a directory path: checks existence, permissions, and .agents/tasks/ presence.
  * Throws an error string on permission denied or non-existent path.
  */
 export async function validateProjectDirectory(
   path: string,
 ): Promise<ProjectDirectoryResult> {
-  return invoke<ProjectDirectoryResult>("validate_project_directory", { path });
+  return api.post<ProjectDirectoryResult>("/api/projects/validate", { path });
 }
 
 /**
  * Save a project directory path to persistent storage.
  */
 export async function saveProjectPath(path: string): Promise<void> {
-  return invoke<void>("save_project_path", { path });
+  await api.post("/api/projects/save", { path });
 }
 
 /**
@@ -47,27 +46,25 @@ export async function saveProjectPath(path: string): Promise<void> {
  * If the saved directory no longer exists, the saved path is cleared automatically.
  */
 export async function getSavedProjectPath(): Promise<SavedProjectDirectory> {
-  return invoke<SavedProjectDirectory>("get_saved_project_path");
+  return api.get<SavedProjectDirectory>("/api/projects/saved");
 }
 
 /**
  * Clear the saved project directory path from persistent storage.
  */
 export async function clearSavedProjectPath(): Promise<void> {
-  return invoke<void>("clear_saved_project_path");
+  await api.delete("/api/projects/saved");
 }
 
 /**
- * Select a project directory via the native dialog, validate it, and persist it.
- * Returns null if the user cancels. Shows a warning via callback if no .agents/tasks/ found.
+ * Validate and save a project directory.
+ * Returns the validation result, or null if validation fails.
  */
-export async function selectAndSaveProjectDirectory(
+export async function validateAndSaveProjectDirectory(
+  dirPath: string,
   onNoTasksDir?: (path: string) => void,
 ): Promise<ProjectDirectoryResult | null> {
-  const result = await selectProjectDirectory();
-  if (!result) {
-    return null;
-  }
+  const result = await validateProjectDirectory(dirPath);
 
   if (!result.has_tasks_dir && onNoTasksDir) {
     onNoTasksDir(result.path);

@@ -1,4 +1,4 @@
-import { invoke } from "@tauri-apps/api/core";
+import { api } from "./api-client";
 import type { SessionFileResult } from "./session-service";
 import { readSessionFile } from "./session-service";
 
@@ -157,7 +157,7 @@ export function parseResultContent(
 export async function listResultFiles(
   projectPath: string,
 ): Promise<string[]> {
-  return invoke<string[]>("list_result_files", { projectPath });
+  return api.get<string[]>("/api/sessions/results", { projectPath });
 }
 
 /**

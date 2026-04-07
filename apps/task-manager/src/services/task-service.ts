@@ -1,4 +1,4 @@
-import { invoke } from "@tauri-apps/api/core";
+import { api } from "./api-client";
 import { TaskSchema, type Task, type TaskStatus } from "../types";
 
 /**
@@ -111,7 +111,7 @@ function isTaskWithPath(
  * @throws If the IPC call itself fails (e.g., Tauri backend not available).
  */
 export async function loadTasks(projectPath: string): Promise<TasksByStatus> {
-  const raw = await invoke<TasksByStatusRaw>("read_tasks", {
+  const raw = await api.get<TasksByStatusRaw>("/api/tasks", {
     projectPath,
   });
 
@@ -182,11 +182,11 @@ export async function moveTask(
   lastReadMtimeMs?: number,
 ): Promise<WriteResult> {
   try {
-    const result = await invoke<{
+    const result = await api.post<{
       task: Record<string, unknown>;
       file_path: string;
       mtime_ms: number;
-    }>("move_task", {
+    }>("/api/tasks/move", {
       filePath,
       newStatus,
       lastReadMtimeMs: lastReadMtimeMs ?? null,
@@ -222,10 +222,10 @@ export async function updateTaskFields(
   lastReadMtimeMs?: number,
 ): Promise<WriteResult> {
   try {
-    const result = await invoke<{
+    const result = await api.post<{
       task: Record<string, unknown>;
       mtime_ms: number;
-    }>("update_task_fields", {
+    }>("/api/tasks/update", {
       filePath,
       fields,
       lastReadMtimeMs: lastReadMtimeMs ?? null,

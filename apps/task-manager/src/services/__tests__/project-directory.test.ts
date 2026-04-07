@@ -1,61 +1,43 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
-  selectProjectDirectory,
   validateProjectDirectory,
   saveProjectPath,
   getSavedProjectPath,
   clearSavedProjectPath,
-  selectAndSaveProjectDirectory,
+  validateAndSaveProjectDirectory,
   loadProjectOnStartup,
 } from "../project-directory";
 
-// Mock @tauri-apps/api/core
-vi.mock("@tauri-apps/api/core", () => ({
-  invoke: vi.fn(),
+// Mock api-client
+vi.mock("../api-client", () => ({
+  api: { get: vi.fn(), post: vi.fn(), put: vi.fn(), delete: vi.fn() },
+  ws: { on: vi.fn(() => vi.fn()), send: vi.fn(), connected: vi.fn(() => true), close: vi.fn() },
 }));
 
-import { invoke } from "@tauri-apps/api/core";
-const mockInvoke = vi.mocked(invoke);
+import { api } from "../api-client";
+const mockGet = vi.mocked(api.get);
+const mockPost = vi.mocked(api.post);
+const mockDelete = vi.mocked(api.delete);
 
 beforeEach(() => {
   vi.clearAllMocks();
 });
 
-describe("selectProjectDirectory", () => {
-  it("returns directory info when user selects a folder", async () => {
-    const mockResult = { path: "/Users/test/project", has_tasks_dir: true };
-    mockInvoke.mockResolvedValueOnce(mockResult);
-
-    const result = await selectProjectDirectory();
-
-    expect(mockInvoke).toHaveBeenCalledWith("select_project_directory");
-    expect(result).toEqual(mockResult);
-  });
-
-  it("returns null when user cancels the dialog", async () => {
-    mockInvoke.mockResolvedValueOnce(null);
-
-    const result = await selectProjectDirectory();
-
-    expect(result).toBeNull();
-  });
-});
-
 describe("validateProjectDirectory", () => {
   it("returns validation result for a valid directory", async () => {
     const mockResult = { path: "/Users/test/project", has_tasks_dir: true };
-    mockInvoke.mockResolvedValueOnce(mockResult);
+    mockPost.mockResolvedValueOnce(mockResult);
 
     const result = await validateProjectDirectory("/Users/test/project");
 
-    expect(mockInvoke).toHaveBeenCalledWith("validate_project_directory", {
+    expect(mockPost).toHaveBeenCalledWith("/api/projects/validate", {
       path: "/Users/test/project",
     });
     expect(result).toEqual(mockResult);
   });
 
   it("throws error for non-existent directory", async () => {
-    mockInvoke.mockRejectedValueOnce("Directory does not exist: /nonexistent");
+    mockPost.mockRejectedValueOnce("Directory does not exist: /nonexistent");
 
     await expect(validateProjectDirectory("/nonexistent")).rejects.toBe(
       "Directory does not exist: /nonexistent",
@@ -63,7 +45,7 @@ describe("validateProjectDirectory", () => {
   });
 
   it("throws error for permission denied", async () => {
-    mockInvoke.mockRejectedValueOnce(
+    mockPost.mockRejectedValueOnce(
       "Permission denied on directory /restricted: Permission denied (os error 13)",
     );
 
@@ -74,12 +56,12 @@ describe("validateProjectDirectory", () => {
 });
 
 describe("saveProjectPath", () => {
-  it("calls invoke with the correct path", async () => {
-    mockInvoke.mockResolvedValueOnce(undefined);
+  it("calls api with the correct path", async () => {
+    mockPost.mockResolvedValueOnce(undefined);
 
     await saveProjectPath("/Users/test/project");
 
-    expect(mockInvoke).toHaveBeenCalledWith("save_project_path", {
+    expect(mockPost).toHaveBeenCalledWith("/api/projects/save", {
       path: "/Users/test/project",
     });
   });
@@ -92,17 +74,17 @@ describe("getSavedProjectPath", () => {
       exists: true,
       has_tasks_dir: true,
     };
-    mockInvoke.mockResolvedValueOnce(mockResult);
+    mockGet.mockResolvedValueOnce(mockResult);
 
     const result = await getSavedProjectPath();
 
-    expect(mockInvoke).toHaveBeenCalledWith("get_saved_project_path");
+    expect(mockGet).toHaveBeenCalledWith("/api/projects/saved");
     expect(result).toEqual(mockResult);
   });
 
   it("returns null path when nothing is saved", async () => {
     const mockResult = { path: null, exists: false, has_tasks_dir: false };
-    mockInvoke.mockResolvedValueOnce(mockResult);
+    mockGet.mockResolvedValueOnce(mockResult);
 
     const result = await getSavedProjectPath();
 
@@ -115,7 +97,7 @@ describe("getSavedProjectPath", () => {
       exists: false,
       has_tasks_dir: false,
     };
-    mockInvoke.mockResolvedValueOnce(mockResult);
+    mockGet.mockResolvedValueOnce(mockResult);
 
     const result = await getSavedProjectPath();
 
@@ -125,71 +107,63 @@ describe("getSavedProjectPath", () => {
 });
 
 describe("clearSavedProjectPath", () => {
-  it("calls invoke to clear the path", async () => {
-    mockInvoke.mockResolvedValueOnce(undefined);
+  it("calls api to clear the path", async () => {
+    mockDelete.mockResolvedValueOnce(undefined);
 
     await clearSavedProjectPath();
 
-    expect(mockInvoke).toHaveBeenCalledWith("clear_saved_project_path");
+    expect(mockDelete).toHaveBeenCalledWith("/api/projects/saved");
   });
 });
 
-describe("selectAndSaveProjectDirectory", () => {
-  it("selects, validates, and saves the directory", async () => {
-    const selectResult = {
+describe("validateAndSaveProjectDirectory", () => {
+  it("validates and saves the directory", async () => {
+    const validateResult = {
       path: "/Users/test/project",
       has_tasks_dir: true,
     };
-    mockInvoke
-      .mockResolvedValueOnce(selectResult) // select_project_directory
+    mockPost
+      .mockResolvedValueOnce(validateResult) // validate_project_directory
       .mockResolvedValueOnce(undefined); // save_project_path
 
-    const result = await selectAndSaveProjectDirectory();
+    const result = await validateAndSaveProjectDirectory("/Users/test/project");
 
-    expect(result).toEqual(selectResult);
-    expect(mockInvoke).toHaveBeenCalledWith("select_project_directory");
-    expect(mockInvoke).toHaveBeenCalledWith("save_project_path", {
+    expect(result).toEqual(validateResult);
+    expect(mockPost).toHaveBeenCalledWith("/api/projects/validate", {
+      path: "/Users/test/project",
+    });
+    expect(mockPost).toHaveBeenCalledWith("/api/projects/save", {
       path: "/Users/test/project",
     });
   });
 
-  it("returns null when user cancels - no state change", async () => {
-    mockInvoke.mockResolvedValueOnce(null); // select returns null
-
-    const result = await selectAndSaveProjectDirectory();
-
-    expect(result).toBeNull();
-    // save_project_path should NOT have been called
-    expect(mockInvoke).toHaveBeenCalledTimes(1);
-  });
-
   it("calls onNoTasksDir callback when .agents/tasks/ is missing", async () => {
-    const selectResult = {
+    const validateResult = {
       path: "/Users/test/no-tasks",
       has_tasks_dir: false,
     };
-    mockInvoke
-      .mockResolvedValueOnce(selectResult)
+    mockPost
+      .mockResolvedValueOnce(validateResult)
       .mockResolvedValueOnce(undefined);
 
     const onNoTasksDir = vi.fn();
-    const result = await selectAndSaveProjectDirectory(onNoTasksDir);
+    const result = await validateAndSaveProjectDirectory("/Users/test/no-tasks", onNoTasksDir);
 
-    expect(result).toEqual(selectResult);
+    expect(result).toEqual(validateResult);
     expect(onNoTasksDir).toHaveBeenCalledWith("/Users/test/no-tasks");
   });
 
   it("does not call onNoTasksDir when .agents/tasks/ exists", async () => {
-    const selectResult = {
+    const validateResult = {
       path: "/Users/test/project",
       has_tasks_dir: true,
     };
-    mockInvoke
-      .mockResolvedValueOnce(selectResult)
+    mockPost
+      .mockResolvedValueOnce(validateResult)
       .mockResolvedValueOnce(undefined);
 
     const onNoTasksDir = vi.fn();
-    await selectAndSaveProjectDirectory(onNoTasksDir);
+    await validateAndSaveProjectDirectory("/Users/test/project", onNoTasksDir);
 
     expect(onNoTasksDir).not.toHaveBeenCalled();
   });
@@ -197,7 +171,7 @@ describe("selectAndSaveProjectDirectory", () => {
 
 describe("loadProjectOnStartup", () => {
   it("returns project info when saved path exists and is valid", async () => {
-    mockInvoke.mockResolvedValueOnce({
+    mockGet.mockResolvedValueOnce({
       path: "/Users/test/project",
       exists: true,
       has_tasks_dir: true,
@@ -212,7 +186,7 @@ describe("loadProjectOnStartup", () => {
   });
 
   it("returns null when no saved path exists", async () => {
-    mockInvoke.mockResolvedValueOnce({
+    mockGet.mockResolvedValueOnce({
       path: null,
       exists: false,
       has_tasks_dir: false,
@@ -224,7 +198,7 @@ describe("loadProjectOnStartup", () => {
   });
 
   it("returns null when saved directory no longer exists", async () => {
-    mockInvoke.mockResolvedValueOnce({
+    mockGet.mockResolvedValueOnce({
       path: "/Users/test/deleted",
       exists: false,
       has_tasks_dir: false,
@@ -236,7 +210,7 @@ describe("loadProjectOnStartup", () => {
   });
 
   it("returns project with has_tasks_dir=false when dir exists but no .agents/tasks/", async () => {
-    mockInvoke.mockResolvedValueOnce({
+    mockGet.mockResolvedValueOnce({
       path: "/Users/test/empty-project",
       exists: true,
       has_tasks_dir: false,

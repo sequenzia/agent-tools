@@ -8,18 +8,14 @@ import { useTaskStore } from "../../stores/task-store";
 import { useProjectStore, type ProjectEntry } from "../../stores/project-store";
 import type { TasksByStatus, TaskWithPath } from "../../services/task-service";
 
-// Mock @tauri-apps/api/core
-vi.mock("@tauri-apps/api/core", () => ({
-  invoke: vi.fn(),
+// Mock api-client
+vi.mock("../../services/api-client", () => ({
+  api: { get: vi.fn(), post: vi.fn(), put: vi.fn(), delete: vi.fn() },
+  ws: { on: vi.fn(() => vi.fn()), send: vi.fn(), connected: vi.fn(() => true), close: vi.fn() },
 }));
 
-// Mock @tauri-apps/api/event
-vi.mock("@tauri-apps/api/event", () => ({
-  listen: vi.fn(() => Promise.resolve(() => {})),
-}));
-
-import { invoke } from "@tauri-apps/api/core";
-const mockInvoke = vi.mocked(invoke);
+import { api } from "../../services/api-client";
+const mockGet = vi.mocked(api.get);
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -90,8 +86,8 @@ function makeTasksByStatus(overrides?: Partial<TasksByStatus>): TasksByStatus {
   };
 }
 
-function mockInvokeWithTasks(tasks: Record<string, unknown[]>) {
-  mockInvoke.mockResolvedValueOnce({
+function mockGetWithTasks(tasks: Record<string, unknown[]>) {
+  mockGet.mockResolvedValueOnce({
     backlog: [],
     pending: [],
     in_progress: [],
@@ -104,7 +100,7 @@ function mockInvokeWithTasks(tasks: Record<string, unknown[]>) {
 
 describe("Screen Reader Labels", () => {
   it("renders aria-label on kanban board grid", async () => {
-    mockInvokeWithTasks({
+    mockGetWithTasks({
       pending: [makeTaskResult(1, "Task 1", "pending")],
     });
     render(
@@ -121,7 +117,7 @@ describe("Screen Reader Labels", () => {
   });
 
   it("renders aria-label on task cards", async () => {
-    mockInvokeWithTasks({
+    mockGetWithTasks({
       pending: [makeTaskResult(1, "My Task", "pending")],
     });
     render(
@@ -138,7 +134,7 @@ describe("Screen Reader Labels", () => {
   });
 
   it("renders aria-label on columns with task counts", async () => {
-    mockInvokeWithTasks({
+    mockGetWithTasks({
       pending: [
         makeTaskResult(1, "Task 1", "pending"),
         makeTaskResult(2, "Task 2", "pending"),
@@ -176,7 +172,7 @@ describe("Screen Reader Labels", () => {
 
 describe("ARIA Roles and Attributes", () => {
   it("renders filter bar with toolbar role", async () => {
-    mockInvokeWithTasks({
+    mockGetWithTasks({
       pending: [
         makeTaskResult(1, "Task 1", "pending", { metadata: { task_group: "auth" } }),
       ],
@@ -195,7 +191,7 @@ describe("ARIA Roles and Attributes", () => {
   });
 
   it("renders filter buttons with aria-pressed", async () => {
-    mockInvokeWithTasks({
+    mockGetWithTasks({
       pending: [
         makeTaskResult(1, "Task 1", "pending", { metadata: { task_group: "auth" } }),
       ],
@@ -268,7 +264,7 @@ describe("Focus Management - TaskDetailPanel", () => {
 
 describe("Dual State Indicators", () => {
   it("renders column headers with both color dot and SVG icon", async () => {
-    mockInvokeWithTasks({
+    mockGetWithTasks({
       pending: [makeTaskResult(1, "Task 1", "pending")],
     });
     render(
@@ -471,7 +467,7 @@ describe("Project Sidebar Accessibility", () => {
 
 describe("Fallback Labels", () => {
   it("provides aria-label when task title is empty", async () => {
-    mockInvokeWithTasks({
+    mockGetWithTasks({
       pending: [makeTaskResult(1, "", "pending")],
     });
     render(
@@ -501,7 +497,7 @@ describe("Fallback Labels", () => {
   });
 
   it("column renders with aria-label even when empty", async () => {
-    mockInvokeWithTasks({
+    mockGetWithTasks({
       pending: [makeTaskResult(1, "Task 1", "pending")],
     });
     render(

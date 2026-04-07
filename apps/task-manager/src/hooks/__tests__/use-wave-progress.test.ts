@@ -3,19 +3,23 @@ import { renderHook, act } from "@testing-library/react";
 import { useWaveProgress } from "../use-wave-progress";
 import { useSessionStore } from "../../stores/session-store";
 
-// --- Mock @tauri-apps/api/event ---
+// --- Mock api-client ---
 
-type ListenerCallback = (event: { payload: unknown }) => void;
+type ListenerCallback = (payload: unknown) => void;
 const listeners: Map<string, ListenerCallback> = new Map();
 const mockUnlisten = vi.fn();
 
-vi.mock("@tauri-apps/api/event", () => ({
-  listen: vi.fn(
-    async (eventName: string, callback: ListenerCallback) => {
+vi.mock("../../services/api-client", () => ({
+  api: { get: vi.fn(), post: vi.fn(), put: vi.fn(), delete: vi.fn() },
+  ws: {
+    on: vi.fn((eventName: string, callback: ListenerCallback) => {
       listeners.set(eventName, callback);
       return mockUnlisten;
-    },
-  ),
+    }),
+    send: vi.fn(),
+    connected: vi.fn(() => true),
+    close: vi.fn(),
+  },
 }));
 
 // --- Mock session service ---
@@ -153,11 +157,9 @@ Updated: 2026-04-06T14:00:00Z
       // Emit event for a different project
       act(() => {
         listener!({
-          payload: {
-            status: "active",
-            project_path: "/other-project",
-            session_path: "/other-project/.agents/sessions/__live_session__",
-          },
+          status: "active",
+          project_path: "/other-project",
+          session_path: "/other-project/.agents/sessions/__live_session__",
         });
       });
 

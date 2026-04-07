@@ -3,13 +3,14 @@ import { render, screen, waitFor, cleanup } from "@testing-library/react";
 import { TaskList } from "../TaskList";
 import { useTaskStore } from "../../stores/task-store";
 
-// Mock @tauri-apps/api/core
-vi.mock("@tauri-apps/api/core", () => ({
-  invoke: vi.fn(),
+// Mock api-client
+vi.mock("../../services/api-client", () => ({
+  api: { get: vi.fn(), post: vi.fn(), put: vi.fn(), delete: vi.fn() },
+  ws: { on: vi.fn(() => vi.fn()), send: vi.fn(), connected: vi.fn(() => true), close: vi.fn() },
 }));
 
-import { invoke } from "@tauri-apps/api/core";
-const mockInvoke = vi.mocked(invoke);
+import { api } from "../../services/api-client";
+const mockGet = vi.mocked(api.get);
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -50,7 +51,7 @@ describe("TaskList", () => {
   describe("loading state", () => {
     it("shows loading spinner while tasks are being fetched", () => {
       // Make invoke hang so loading state persists
-      mockInvoke.mockReturnValue(new Promise(() => {}));
+      mockGet.mockReturnValue(new Promise(() => {}));
 
       render(<TaskList projectPath="/test/project" />);
 
@@ -61,7 +62,7 @@ describe("TaskList", () => {
 
   describe("empty state", () => {
     it("displays empty state when no tasks exist", async () => {
-      mockInvoke.mockResolvedValueOnce({
+      mockGet.mockResolvedValueOnce({
         backlog: [],
         pending: [],
         in_progress: [],
@@ -76,7 +77,7 @@ describe("TaskList", () => {
     });
 
     it("displays guidance text in empty state", async () => {
-      mockInvoke.mockResolvedValueOnce({
+      mockGet.mockResolvedValueOnce({
         backlog: [],
         pending: [],
         in_progress: [],
@@ -97,7 +98,7 @@ describe("TaskList", () => {
 
   describe("task card rendering", () => {
     it("renders task cards with title, status, priority, and complexity", async () => {
-      mockInvoke.mockResolvedValueOnce({
+      mockGet.mockResolvedValueOnce({
         backlog: [],
         pending: [
           makeTaskResult(1, "Build login page", "pending", {
@@ -127,7 +128,7 @@ describe("TaskList", () => {
     });
 
     it("renders task cards without optional priority and complexity", async () => {
-      mockInvoke.mockResolvedValueOnce({
+      mockGet.mockResolvedValueOnce({
         backlog: [
           makeTaskResult(5, "Minimal task", "backlog"),
         ],
@@ -153,7 +154,7 @@ describe("TaskList", () => {
 
   describe("status grouping", () => {
     it("groups tasks by status with section headers", async () => {
-      mockInvoke.mockResolvedValueOnce({
+      mockGet.mockResolvedValueOnce({
         backlog: [makeTaskResult(1, "Backlog task", "backlog")],
         pending: [makeTaskResult(2, "Pending task", "pending")],
         in_progress: [makeTaskResult(3, "Active task", "in_progress")],
@@ -179,7 +180,7 @@ describe("TaskList", () => {
     });
 
     it("hides empty status groups", async () => {
-      mockInvoke.mockResolvedValueOnce({
+      mockGet.mockResolvedValueOnce({
         backlog: [],
         pending: [makeTaskResult(1, "Only pending", "pending")],
         in_progress: [],
@@ -199,7 +200,7 @@ describe("TaskList", () => {
     });
 
     it("shows task count for each status group", async () => {
-      mockInvoke.mockResolvedValueOnce({
+      mockGet.mockResolvedValueOnce({
         backlog: [],
         pending: [
           makeTaskResult(1, "Task A", "pending"),
@@ -223,7 +224,7 @@ describe("TaskList", () => {
 
   describe("error handling", () => {
     it("displays error state when IPC call fails", async () => {
-      mockInvoke.mockRejectedValueOnce("Backend connection lost");
+      mockGet.mockRejectedValueOnce("Backend connection lost");
 
       render(<TaskList projectPath="/test/project" />);
 
@@ -235,7 +236,7 @@ describe("TaskList", () => {
     });
 
     it("displays error state for Error objects", async () => {
-      mockInvoke.mockRejectedValueOnce(
+      mockGet.mockRejectedValueOnce(
         new Error("Network timeout"),
       );
 
@@ -251,7 +252,7 @@ describe("TaskList", () => {
 
   describe("IPC integration", () => {
     it("calls read_tasks with the project path on mount", async () => {
-      mockInvoke.mockResolvedValueOnce({
+      mockGet.mockResolvedValueOnce({
         backlog: [],
         pending: [],
         in_progress: [],
@@ -261,14 +262,14 @@ describe("TaskList", () => {
       render(<TaskList projectPath="/my/project/dir" />);
 
       await waitFor(() => {
-        expect(mockInvoke).toHaveBeenCalledWith("read_tasks", {
+        expect(mockGet).toHaveBeenCalledWith("/api/tasks", {
           projectPath: "/my/project/dir",
         });
       });
     });
 
     it("reloads tasks when project path changes", async () => {
-      mockInvoke.mockResolvedValue({
+      mockGet.mockResolvedValue({
         backlog: [],
         pending: [],
         in_progress: [],
@@ -280,7 +281,7 @@ describe("TaskList", () => {
       );
 
       await waitFor(() => {
-        expect(mockInvoke).toHaveBeenCalledWith("read_tasks", {
+        expect(mockGet).toHaveBeenCalledWith("/api/tasks", {
           projectPath: "/project/a",
         });
       });
@@ -288,7 +289,7 @@ describe("TaskList", () => {
       rerender(<TaskList projectPath="/project/b" />);
 
       await waitFor(() => {
-        expect(mockInvoke).toHaveBeenCalledWith("read_tasks", {
+        expect(mockGet).toHaveBeenCalledWith("/api/tasks", {
           projectPath: "/project/b",
         });
       });

@@ -9,13 +9,14 @@ import {
 import { SessionHistoryBrowser } from "../SessionHistoryBrowser";
 import { useSessionHistoryStore } from "../../stores/session-history-store";
 
-// Mock @tauri-apps/api/core
-vi.mock("@tauri-apps/api/core", () => ({
-  invoke: vi.fn(),
+// Mock api-client
+vi.mock("../../services/api-client", () => ({
+  api: { get: vi.fn(), post: vi.fn(), put: vi.fn(), delete: vi.fn() },
+  ws: { on: vi.fn(() => vi.fn()), send: vi.fn(), connected: vi.fn(() => true), close: vi.fn() },
 }));
 
-import { invoke } from "@tauri-apps/api/core";
-const mockInvoke = vi.mocked(invoke);
+import { api } from "../../services/api-client";
+const mockGet = vi.mocked(api.get);
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -78,7 +79,7 @@ describe("SessionHistoryBrowser", () => {
   describe("loading state", () => {
     it("shows loading spinner while sessions are being fetched", () => {
       // Make invoke hang so loading state persists
-      mockInvoke.mockReturnValue(new Promise(() => {}));
+      mockGet.mockReturnValue(new Promise(() => {}));
 
       render(<SessionHistoryBrowser projectPath="/test/project" />);
 
@@ -89,7 +90,7 @@ describe("SessionHistoryBrowser", () => {
 
   describe("empty state", () => {
     it("displays empty message when no archived sessions exist", async () => {
-      mockInvoke.mockResolvedValueOnce([]);
+      mockGet.mockResolvedValueOnce([]);
 
       render(<SessionHistoryBrowser projectPath="/test/project" />);
 
@@ -104,7 +105,7 @@ describe("SessionHistoryBrowser", () => {
 
   describe("session list rendering", () => {
     it("renders session entries with names and summary statistics", async () => {
-      mockInvoke.mockResolvedValueOnce([
+      mockGet.mockResolvedValueOnce([
         makeSession("exec-session-20260406-140000", {
           passed: 8,
           failed: 2,
@@ -135,7 +136,7 @@ describe("SessionHistoryBrowser", () => {
     });
 
     it("shows 'No summary' for sessions without summary files", async () => {
-      mockInvoke.mockResolvedValueOnce([
+      mockGet.mockResolvedValueOnce([
         makeSession("session-no-summary-20260406-100000", {
           hasSummary: false,
           files: ["execution_plan.md"],
@@ -153,7 +154,7 @@ describe("SessionHistoryBrowser", () => {
     });
 
     it("shows 'Error' badge for sessions with errors", async () => {
-      mockInvoke.mockResolvedValueOnce([
+      mockGet.mockResolvedValueOnce([
         makeSession("corrupt-session-20260406-100000", {
           error: "Failed to read session_summary.md",
           files: ["session_summary.md"],
@@ -171,7 +172,7 @@ describe("SessionHistoryBrowser", () => {
     });
 
     it("displays formatted timestamp from session name", async () => {
-      mockInvoke.mockResolvedValueOnce([
+      mockGet.mockResolvedValueOnce([
         makeSession("exec-session-20260406-140000", { passed: 1 }),
       ]);
 
@@ -195,7 +196,7 @@ describe("SessionHistoryBrowser", () => {
       ];
 
       // First call: list sessions
-      mockInvoke.mockResolvedValueOnce(sessions);
+      mockGet.mockResolvedValueOnce(sessions);
 
       render(<SessionHistoryBrowser projectPath="/test/project" />);
 
@@ -206,7 +207,7 @@ describe("SessionHistoryBrowser", () => {
       });
 
       // Next call: read session file (triggered after clicking)
-      mockInvoke.mockResolvedValueOnce({
+      mockGet.mockResolvedValueOnce({
         filename: "session_summary.md",
         content: "# Session Summary\n\nAll tasks completed.",
         error: null,
@@ -237,7 +238,7 @@ describe("SessionHistoryBrowser", () => {
       ];
 
       // First call: list sessions
-      mockInvoke.mockResolvedValueOnce(sessions);
+      mockGet.mockResolvedValueOnce(sessions);
 
       render(<SessionHistoryBrowser projectPath="/test/project" />);
 
@@ -248,7 +249,7 @@ describe("SessionHistoryBrowser", () => {
       });
 
       // Click to open detail - mock file read
-      mockInvoke.mockResolvedValueOnce({
+      mockGet.mockResolvedValueOnce({
         filename: "session_summary.md",
         content: "# Summary",
         error: null,
@@ -278,7 +279,7 @@ describe("SessionHistoryBrowser", () => {
       ];
 
       // List sessions call
-      mockInvoke.mockResolvedValueOnce(sessions);
+      mockGet.mockResolvedValueOnce(sessions);
 
       render(<SessionHistoryBrowser projectPath="/test/project" />);
 
@@ -289,7 +290,7 @@ describe("SessionHistoryBrowser", () => {
       });
 
       // Mock file read for detail view
-      mockInvoke.mockResolvedValueOnce({
+      mockGet.mockResolvedValueOnce({
         filename: "session_summary.md",
         content: "# Summary",
         error: null,
@@ -312,7 +313,7 @@ describe("SessionHistoryBrowser", () => {
 
   describe("error handling", () => {
     it("displays error state when IPC call fails", async () => {
-      mockInvoke.mockRejectedValueOnce("Backend connection lost");
+      mockGet.mockRejectedValueOnce("Backend connection lost");
 
       render(<SessionHistoryBrowser projectPath="/test/project" />);
 
@@ -332,7 +333,7 @@ describe("SessionHistoryBrowser", () => {
           passed: i,
         }),
       );
-      mockInvoke.mockResolvedValueOnce(sessions);
+      mockGet.mockResolvedValueOnce(sessions);
 
       render(<SessionHistoryBrowser projectPath="/test/project" />);
 
@@ -350,7 +351,7 @@ describe("SessionHistoryBrowser", () => {
           passed: i,
         }),
       );
-      mockInvoke.mockResolvedValueOnce(sessions);
+      mockGet.mockResolvedValueOnce(sessions);
 
       render(<SessionHistoryBrowser projectPath="/test/project" />);
 
@@ -367,7 +368,7 @@ describe("SessionHistoryBrowser", () => {
           passed: i,
         }),
       );
-      mockInvoke.mockResolvedValueOnce(sessions);
+      mockGet.mockResolvedValueOnce(sessions);
 
       render(<SessionHistoryBrowser projectPath="/test/project" />);
 
@@ -386,7 +387,7 @@ describe("SessionHistoryBrowser", () => {
           { passed: i },
         ),
       );
-      mockInvoke.mockResolvedValueOnce(sessions);
+      mockGet.mockResolvedValueOnce(sessions);
 
       render(<SessionHistoryBrowser projectPath="/test/project" />);
 
@@ -407,28 +408,28 @@ describe("SessionHistoryBrowser", () => {
 
   describe("IPC integration", () => {
     it("calls list_archived_sessions_cmd on mount", async () => {
-      mockInvoke.mockResolvedValueOnce([]);
+      mockGet.mockResolvedValueOnce([]);
 
       render(<SessionHistoryBrowser projectPath="/my/project" />);
 
       await waitFor(() => {
-        expect(mockInvoke).toHaveBeenCalledWith(
-          "list_archived_sessions_cmd",
+        expect(mockGet).toHaveBeenCalledWith(
+          "/api/sessions/archived",
           { projectPath: "/my/project" },
         );
       });
     });
 
     it("reloads sessions when project path changes", async () => {
-      mockInvoke.mockResolvedValue([]);
+      mockGet.mockResolvedValue([]);
 
       const { rerender } = render(
         <SessionHistoryBrowser projectPath="/project/a" />,
       );
 
       await waitFor(() => {
-        expect(mockInvoke).toHaveBeenCalledWith(
-          "list_archived_sessions_cmd",
+        expect(mockGet).toHaveBeenCalledWith(
+          "/api/sessions/archived",
           { projectPath: "/project/a" },
         );
       });
@@ -436,8 +437,8 @@ describe("SessionHistoryBrowser", () => {
       rerender(<SessionHistoryBrowser projectPath="/project/b" />);
 
       await waitFor(() => {
-        expect(mockInvoke).toHaveBeenCalledWith(
-          "list_archived_sessions_cmd",
+        expect(mockGet).toHaveBeenCalledWith(
+          "/api/sessions/archived",
           { projectPath: "/project/b" },
         );
       });

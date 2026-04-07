@@ -9,9 +9,10 @@ import {
   fetchAllResults,
 } from "../result-service";
 
-// Mock @tauri-apps/api/core
-vi.mock("@tauri-apps/api/core", () => ({
-  invoke: vi.fn(),
+// Mock api-client
+vi.mock("../api-client", () => ({
+  api: { get: vi.fn(), post: vi.fn(), put: vi.fn(), delete: vi.fn() },
+  ws: { on: vi.fn(() => vi.fn()), send: vi.fn(), connected: vi.fn(() => true), close: vi.fn() },
 }));
 
 // Mock session-service (readSessionFile is used by fetchResult)
@@ -19,10 +20,10 @@ vi.mock("../session-service", () => ({
   readSessionFile: vi.fn(),
 }));
 
-import { invoke } from "@tauri-apps/api/core";
+import { api } from "../api-client";
 import { readSessionFile } from "../session-service";
 
-const mockInvoke = vi.mocked(invoke);
+const mockGet = vi.mocked(api.get);
 const mockReadSessionFile = vi.mocked(readSessionFile);
 
 beforeEach(() => {
@@ -222,21 +223,21 @@ describe("parseResultContent", () => {
 
 describe("listResultFiles", () => {
   it("invokes the list_result_files command", async () => {
-    mockInvoke.mockResolvedValueOnce([
+    mockGet.mockResolvedValueOnce([
       "result-5.md",
       "result-10.md",
     ]);
 
     const files = await listResultFiles("/project");
 
-    expect(mockInvoke).toHaveBeenCalledWith("list_result_files", {
+    expect(mockGet).toHaveBeenCalledWith("/api/sessions/results", {
       projectPath: "/project",
     });
     expect(files).toEqual(["result-5.md", "result-10.md"]);
   });
 
   it("returns empty array when no results", async () => {
-    mockInvoke.mockResolvedValueOnce([]);
+    mockGet.mockResolvedValueOnce([]);
     const files = await listResultFiles("/project");
     expect(files).toEqual([]);
   });
@@ -286,7 +287,7 @@ describe("fetchResult", () => {
 
 describe("fetchAllResults", () => {
   it("fetches and parses all result files", async () => {
-    mockInvoke.mockResolvedValueOnce(["result-5.md", "result-10.md"]);
+    mockGet.mockResolvedValueOnce(["result-5.md", "result-10.md"]);
     mockReadSessionFile
       .mockResolvedValueOnce({
         filename: "result-5.md",
@@ -309,13 +310,13 @@ describe("fetchAllResults", () => {
   });
 
   it("handles empty result list", async () => {
-    mockInvoke.mockResolvedValueOnce([]);
+    mockGet.mockResolvedValueOnce([]);
     const results = await fetchAllResults("/project");
     expect(results).toEqual([]);
   });
 
   it("skips files that fail to fetch", async () => {
-    mockInvoke.mockResolvedValueOnce(["result-5.md", "result-99.md"]);
+    mockGet.mockResolvedValueOnce(["result-5.md", "result-99.md"]);
     mockReadSessionFile
       .mockResolvedValueOnce({
         filename: "result-5.md",

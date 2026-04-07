@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
-import { invoke } from "@tauri-apps/api/core";
 import { useProjectDirectory } from "./hooks/use-project-directory";
 import { TaskList } from "./components/TaskList";
 import { ProjectSidebar } from "./components/ProjectSidebar";
 import { SettingsPanel } from "./components/SettingsPanel";
+import { DirectoryBrowser } from "./components/DirectoryBrowser";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { ToastContainer } from "./components/ToastContainer";
 import { LiveRegionProvider } from "./components/LiveRegion";
@@ -14,10 +14,6 @@ import {
   getDirectoryName,
   type ProjectEntry,
 } from "./stores/project-store";
-interface PingResponse {
-  message: string;
-  timestamp: number;
-}
 
 /** Callback for ErrorBoundary errors — surfaces as toast for non-fatal awareness. */
 function handleBoundaryError(error: Error, sectionName: string) {
@@ -29,12 +25,10 @@ function handleBoundaryError(error: Error, sectionName: string) {
 }
 
 function App() {
-  const [greetMsg, setGreetMsg] = useState("");
-  const [name, setName] = useState("");
-  const [pingResult, setPingResult] = useState<PingResponse | null>(null);
-  const [pingError, setPingError] = useState<string | null>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showBrowser, setShowBrowser] = useState(false);
+  const [directoryInput, setDirectoryInput] = useState("");
 
   const settingsLoad = useSettingsStore((s) => s.load);
 
@@ -49,7 +43,7 @@ function App() {
     isLoading,
     error: projectError,
     warning: projectWarning,
-    openDirectoryPicker,
+    submitDirectoryPath,
     clearProject,
   } = useProjectDirectory();
 
@@ -87,8 +81,16 @@ function App() {
   }, []);
 
   const handleAddProject = useCallback(async () => {
-    await openDirectoryPicker();
-  }, [openDirectoryPicker]);
+    if (directoryInput.trim()) {
+      await submitDirectoryPath(directoryInput.trim());
+      setDirectoryInput("");
+    }
+  }, [directoryInput, submitDirectoryPath]);
+
+  const handleBrowseSelect = useCallback(async (path: string) => {
+    setShowBrowser(false);
+    await submitDirectoryPath(path);
+  }, [submitDirectoryPath]);
 
   const handleOpenSettings = useCallback(() => {
     setShowSettings(true);
@@ -97,22 +99,6 @@ function App() {
   const handleCloseSettings = useCallback(() => {
     setShowSettings(false);
   }, []);
-
-  async function greet() {
-    setGreetMsg(await invoke("greet", { name }));
-  }
-
-  async function testPing() {
-    try {
-      setPingError(null);
-      const response = await invoke<PingResponse>("ping", {
-        payload: "hello from frontend",
-      });
-      setPingResult(response);
-    } catch (err) {
-      setPingError(String(err));
-    }
-  }
 
   const currentProjectPath = activeProjectPath ?? projectPath;
 
@@ -159,12 +145,6 @@ function App() {
                       {currentProjectPath}
                     </div>
                     <button
-                      onClick={openDirectoryPicker}
-                      className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
-                    >
-                      Change
-                    </button>
-                    <button
                       onClick={clearProject}
                       className="rounded-lg border border-gray-300 dark:border-gray-600 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                     >
@@ -186,12 +166,34 @@ function App() {
                   )}
                 </div>
               ) : (
-                <button
-                  onClick={openDirectoryPicker}
-                  className="rounded-lg bg-blue-600 px-5 py-3 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
+                <form
+                  className="flex gap-3"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    handleAddProject();
+                  }}
                 >
-                  Select Project Directory
-                </button>
+                  <input
+                    className="flex-1 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    value={directoryInput}
+                    onChange={(e) => setDirectoryInput(e.currentTarget.value)}
+                    placeholder="Enter project directory path..."
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowBrowser(true)}
+                    className="rounded-lg border border-gray-300 dark:border-gray-600 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                  >
+                    Browse
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={!directoryInput.trim()}
+                    className="rounded-lg bg-blue-600 px-5 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors disabled:opacity-50"
+                  >
+                    Open
+                  </button>
+                </form>
               )}
 
               {projectWarning && (
@@ -216,66 +218,19 @@ function App() {
               </section>
             )}
 
-            <section className="mb-10">
-              <h2 className="text-xl font-semibold mb-4">Greet from Rust</h2>
-              <form
-                className="flex gap-3"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  greet();
-                }}
-              >
-                <input
-                  id="greet-input"
-                  className="flex-1 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  onChange={(e) => setName(e.currentTarget.value)}
-                  placeholder="Enter a name..."
-                />
-                <button
-                  type="submit"
-                  className="rounded-lg bg-blue-600 px-5 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
-                >
-                  Greet
-                </button>
-              </form>
-              {greetMsg && (
-                <p className="mt-3 rounded-lg bg-green-50 dark:bg-green-900/30 p-3 text-sm text-green-800 dark:text-green-300">
-                  {greetMsg}
-                </p>
-              )}
-            </section>
-
-            <section className="mb-10">
-              <h2 className="text-xl font-semibold mb-4">IPC Ping/Pong Test</h2>
-              <button
-                onClick={testPing}
-                className="rounded-lg bg-purple-600 px-5 py-2 text-sm font-medium text-white hover:bg-purple-700 transition-colors"
-              >
-                Send Ping
-              </button>
-              {pingResult && (
-                <div className="mt-3 rounded-lg bg-purple-50 dark:bg-purple-900/30 p-3 text-sm">
-                  <p className="text-purple-800 dark:text-purple-300">
-                    <span className="font-medium">Response:</span>{" "}
-                    {pingResult.message}
-                  </p>
-                  <p className="text-purple-600 dark:text-purple-400 text-xs mt-1">
-                    Timestamp: {pingResult.timestamp}
-                  </p>
-                </div>
-              )}
-              {pingError && (
-                <p className="mt-3 rounded-lg bg-red-50 dark:bg-red-900/30 p-3 text-sm text-red-800 dark:text-red-300">
-                  Error: {pingError}
-                </p>
-              )}
-            </section>
-
             <footer className="text-center text-xs text-gray-400 dark:text-gray-500">
-              Built with Tauri 2 + React 19 + Vite + Tailwind CSS
+              Built with React 19 + Vite + Tailwind CSS
             </footer>
           </div>
         </main>
+      )}
+
+      {/* Directory browser modal */}
+      {showBrowser && (
+        <DirectoryBrowser
+          onSelect={handleBrowseSelect}
+          onCancel={() => setShowBrowser(false)}
+        />
       )}
 
       {/* Global toast notifications */}

@@ -1,10 +1,11 @@
 /**
  * Settings persistence service.
  *
- * Uses Tauri IPC commands to read/write app settings to the
- * persistent settings.json store in Tauri app data.
+ * Uses the Node.js backend API to read/write app settings
+ * stored in ~/.task-manager/settings.json.
  */
 
+import { api } from "./api-client";
 import type { AppSettings } from "../types/settings";
 import {
   DEFAULT_APP_SETTINGS,
@@ -24,8 +25,7 @@ export async function loadSettings(): Promise<{
   usedDefaults: boolean;
 }> {
   try {
-    const { invoke } = await import("@tauri-apps/api/core");
-    const raw = await invoke<unknown>("get_app_settings");
+    const raw = await api.get<unknown>("/api/settings");
 
     if (raw === null || raw === undefined) {
       return {
@@ -42,7 +42,7 @@ export async function loadSettings(): Promise<{
 
     return parseSettings(raw);
   } catch {
-    // IPC error or store not available — return defaults
+    // API error or server not available — return defaults
     return {
       settings: {
         ...DEFAULT_APP_SETTINGS,
@@ -61,8 +61,7 @@ export async function loadSettings(): Promise<{
  * Throws on write failure so the caller can show an error.
  */
 export async function saveSettings(settings: AppSettings): Promise<void> {
-  const { invoke } = await import("@tauri-apps/api/core");
-  await invoke("save_app_settings", { settings });
+  await api.put("/api/settings", { settings });
 }
 
 /**

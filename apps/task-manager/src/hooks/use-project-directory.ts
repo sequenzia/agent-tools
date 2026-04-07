@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import {
-  selectAndSaveProjectDirectory,
+  validateAndSaveProjectDirectory,
   loadProjectOnStartup,
   clearSavedProjectPath,
 } from "../services/project-directory";
@@ -16,8 +16,8 @@ export interface UseProjectDirectoryState {
   error: string | null;
   /** Warning message (e.g., no .agents/tasks/ found). */
   warning: string | null;
-  /** Open the directory picker to select a project directory. */
-  openDirectoryPicker: () => Promise<void>;
+  /** Submit a directory path (replaces the native dialog picker). */
+  submitDirectoryPath: (path: string) => Promise<void>;
   /** Clear the current project selection. */
   clearProject: () => Promise<void>;
 }
@@ -62,12 +62,12 @@ export function useProjectDirectory(): UseProjectDirectoryState {
     };
   }, []);
 
-  const openDirectoryPicker = useCallback(async () => {
+  const submitDirectoryPath = useCallback(async (dirPath: string) => {
     try {
       setError(null);
       setWarning(null);
 
-      const result = await selectAndSaveProjectDirectory((path) => {
+      const result = await validateAndSaveProjectDirectory(dirPath, (path) => {
         setWarning(`No .agents/tasks/ directory found in ${path}`);
       });
 
@@ -75,9 +75,8 @@ export function useProjectDirectory(): UseProjectDirectoryState {
         setProjectPath(result.path);
         setHasTasksDir(result.has_tasks_dir);
       }
-      // If result is null, user cancelled -- no state change
     } catch (err) {
-      setError(String(err));
+      setError(err instanceof Error ? err.message : String(err));
     }
   }, []);
 
@@ -99,7 +98,7 @@ export function useProjectDirectory(): UseProjectDirectoryState {
     isLoading,
     error,
     warning,
-    openDirectoryPicker,
+    submitDirectoryPath,
     clearProject,
   };
 }

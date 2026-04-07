@@ -1,21 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { scanForProjects, onScanProgress } from "../discovery-service";
 
-// Mock @tauri-apps/api/core
-vi.mock("@tauri-apps/api/core", () => ({
-  invoke: vi.fn(),
+// Mock api-client
+vi.mock("../api-client", () => ({
+  api: { get: vi.fn(), post: vi.fn(), put: vi.fn(), delete: vi.fn() },
+  ws: { on: vi.fn(() => vi.fn()), send: vi.fn(), connected: vi.fn(() => true), close: vi.fn() },
 }));
 
-// Mock @tauri-apps/api/event
-vi.mock("@tauri-apps/api/event", () => ({
-  listen: vi.fn(),
-}));
+import { api, ws } from "../api-client";
 
-import { invoke } from "@tauri-apps/api/core";
-import { listen } from "@tauri-apps/api/event";
-
-const mockInvoke = vi.mocked(invoke);
-const mockListen = vi.mocked(listen);
+const mockPost = vi.mocked(api.post);
+const mockWsOn = vi.mocked(ws.on);
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -32,11 +27,11 @@ describe("scanForProjects", () => {
       dirs_scanned: 42,
       elapsed_ms: 120,
     };
-    mockInvoke.mockResolvedValueOnce(mockResult);
+    mockPost.mockResolvedValueOnce(mockResult);
 
     const result = await scanForProjects(["/Users/dev"]);
 
-    expect(mockInvoke).toHaveBeenCalledWith("scan_for_projects", {
+    expect(mockPost).toHaveBeenCalledWith("/api/discovery/scan", {
       rootPaths: ["/Users/dev"],
       maxDepth: undefined,
     });
@@ -53,11 +48,11 @@ describe("scanForProjects", () => {
       dirs_scanned: 10,
       elapsed_ms: 50,
     };
-    mockInvoke.mockResolvedValueOnce(mockResult);
+    mockPost.mockResolvedValueOnce(mockResult);
 
     await scanForProjects(["/Users/dev"], 5);
 
-    expect(mockInvoke).toHaveBeenCalledWith("scan_for_projects", {
+    expect(mockPost).toHaveBeenCalledWith("/api/discovery/scan", {
       rootPaths: ["/Users/dev"],
       maxDepth: 5,
     });
@@ -70,11 +65,11 @@ describe("scanForProjects", () => {
       dirs_scanned: 15,
       elapsed_ms: 80,
     };
-    mockInvoke.mockResolvedValueOnce(mockResult);
+    mockPost.mockResolvedValueOnce(mockResult);
 
     const result = await scanForProjects(["/a", "/nonexistent"]);
 
-    expect(mockInvoke).toHaveBeenCalledWith("scan_for_projects", {
+    expect(mockPost).toHaveBeenCalledWith("/api/discovery/scan", {
       rootPaths: ["/a", "/nonexistent"],
       maxDepth: undefined,
     });
@@ -89,7 +84,7 @@ describe("scanForProjects", () => {
       dirs_scanned: 100,
       elapsed_ms: 200,
     };
-    mockInvoke.mockResolvedValueOnce(mockResult);
+    mockPost.mockResolvedValueOnce(mockResult);
 
     const result = await scanForProjects(["/empty/root"]);
 
@@ -98,7 +93,7 @@ describe("scanForProjects", () => {
   });
 
   it("propagates errors from the backend", async () => {
-    mockInvoke.mockRejectedValueOnce("Internal scan error");
+    mockPost.mockRejectedValueOnce("Internal scan error");
 
     await expect(scanForProjects(["/bad"])).rejects.toBe(
       "Internal scan error",
@@ -107,31 +102,31 @@ describe("scanForProjects", () => {
 });
 
 describe("onScanProgress", () => {
-  it("registers a listener for progress events", async () => {
+  it("registers a listener for progress events", () => {
     const mockUnlisten = vi.fn();
-    mockListen.mockResolvedValueOnce(mockUnlisten);
+    mockWsOn.mockReturnValueOnce(mockUnlisten);
 
     const callback = vi.fn();
-    const unlisten = await onScanProgress(callback);
+    const unlisten = onScanProgress(callback);
 
-    expect(mockListen).toHaveBeenCalledWith(
+    expect(mockWsOn).toHaveBeenCalledWith(
       "project-scan-progress",
       expect.any(Function),
     );
     expect(unlisten).toBe(mockUnlisten);
   });
 
-  it("passes progress payload to callback", async () => {
+  it("passes progress payload to callback", () => {
     const mockUnlisten = vi.fn();
     // Capture the event handler
-    let eventHandler: ((event: unknown) => void) | undefined;
-    mockListen.mockImplementation(async (_event, handler) => {
-      eventHandler = handler as (event: unknown) => void;
+    let eventHandler: ((payload: unknown) => void) | undefined;
+    mockWsOn.mockImplementation((_event: string, handler: (payload: unknown) => void) => {
+      eventHandler = handler;
       return mockUnlisten;
     });
 
     const callback = vi.fn();
-    await onScanProgress(callback);
+    onScanProgress(callback);
 
     // Simulate a progress event
     const progressPayload = {
@@ -141,16 +136,16 @@ describe("onScanProgress", () => {
       current_root: "/Users/dev",
     };
 
-    eventHandler!({ payload: progressPayload });
+    eventHandler!(progressPayload);
 
     expect(callback).toHaveBeenCalledWith(progressPayload);
   });
 
-  it("returns unlisten function to stop listening", async () => {
+  it("returns unlisten function to stop listening", () => {
     const mockUnlisten = vi.fn();
-    mockListen.mockResolvedValueOnce(mockUnlisten);
+    mockWsOn.mockReturnValueOnce(mockUnlisten);
 
-    const unlisten = await onScanProgress(vi.fn());
+    const unlisten = onScanProgress(vi.fn());
     unlisten();
 
     expect(mockUnlisten).toHaveBeenCalled();

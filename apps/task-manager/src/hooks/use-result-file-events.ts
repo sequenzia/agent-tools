@@ -1,10 +1,10 @@
 import { useEffect, useCallback, useRef } from "react";
-import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+import { ws } from "../services/api-client";
 import { useResultStore } from "../stores/result-store";
 
 /**
- * Event payload from the Rust backend when a result file changes.
- * Must match watcher.rs ResultFileChangeEvent.
+ * Event payload from the backend when a result file changes.
+ * Must match server watcher.ts ResultFileChangeEvent.
  */
 export interface ResultFileChangeEvent {
   filename: string;
@@ -12,11 +12,8 @@ export interface ResultFileChangeEvent {
   project_path: string;
 }
 
-/** Tauri IPC event name for result file changes (must match watcher.rs). */
-const EVENT_RESULT_FILE_CHANGE = "result-file-change";
-
 /**
- * React hook that listens for result file changes from the Tauri backend
+ * React hook that listens for result file changes from the WebSocket
  * and updates the result store accordingly.
  *
  * On mount (when projectPath is provided), it:
@@ -36,8 +33,8 @@ export function useResultFileEvents(projectPath: string | null): void {
   }, [projectPath]);
 
   const handleEvent = useCallback(
-    (event: { payload: ResultFileChangeEvent }) => {
-      const { filename, kind, project_path } = event.payload;
+    (payload: ResultFileChangeEvent) => {
+      const { filename, kind, project_path } = payload;
 
       // Only process events for the active project
       if (project_path !== projectPathRef.current) return;
@@ -45,7 +42,7 @@ export function useResultFileEvents(projectPath: string | null): void {
       if (kind === "delete") {
         removeResult(filename);
       } else {
-        // "modify" covers both create and modify (debouncer-mini coalesces)
+        // "modify" covers both create and modify (debouncer coalesces)
         if (projectPathRef.current) {
           addResult(projectPathRef.current, filename);
         }
@@ -60,29 +57,17 @@ export function useResultFileEvents(projectPath: string | null): void {
       return;
     }
 
-    let cancelled = false;
-    let unlisten: UnlistenFn | null = null;
+    // Load existing results first
+    loadAllResults(projectPath);
 
-    const setup = async () => {
-      // Load existing results first
-      await loadAllResults(projectPath);
-
-      if (cancelled) return;
-
-      // Subscribe to new result file events
-      unlisten = await listen<ResultFileChangeEvent>(
-        EVENT_RESULT_FILE_CHANGE,
-        handleEvent,
-      );
-    };
-
-    setup();
+    // Subscribe to new result file events via WebSocket
+    const unsub = ws.on<ResultFileChangeEvent>(
+      "result-file-change",
+      handleEvent,
+    );
 
     return () => {
-      cancelled = true;
-      if (unlisten) {
-        unlisten();
-      }
+      unsub();
     };
   }, [projectPath, loadAllResults, clearResults, handleEvent]);
 }

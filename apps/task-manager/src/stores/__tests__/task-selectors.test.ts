@@ -12,9 +12,10 @@ import {
 import { useTaskStore } from "../task-store";
 import type { TasksByStatus, TaskWithPath } from "../../services/task-service";
 
-// Mock @tauri-apps/api/core to avoid import errors in task-store
-vi.mock("@tauri-apps/api/core", () => ({
-  invoke: vi.fn(),
+// Mock api-client to avoid import errors in task-store
+vi.mock("../../services/api-client", () => ({
+  api: { get: vi.fn(), post: vi.fn(), put: vi.fn(), delete: vi.fn() },
+  ws: { on: vi.fn(() => vi.fn()), send: vi.fn(), connected: vi.fn(() => true), close: vi.fn() },
 }));
 
 beforeEach(() => {

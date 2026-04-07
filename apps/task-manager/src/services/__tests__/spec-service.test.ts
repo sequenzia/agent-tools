@@ -1,10 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
-vi.mock("@tauri-apps/api/core", () => ({
-  invoke: vi.fn(),
+vi.mock("../api-client", () => ({
+  api: { get: vi.fn(), post: vi.fn(), put: vi.fn(), delete: vi.fn() },
+  ws: { on: vi.fn(() => vi.fn()), send: vi.fn(), connected: vi.fn(() => true), close: vi.fn() },
 }));
 
-import { invoke } from "@tauri-apps/api/core";
+import { api } from "../api-client";
 import {
   readSpec,
   checkSpecAnalysis,
@@ -12,7 +13,7 @@ import {
   generateAnchorId,
 } from "../spec-service";
 
-const mockInvoke = vi.mocked(invoke);
+const mockGet = vi.mocked(api.get);
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -29,11 +30,11 @@ describe("readSpec", () => {
       resolved_path: "/project/spec.md",
       size: 7,
     };
-    mockInvoke.mockResolvedValueOnce(specContent);
+    mockGet.mockResolvedValueOnce(specContent);
 
     const result = await readSpec("/project", "internal/spec.md");
 
-    expect(mockInvoke).toHaveBeenCalledWith("read_spec", {
+    expect(mockGet).toHaveBeenCalledWith("/api/specs/read", {
       projectPath: "/project",
       specPath: "internal/spec.md",
     });
@@ -41,7 +42,7 @@ describe("readSpec", () => {
   });
 
   it("throws when the IPC call fails", async () => {
-    mockInvoke.mockRejectedValueOnce("Spec file not found");
+    mockGet.mockRejectedValueOnce("Spec file not found");
 
     await expect(readSpec("/project", "missing.md")).rejects.toBe(
       "Spec file not found",
@@ -55,11 +56,11 @@ describe("checkSpecAnalysis", () => {
       exists: true,
       analysis_path: "/project/spec.analysis.md",
     };
-    mockInvoke.mockResolvedValueOnce(analysisCheck);
+    mockGet.mockResolvedValueOnce(analysisCheck);
 
     const result = await checkSpecAnalysis("/project", "spec.md");
 
-    expect(mockInvoke).toHaveBeenCalledWith("check_spec_analysis", {
+    expect(mockGet).toHaveBeenCalledWith("/api/specs/analysis", {
       projectPath: "/project",
       specPath: "spec.md",
     });
@@ -71,7 +72,7 @@ describe("checkSpecAnalysis", () => {
       exists: false,
       analysis_path: "/project/spec.analysis.md",
     };
-    mockInvoke.mockResolvedValueOnce(analysisCheck);
+    mockGet.mockResolvedValueOnce(analysisCheck);
 
     const result = await checkSpecAnalysis("/project", "spec.md");
 
@@ -86,14 +87,14 @@ describe("readSpecAnalysis", () => {
       resolved_path: "/project/spec.analysis.md",
       size: 10,
     };
-    mockInvoke.mockResolvedValueOnce(analysisContent);
+    mockGet.mockResolvedValueOnce(analysisContent);
 
     const result = await readSpecAnalysis(
       "/project",
       "/project/spec.analysis.md",
     );
 
-    expect(mockInvoke).toHaveBeenCalledWith("read_spec", {
+    expect(mockGet).toHaveBeenCalledWith("/api/specs/read", {
       projectPath: "/project",
       specPath: "/project/spec.analysis.md",
     });
@@ -101,7 +102,7 @@ describe("readSpecAnalysis", () => {
   });
 
   it("returns null when analysis file is not found", async () => {
-    mockInvoke.mockRejectedValueOnce("File not found");
+    mockGet.mockRejectedValueOnce("File not found");
 
     const result = await readSpecAnalysis(
       "/project",

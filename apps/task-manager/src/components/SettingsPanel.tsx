@@ -47,24 +47,14 @@ function RootDirectoryItem({
 function RootDirectoriesSection() {
   const { settings, addRootDirectory, removeRootDirectory } =
     useSettingsStore();
-  const [isAdding, setIsAdding] = useState(false);
+  const [newDir, setNewDir] = useState("");
 
   const handleAddDirectory = useCallback(async () => {
-    setIsAdding(true);
-    try {
-      const { invoke } = await import("@tauri-apps/api/core");
-      const result = await invoke<{ path: string } | null>(
-        "select_project_directory",
-      );
-      if (result && result.path) {
-        await addRootDirectory(result.path);
-      }
-    } catch {
-      // User cancelled or IPC error — ignore
-    } finally {
-      setIsAdding(false);
-    }
-  }, [addRootDirectory]);
+    const trimmed = newDir.trim();
+    if (!trimmed) return;
+    await addRootDirectory(trimmed);
+    setNewDir("");
+  }, [newDir, addRootDirectory]);
 
   return (
     <section data-testid="settings-root-dirs">
@@ -93,16 +83,30 @@ function RootDirectoriesSection() {
         )}
       </div>
 
-      <button
-        type="button"
-        className="mt-3 flex items-center gap-1.5 rounded-lg border border-dashed border-gray-300 px-3 py-2 text-sm text-gray-600 transition-colors hover:border-blue-400 hover:text-blue-600 dark:border-gray-600 dark:text-gray-400 dark:hover:border-blue-500 dark:hover:text-blue-400"
-        onClick={handleAddDirectory}
-        disabled={isAdding}
-        data-testid="add-root-dir-btn"
+      <form
+        className="mt-3 flex gap-2"
+        onSubmit={(e) => {
+          e.preventDefault();
+          handleAddDirectory();
+        }}
       >
-        <span className="text-lg leading-none">+</span>
-        <span>{isAdding ? "Selecting..." : "Add Directory"}</span>
-      </button>
+        <input
+          className="flex-1 rounded-lg border border-dashed border-gray-300 px-3 py-2 text-sm text-gray-600 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          value={newDir}
+          onChange={(e) => setNewDir(e.currentTarget.value)}
+          placeholder="Enter directory path..."
+          data-testid="add-root-dir-input"
+        />
+        <button
+          type="submit"
+          className="rounded-lg border border-dashed border-gray-300 px-3 py-2 text-sm text-gray-600 transition-colors hover:border-blue-400 hover:text-blue-600 dark:border-gray-600 dark:text-gray-400 dark:hover:border-blue-500 dark:hover:text-blue-400 disabled:opacity-50"
+          disabled={!newDir.trim()}
+          data-testid="add-root-dir-btn"
+        >
+          <span className="text-lg leading-none">+</span>
+          <span> Add</span>
+        </button>
+      </form>
     </section>
   );
 }

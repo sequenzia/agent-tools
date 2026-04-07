@@ -1,4 +1,4 @@
-import { invoke } from "@tauri-apps/api/core";
+import { api } from "./api-client";
 
 /**
  * Response from the Rust `read_spec` IPC command.
@@ -34,7 +34,7 @@ export async function readSpec(
   projectPath: string,
   specPath: string,
 ): Promise<SpecContent> {
-  return invoke<SpecContent>("read_spec", { projectPath, specPath });
+  return api.get<SpecContent>("/api/specs/read", { projectPath, specPath });
 }
 
 /**
@@ -49,7 +49,7 @@ export async function checkSpecAnalysis(
   projectPath: string,
   specPath: string,
 ): Promise<SpecAnalysisCheck> {
-  return invoke<SpecAnalysisCheck>("check_spec_analysis", {
+  return api.get<SpecAnalysisCheck>("/api/specs/analysis", {
     projectPath,
     specPath,
   });
@@ -68,7 +68,7 @@ export async function readSpecAnalysis(
   analysisPath: string,
 ): Promise<SpecContent | null> {
   try {
-    return await invoke<SpecContent>("read_spec", {
+    return await api.get<SpecContent>("/api/specs/read", {
       projectPath,
       specPath: analysisPath,
     });
@@ -145,10 +145,10 @@ export async function getSpecLifecycle(
   specPath: string,
   taskGroup?: string,
 ): Promise<SpecLifecycleInfo> {
-  return invoke<SpecLifecycleInfo>("get_spec_lifecycle", {
+  return api.get<SpecLifecycleInfo>("/api/specs/lifecycle", {
     projectPath,
     specPath,
-    taskGroup: taskGroup ?? null,
+    taskGroup: taskGroup ?? undefined,
   });
 }
 

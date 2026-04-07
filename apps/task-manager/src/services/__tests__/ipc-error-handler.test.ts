@@ -31,8 +31,8 @@ describe("classifyIpcError", () => {
     expect(result).toBe(original);
   });
 
-  it("classifies Rust panic messages", () => {
-    const result = classifyIpcError(new Error("thread 'main' panicked at src/tasks.rs"));
+  it("classifies internal server error messages", () => {
+    const result = classifyIpcError(new Error("Internal server error in task handler"));
     expect(result.kind).toBe("panic");
     expect(result.message).toContain("backend encountered an unexpected failure");
   });
@@ -43,7 +43,7 @@ describe("classifyIpcError", () => {
   });
 
   it("classifies disconnect messages", () => {
-    const result = classifyIpcError(new Error("IPC channel closed unexpectedly"));
+    const result = classifyIpcError(new Error("Failed to fetch from server"));
     expect(result.kind).toBe("disconnect");
     expect(result.message).toContain("Lost connection");
   });
@@ -80,8 +80,8 @@ describe("classifyIpcError", () => {
     expect(result.message).toBe("42");
   });
 
-  it("classifies failed to send as disconnect", () => {
-    const result = classifyIpcError(new Error("Failed to send message to backend"));
+  it("classifies network error as disconnect", () => {
+    const result = classifyIpcError(new Error("Network error connecting to server"));
     expect(result.kind).toBe("disconnect");
   });
 
@@ -117,7 +117,7 @@ describe("withIpcTimeout", () => {
   });
 
   it("classifies rejection errors from the wrapped promise", async () => {
-    const failing = Promise.reject(new Error("thread panicked at tasks.rs"));
+    const failing = Promise.reject(new Error("Internal server error"));
 
     try {
       await withIpcTimeout(failing, 5000);
@@ -128,8 +128,8 @@ describe("withIpcTimeout", () => {
     }
   });
 
-  it("handles IPC disconnect errors", async () => {
-    const failing = Promise.reject(new Error("IPC channel closed"));
+  it("handles network disconnect errors", async () => {
+    const failing = Promise.reject(new Error("Failed to fetch"));
 
     try {
       await withIpcTimeout(failing, 5000);
@@ -165,11 +165,11 @@ describe("ipcErrorDescription", () => {
     expect(ipcErrorDescription("timeout")).toContain("try again");
   });
 
-  it("disconnect description mentions restart", () => {
-    expect(ipcErrorDescription("disconnect")).toContain("restart");
+  it("disconnect description mentions server", () => {
+    expect(ipcErrorDescription("disconnect")).toContain("server");
   });
 
-  it("panic description mentions restart", () => {
-    expect(ipcErrorDescription("panic")).toContain("restart");
+  it("panic description mentions backend", () => {
+    expect(ipcErrorDescription("panic")).toContain("backend");
   });
 });

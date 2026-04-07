@@ -1,9 +1,11 @@
 /**
  * Project auto-discovery service.
  *
- * Invokes the Rust `scan_for_projects` command to recursively search
- * configured root directories for `.agents/tasks/` patterns.
+ * Uses the Node.js backend to recursively search configured root
+ * directories for `.agents/tasks/` patterns.
  */
+
+import { api, ws } from "./api-client";
 
 /** A discovered project directory. */
 export interface DiscoveredProject {
@@ -48,8 +50,7 @@ export async function scanForProjects(
   rootPaths: string[],
   maxDepth?: number,
 ): Promise<ScanResult> {
-  const { invoke } = await import("@tauri-apps/api/core");
-  return invoke<ScanResult>("scan_for_projects", {
+  return api.post<ScanResult>("/api/discovery/scan", {
     rootPaths,
     maxDepth,
   });
@@ -61,15 +62,8 @@ export async function scanForProjects(
  * @param callback - Called with each progress update during scanning.
  * @returns An unlisten function to stop listening.
  */
-export async function onScanProgress(
+export function onScanProgress(
   callback: (progress: ScanProgress) => void,
-): Promise<() => void> {
-  const { listen } = await import("@tauri-apps/api/event");
-  const unlisten = await listen<ScanProgress>(
-    "project-scan-progress",
-    (event) => {
-      callback(event.payload);
-    },
-  );
-  return unlisten;
+): () => void {
+  return ws.on<ScanProgress>("project-scan-progress", callback);
 }

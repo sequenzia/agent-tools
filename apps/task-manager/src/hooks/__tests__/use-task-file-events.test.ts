@@ -4,30 +4,28 @@ import { useTaskFileEvents } from "../use-task-file-events";
 import { useTaskStore } from "../../stores/task-store";
 import type { TasksByStatus } from "../../services/task-service";
 
-// --- Mock @tauri-apps/api/event ---
+// --- Mock api-client ---
 
-type ListenCallback = (event: { payload: unknown }) => void;
+type ListenCallback = (payload: unknown) => void;
 const listeners = new Map<string, ListenCallback>();
 
-vi.mock("@tauri-apps/api/event", () => ({
-  listen: vi.fn(
-    async (eventName: string, callback: ListenCallback) => {
+vi.mock("../../services/api-client", () => ({
+  api: { get: vi.fn(), post: vi.fn(), put: vi.fn(), delete: vi.fn() },
+  ws: {
+    on: vi.fn((eventName: string, callback: ListenCallback) => {
       listeners.set(eventName, callback);
       return () => {
         listeners.delete(eventName);
       };
-    },
-  ),
+    }),
+    send: vi.fn(),
+    connected: vi.fn(() => true),
+    close: vi.fn(),
+  },
 }));
 
-// --- Mock @tauri-apps/api/core ---
-
-vi.mock("@tauri-apps/api/core", () => ({
-  invoke: vi.fn(),
-}));
-
-import { invoke } from "@tauri-apps/api/core";
-const mockInvoke = vi.mocked(invoke);
+import { api } from "../../services/api-client";
+const mockGet = vi.mocked(api.get);
 
 // --- Mock task-service (to avoid import issues in task-store) ---
 
@@ -43,7 +41,7 @@ function emptyTasks(): TasksByStatus {
 function emitEvent(eventName: string, payload: unknown) {
   const callback = listeners.get(eventName);
   if (callback) {
-    callback({ payload });
+    callback(payload);
   }
 }
 
@@ -137,7 +135,7 @@ describe("useTaskFileEvents", () => {
 
   describe("create events", () => {
     it("adds a new task to the store when file is created", async () => {
-      mockInvoke.mockResolvedValueOnce({
+      mockGet.mockResolvedValueOnce({
         type: "ok",
         task: {
           id: 1,
@@ -186,7 +184,7 @@ describe("useTaskFileEvents", () => {
       ];
       useTaskStore.setState({ tasks });
 
-      mockInvoke.mockResolvedValueOnce({
+      mockGet.mockResolvedValueOnce({
         type: "ok",
         task: {
           id: 1,
@@ -224,7 +222,7 @@ describe("useTaskFileEvents", () => {
       ];
       useTaskStore.setState({ tasks });
 
-      mockInvoke.mockRejectedValueOnce(new Error("Read failed"));
+      mockGet.mockRejectedValueOnce(new Error("Read failed"));
 
       await setupHook("/project");
 
@@ -281,7 +279,7 @@ describe("useTaskFileEvents", () => {
       useTaskStore.setState({ tasks });
 
       const newFp = "/project/.agents/tasks/in-progress/group/1.json";
-      mockInvoke.mockResolvedValueOnce({
+      mockGet.mockResolvedValueOnce({
         type: "ok",
         task: {
           id: 1,
@@ -329,14 +327,14 @@ describe("useTaskFileEvents", () => {
       await triggerFlush();
 
       // invoke should not have been called since we filter by project_path
-      expect(mockInvoke).not.toHaveBeenCalled();
+      expect(mockGet).not.toHaveBeenCalled();
     });
   });
 
   describe("deduplication", () => {
     it("deduplicates events for the same file within a batch", async () => {
       const fp = "/project/.agents/tasks/pending/group/1.json";
-      mockInvoke.mockResolvedValueOnce({
+      mockGet.mockResolvedValueOnce({
         type: "ok",
         task: { id: 1, title: "Task", description: "Desc", status: "pending" },
         file_path: fp,
@@ -356,7 +354,7 @@ describe("useTaskFileEvents", () => {
       await triggerFlush();
 
       // Should only invoke read_task once due to dedup in the hook
-      expect(mockInvoke).toHaveBeenCalledTimes(1);
+      expect(mockGet).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -365,7 +363,7 @@ describe("useTaskFileEvents", () => {
       const fp1 = "/project/.agents/tasks/pending/group/1.json";
       const fp2 = "/project/.agents/tasks/pending/group/2.json";
 
-      mockInvoke
+      mockGet
         .mockResolvedValueOnce({
           type: "ok",
           task: { id: 1, title: "Task 1", description: "Desc", status: "pending" },
@@ -412,7 +410,8 @@ describe("useTaskFileEvents", () => {
 
   describe("disconnection handling", () => {
     it("attempts reconnection after watch disconnection", async () => {
-      mockInvoke.mockResolvedValueOnce(undefined); // start_watching call
+      const { ws } = await import("../../services/api-client");
+      const mockWsSend = vi.mocked(ws.send);
 
       await setupHook("/project");
 
@@ -424,15 +423,8 @@ describe("useTaskFileEvents", () => {
       // Advance past the reconnection delay (2000ms)
       vi.advanceTimersByTime(2100);
 
-      // Switch to real timers to resolve the invoke promise
-      vi.useRealTimers();
-      await act(async () => {
-        await new Promise((resolve) => setTimeout(resolve, 10));
-      });
-      vi.useFakeTimers();
-
-      expect(mockInvoke).toHaveBeenCalledWith("start_watching", {
-        projectPath: "/project",
+      expect(mockWsSend).toHaveBeenCalledWith("watch:start", {
+        projectPaths: ["/project"],
       });
     });
   });
@@ -449,7 +441,7 @@ describe("useTaskFileEvents", () => {
 
       // Set up mock responses for all 20 re-reads
       for (const t of taskData) {
-        mockInvoke.mockResolvedValueOnce({
+        mockGet.mockResolvedValueOnce({
           type: "ok",
           task: {
             id: t.id,
@@ -493,7 +485,7 @@ describe("useTaskFileEvents", () => {
       ];
       useTaskStore.setState({ tasks });
 
-      mockInvoke.mockResolvedValueOnce({
+      mockGet.mockResolvedValueOnce({
         type: "ok",
         task: { id: 1, title: "Task", description: "Desc", status: "in_progress" },
         file_path: newFp,
@@ -520,7 +512,7 @@ describe("useTaskFileEvents", () => {
 
   describe("stale events", () => {
     it("ignores create event for a file that fails to read (no task on disk)", async () => {
-      mockInvoke.mockRejectedValueOnce(new Error("File not found"));
+      mockGet.mockRejectedValueOnce(new Error("File not found"));
 
       await setupHook("/project");
 

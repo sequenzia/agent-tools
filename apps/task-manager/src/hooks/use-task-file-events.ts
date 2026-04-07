@@ -1,21 +1,20 @@
 import { useEffect, useRef, useCallback, useState } from "react";
-import { listen, type UnlistenFn } from "@tauri-apps/api/event";
-import { invoke } from "@tauri-apps/api/core";
+import { api, ws } from "../services/api-client";
 import { TaskSchema } from "../types";
 import { useTaskStore } from "../stores/task-store";
 import { perfMonitor } from "../services/perf-monitor";
 import type { TaskWithPath } from "../services/task-service";
 
-// --- Event payload types matching Rust watcher.rs ---
+// --- Event payload types matching server watcher.ts ---
 
-/** A single file change event from the Rust backend. */
+/** A single file change event from the backend. */
 export interface FileChangeEvent {
   kind: "create" | "modify" | "delete" | "unknown";
   path: string;
   project_path: string;
 }
 
-/** A batch of file change events (debounced by the Rust backend). */
+/** A batch of file change events (debounced by the backend). */
 export interface FileChangeBatch {
   events: FileChangeEvent[];
   project_path: string;
@@ -33,17 +32,12 @@ export interface WatchDisconnectedEvent {
   project_path: string;
 }
 
-// --- Tauri IPC event names (must match watcher.rs constants) ---
-const EVENT_FILE_CHANGE = "task-file-change";
-const EVENT_WATCH_DISCONNECTED = "task-watch-disconnected";
-const EVENT_WATCH_ERROR = "task-watch-error";
-
 // --- Frontend debounce settings ---
 
 /** How long to wait before flushing accumulated events into a store update. */
 const DEBOUNCE_MS = 50;
 
-// --- Raw IPC result matching task-service.ts ---
+// --- Raw API result matching task-service.ts ---
 
 interface TaskFileResult {
   type: "ok" | "error";
@@ -62,12 +56,12 @@ export interface TaskFileEventsState {
 }
 
 /**
- * Attempt to re-read a task file from disk via IPC and parse it.
+ * Attempt to re-read a task file from disk via the API and parse it.
  * Returns the parsed TaskWithPath on success, or null on failure.
  */
 async function reReadTask(filePath: string): Promise<TaskWithPath | null> {
   try {
-    const raw = await invoke<TaskFileResult>("read_task", {
+    const raw = await api.get<TaskFileResult>("/api/tasks/file", {
       filePath,
     });
 
@@ -99,7 +93,7 @@ function deduplicateEvents(events: FileChangeEvent[]): FileChangeEvent[] {
 }
 
 /**
- * React hook that listens for Tauri file watcher events and reconciles
+ * React hook that listens for file watcher events via WebSocket and reconciles
  * them into task store state updates.
  *
  * - Listens for `task-file-change`, `task-watch-disconnected`, and `task-watch-error` events
@@ -190,93 +184,69 @@ export function useTaskFileEvents(projectPath: string | null): TaskFileEventsSta
   useEffect(() => {
     if (!projectPath) return;
 
-    const unlisteners: UnlistenFn[] = [];
-    let cancelled = false;
-
     // Reset non-render state for new project
     processedRef.current = new Set();
     pendingEventsRef.current = [];
 
-    async function setup() {
-      // Listen for file change batches
-      const unlistenChange = await listen<FileChangeBatch>(
-        EVENT_FILE_CHANGE,
-        (event) => {
-          if (cancelled) return;
-          const batch = event.payload;
+    // Subscribe to WebSocket events
+    const unsubChange = ws.on<FileChangeBatch>(
+      "task-file-change",
+      (batch) => {
+        // Filter events for the current project path
+        if (batch.project_path !== projectPath) return;
 
-          // Filter events for the current project path
-          if (batch.project_path !== projectPath) return;
+        // Generate a dedup key for each event to detect stale/duplicate events
+        for (const fileEvent of batch.events) {
+          const dedupKey = `${fileEvent.kind}:${fileEvent.path}`;
+          // Skip if we've already seen this exact event within the current flush window
+          if (processedRef.current.has(dedupKey)) continue;
+          processedRef.current.add(dedupKey);
 
-          // Generate a dedup key for each event to detect stale/duplicate events
-          for (const fileEvent of batch.events) {
-            const dedupKey = `${fileEvent.kind}:${fileEvent.path}`;
-            // Skip if we've already seen this exact event within the current flush window
-            if (processedRef.current.has(dedupKey)) continue;
-            processedRef.current.add(dedupKey);
+          pendingEventsRef.current.push(fileEvent);
+        }
 
-            pendingEventsRef.current.push(fileEvent);
-          }
+        // Clear processed set periodically to avoid memory leak
+        if (processedRef.current.size > 1000) {
+          processedRef.current.clear();
+        }
 
-          // Clear processed set periodically to avoid memory leak
-          if (processedRef.current.size > 1000) {
-            processedRef.current.clear();
-          }
+        scheduleFlush();
+      },
+    );
 
-          scheduleFlush();
-        },
-      );
-      if (!cancelled) unlisteners.push(unlistenChange);
+    const unsubDisconnect = ws.on<WatchDisconnectedEvent>(
+      "task-watch-disconnected",
+      (payload) => {
+        if (payload.project_path !== projectPath) return;
 
-      // Listen for watcher disconnection
-      const unlistenDisconnect = await listen<WatchDisconnectedEvent>(
-        EVENT_WATCH_DISCONNECTED,
-        (event) => {
-          if (cancelled) return;
-          if (event.payload.project_path !== projectPath) return;
+        setIsConnected(false);
+        setLastError(payload.message);
 
-          setIsConnected(false);
-          setLastError(event.payload.message);
+        // Attempt reconnection after a delay
+        setTimeout(() => {
+          ws.send("watch:start", { projectPaths: [projectPath] });
+          setIsConnected(true);
+          setLastError(null);
+        }, 2000);
+      },
+    );
 
-          // Attempt reconnection after a delay
-          setTimeout(async () => {
-            if (cancelled) return;
-            try {
-              await invoke("start_watching", { projectPath });
-              setIsConnected(true);
-              setLastError(null);
-            } catch {
-              // Reconnection failed, stay disconnected
-            }
-          }, 2000);
-        },
-      );
-      if (!cancelled) unlisteners.push(unlistenDisconnect);
+    const unsubError = ws.on<WatchErrorEvent>(
+      "task-watch-error",
+      (payload) => {
+        if (payload.project_path !== projectPath && payload.project_path !== "")
+          return;
+        setLastError(payload.message);
+      },
+    );
 
-      // Listen for watcher errors
-      const unlistenError = await listen<WatchErrorEvent>(
-        EVENT_WATCH_ERROR,
-        (event) => {
-          if (cancelled) return;
-          if (
-            event.payload.project_path !== projectPath &&
-            event.payload.project_path !== ""
-          )
-            return;
-
-          setLastError(event.payload.message);
-        },
-      );
-      if (!cancelled) unlisteners.push(unlistenError);
-    }
-
-    setup();
+    // Start watching this project
+    ws.send("watch:start", { projectPaths: [projectPath] });
 
     return () => {
-      cancelled = true;
-      for (const unlisten of unlisteners) {
-        unlisten();
-      }
+      unsubChange();
+      unsubDisconnect();
+      unsubError();
       if (debounceTimerRef.current !== null) {
         clearTimeout(debounceTimerRef.current);
         debounceTimerRef.current = null;

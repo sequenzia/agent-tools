@@ -2,13 +2,14 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, waitFor, cleanup, fireEvent } from "@testing-library/react";
 import { SpecViewer } from "../SpecViewer";
 
-// Mock @tauri-apps/api/core
-vi.mock("@tauri-apps/api/core", () => ({
-  invoke: vi.fn(),
+// Mock api-client
+vi.mock("../../services/api-client", () => ({
+  api: { get: vi.fn(), post: vi.fn(), put: vi.fn(), delete: vi.fn() },
+  ws: { on: vi.fn(() => vi.fn()), send: vi.fn(), connected: vi.fn(() => true), close: vi.fn() },
 }));
 
-import { invoke } from "@tauri-apps/api/core";
-const mockInvoke = vi.mocked(invoke);
+import { api } from "../../services/api-client";
+const mockGet = vi.mocked(api.get);
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -24,11 +25,10 @@ function mockSpecResponse(
   hasAnalysis: boolean = false,
   analysisContent?: string,
 ) {
-  // First call: read_spec
-  mockInvoke.mockImplementation(async (cmd: string, args?: unknown) => {
-    const params = args as Record<string, string> | undefined;
-    if (cmd === "read_spec") {
-      if (params?.specPath?.includes(".analysis.md") && analysisContent) {
+  mockGet.mockImplementation(async (url: string, params?: unknown) => {
+    const p = params as Record<string, string> | undefined;
+    if (url === "/api/specs/read") {
+      if (p?.specPath?.includes(".analysis.md") && analysisContent) {
         return {
           content: analysisContent,
           resolved_path: "/project/spec.analysis.md",
@@ -41,7 +41,7 @@ function mockSpecResponse(
         size: content.length,
       };
     }
-    if (cmd === "check_spec_analysis") {
+    if (url === "/api/specs/analysis") {
       return {
         exists: hasAnalysis,
         analysis_path: "/project/spec.analysis.md",
@@ -54,7 +54,7 @@ function mockSpecResponse(
 describe("SpecViewer", () => {
   describe("loading state", () => {
     it("shows loading spinner while spec is being fetched", () => {
-      mockInvoke.mockReturnValue(new Promise(() => {}));
+      mockGet.mockReturnValue(new Promise(() => {}));
 
       render(
         <SpecViewer projectPath="/project" specPath="internal/spec.md" />,
@@ -306,7 +306,7 @@ describe("SpecViewer", () => {
 
   describe("error handling", () => {
     it("shows error when spec fails to load", async () => {
-      mockInvoke.mockRejectedValue("Spec file not found: /project/missing.md");
+      mockGet.mockRejectedValue("Spec file not found: /project/missing.md");
 
       render(
         <SpecViewer projectPath="/project" specPath="missing.md" />,
@@ -321,7 +321,7 @@ describe("SpecViewer", () => {
     });
 
     it("shows error for Error objects", async () => {
-      mockInvoke.mockRejectedValue(new Error("Permission denied"));
+      mockGet.mockRejectedValue(new Error("Permission denied"));
 
       render(
         <SpecViewer projectPath="/project" specPath="spec.md" />,

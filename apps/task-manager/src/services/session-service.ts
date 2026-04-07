@@ -1,4 +1,4 @@
-import { invoke } from "@tauri-apps/api/core";
+import { api } from "./api-client";
 
 /**
  * Session status representing the lifecycle state of a live session.
@@ -55,7 +55,7 @@ export type SessionFileName = (typeof SESSION_FILES)[number];
 export async function checkLiveSession(
   projectPath: string,
 ): Promise<LiveSessionInfo> {
-  return invoke<LiveSessionInfo>("check_live_session", {
+  return api.get<LiveSessionInfo>("/api/sessions/live", {
     projectPath,
   });
 }
@@ -68,7 +68,7 @@ export async function readSessionFile(
   projectPath: string,
   filename: string,
 ): Promise<SessionFileResult> {
-  return invoke<SessionFileResult>("read_session_file", {
+  return api.get<SessionFileResult>("/api/sessions/file", {
     projectPath,
     filename,
   });
@@ -137,7 +137,7 @@ export interface ArchivedSessionInfo {
 export async function listArchivedSessions(
   projectPath: string,
 ): Promise<ArchivedSessionInfo[]> {
-  return invoke<ArchivedSessionInfo[]>("list_archived_sessions_cmd", {
+  return api.get<ArchivedSessionInfo[]>("/api/sessions/archived", {
     projectPath,
   });
 }
@@ -151,7 +151,7 @@ export async function readArchivedSessionFile(
   sessionName: string,
   filename: string,
 ): Promise<SessionFileResult> {
-  return invoke<SessionFileResult>("read_archived_session_file", {
+  return api.get<SessionFileResult>("/api/sessions/archived/file", {
     projectPath,
     sessionName,
     filename,

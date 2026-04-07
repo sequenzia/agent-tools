@@ -9,13 +9,14 @@ import {
   SESSION_FILES,
 } from "../session-service";
 
-// Mock @tauri-apps/api/core
-vi.mock("@tauri-apps/api/core", () => ({
-  invoke: vi.fn(),
+// Mock api-client
+vi.mock("../api-client", () => ({
+  api: { get: vi.fn(), post: vi.fn(), put: vi.fn(), delete: vi.fn() },
+  ws: { on: vi.fn(() => vi.fn()), send: vi.fn(), connected: vi.fn(() => true), close: vi.fn() },
 }));
 
-import { invoke } from "@tauri-apps/api/core";
-const mockInvoke = vi.mocked(invoke);
+import { api } from "../api-client";
+const mockGet = vi.mocked(api.get);
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -23,7 +24,7 @@ beforeEach(() => {
 
 describe("checkLiveSession", () => {
   it("returns inactive when no live session exists", async () => {
-    mockInvoke.mockResolvedValueOnce({
+    mockGet.mockResolvedValueOnce({
       exists: false,
       status: "inactive",
       session_path: "/project/.agents/sessions/__live_session__",
@@ -33,7 +34,7 @@ describe("checkLiveSession", () => {
 
     const result = await checkLiveSession("/project");
 
-    expect(mockInvoke).toHaveBeenCalledWith("check_live_session", {
+    expect(mockGet).toHaveBeenCalledWith("/api/sessions/live", {
       projectPath: "/project",
     });
     expect(result.exists).toBe(false);
@@ -42,7 +43,7 @@ describe("checkLiveSession", () => {
   });
 
   it("returns active when live session with lock exists", async () => {
-    mockInvoke.mockResolvedValueOnce({
+    mockGet.mockResolvedValueOnce({
       exists: true,
       status: "active",
       session_path: "/project/.agents/sessions/__live_session__",
@@ -59,7 +60,7 @@ describe("checkLiveSession", () => {
   });
 
   it("returns interrupted when live session exists without lock", async () => {
-    mockInvoke.mockResolvedValueOnce({
+    mockGet.mockResolvedValueOnce({
       exists: true,
       status: "interrupted",
       session_path: "/project/.agents/sessions/__live_session__",
@@ -74,7 +75,7 @@ describe("checkLiveSession", () => {
   });
 
   it("propagates IPC errors", async () => {
-    mockInvoke.mockRejectedValueOnce("Permission denied");
+    mockGet.mockRejectedValueOnce("Permission denied");
 
     await expect(checkLiveSession("/project")).rejects.toBe(
       "Permission denied",
@@ -84,7 +85,7 @@ describe("checkLiveSession", () => {
 
 describe("readSessionFile", () => {
   it("reads a session file successfully", async () => {
-    mockInvoke.mockResolvedValueOnce({
+    mockGet.mockResolvedValueOnce({
       filename: "progress.md",
       content: "Wave 2 of 3",
       error: null,
@@ -93,7 +94,7 @@ describe("readSessionFile", () => {
 
     const result = await readSessionFile("/project", "progress.md");
 
-    expect(mockInvoke).toHaveBeenCalledWith("read_session_file", {
+    expect(mockGet).toHaveBeenCalledWith("/api/sessions/file", {
       projectPath: "/project",
       filename: "progress.md",
     });
@@ -103,7 +104,7 @@ describe("readSessionFile", () => {
   });
 
   it("returns not found for missing file", async () => {
-    mockInvoke.mockResolvedValueOnce({
+    mockGet.mockResolvedValueOnce({
       filename: "nonexistent.md",
       content: null,
       error: null,
@@ -117,7 +118,7 @@ describe("readSessionFile", () => {
   });
 
   it("returns error for unreadable file", async () => {
-    mockInvoke.mockResolvedValueOnce({
+    mockGet.mockResolvedValueOnce({
       filename: "progress.md",
       content: null,
       error: "Failed to read file: permission denied",
@@ -132,7 +133,7 @@ describe("readSessionFile", () => {
   });
 
   it("rejects path traversal filenames", async () => {
-    mockInvoke.mockRejectedValueOnce("Invalid filename: ../etc/passwd");
+    mockGet.mockRejectedValueOnce("Invalid filename: ../etc/passwd");
 
     await expect(readSessionFile("/project", "../etc/passwd")).rejects.toBe(
       "Invalid filename: ../etc/passwd",
@@ -142,7 +143,7 @@ describe("readSessionFile", () => {
 
 describe("readSessionFiles", () => {
   it("reads multiple files in parallel", async () => {
-    mockInvoke
+    mockGet
       .mockResolvedValueOnce({
         filename: "progress.md",
         content: "Wave 1",
@@ -167,7 +168,7 @@ describe("readSessionFiles", () => {
   });
 
   it("handles mixed success and failure", async () => {
-    mockInvoke
+    mockGet
       .mockResolvedValueOnce({
         filename: "progress.md",
         content: "Wave 1",
@@ -195,7 +196,7 @@ describe("readSessionFiles", () => {
 describe("readAllSessionFiles", () => {
   it("reads all known session files", async () => {
     for (const file of SESSION_FILES) {
-      mockInvoke.mockResolvedValueOnce({
+      mockGet.mockResolvedValueOnce({
         filename: file,
         content: `Content of ${file}`,
         error: null,
@@ -249,11 +250,11 @@ describe("listArchivedSessions", () => {
         error: null,
       },
     ];
-    mockInvoke.mockResolvedValueOnce(sessions);
+    mockGet.mockResolvedValueOnce(sessions);
 
     const result = await listArchivedSessions("/project");
 
-    expect(mockInvoke).toHaveBeenCalledWith("list_archived_sessions_cmd", {
+    expect(mockGet).toHaveBeenCalledWith("/api/sessions/archived", {
       projectPath: "/project",
     });
     expect(result).toHaveLength(2);
@@ -262,7 +263,7 @@ describe("listArchivedSessions", () => {
   });
 
   it("returns empty array when no sessions exist", async () => {
-    mockInvoke.mockResolvedValueOnce([]);
+    mockGet.mockResolvedValueOnce([]);
 
     const result = await listArchivedSessions("/project");
 
@@ -270,7 +271,7 @@ describe("listArchivedSessions", () => {
   });
 
   it("propagates IPC errors", async () => {
-    mockInvoke.mockRejectedValueOnce("Failed to read sessions directory");
+    mockGet.mockRejectedValueOnce("Failed to read sessions directory");
 
     await expect(listArchivedSessions("/project")).rejects.toBe(
       "Failed to read sessions directory",
@@ -280,7 +281,7 @@ describe("listArchivedSessions", () => {
 
 describe("readArchivedSessionFile", () => {
   it("reads a file from an archived session", async () => {
-    mockInvoke.mockResolvedValueOnce({
+    mockGet.mockResolvedValueOnce({
       filename: "execution_plan.md",
       content: "# Execution Plan\nWave 1: tasks 1,2,3",
       error: null,
@@ -293,7 +294,7 @@ describe("readArchivedSessionFile", () => {
       "execution_plan.md",
     );
 
-    expect(mockInvoke).toHaveBeenCalledWith("read_archived_session_file", {
+    expect(mockGet).toHaveBeenCalledWith("/api/sessions/archived/file", {
       projectPath: "/project",
       sessionName: "exec-session-20260406-140000",
       filename: "execution_plan.md",
@@ -303,7 +304,7 @@ describe("readArchivedSessionFile", () => {
   });
 
   it("returns not found for missing file", async () => {
-    mockInvoke.mockResolvedValueOnce({
+    mockGet.mockResolvedValueOnce({
       filename: "nonexistent.md",
       content: null,
       error: null,
@@ -321,7 +322,7 @@ describe("readArchivedSessionFile", () => {
   });
 
   it("rejects access to live session", async () => {
-    mockInvoke.mockRejectedValueOnce(
+    mockGet.mockRejectedValueOnce(
       "Use read_session_file for live session access",
     );
 

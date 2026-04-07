@@ -2,13 +2,14 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, cleanup, fireEvent, waitFor } from "@testing-library/react";
 import { SpecViewerPanel } from "../SpecViewerPanel";
 
-// Mock @tauri-apps/api/core
-vi.mock("@tauri-apps/api/core", () => ({
-  invoke: vi.fn(),
+// Mock api-client
+vi.mock("../../services/api-client", () => ({
+  api: { get: vi.fn(), post: vi.fn(), put: vi.fn(), delete: vi.fn() },
+  ws: { on: vi.fn(() => vi.fn()), send: vi.fn(), connected: vi.fn(() => true), close: vi.fn() },
 }));
 
-import { invoke } from "@tauri-apps/api/core";
-const mockInvoke = vi.mocked(invoke);
+import { api } from "../../services/api-client";
+const mockGet = vi.mocked(api.get);
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -20,21 +21,21 @@ afterEach(() => {
 });
 
 function mockSpecResponse(content: string) {
-  mockInvoke.mockImplementation(async (cmd: string) => {
-    if (cmd === "read_spec") {
+  mockGet.mockImplementation(async (url: string) => {
+    if (url === "/api/specs/read") {
       return {
         content,
         resolved_path: "/project/spec.md",
         size: content.length,
       };
     }
-    if (cmd === "check_spec_analysis") {
+    if (url === "/api/specs/analysis") {
       return {
         exists: false,
         analysis_path: "/project/spec.analysis.md",
       };
     }
-    if (cmd === "get_spec_lifecycle") {
+    if (url === "/api/specs/lifecycle") {
       return {
         current_stage: "created",
         completed_stages: ["created"],

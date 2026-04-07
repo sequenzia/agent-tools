@@ -12,13 +12,14 @@ import {
   COLUMN_TO_STATUS,
 } from "../../services/transition-validation";
 
-// Mock @tauri-apps/api/core
-vi.mock("@tauri-apps/api/core", () => ({
-  invoke: vi.fn(),
+// Mock api-client
+vi.mock("../../services/api-client", () => ({
+  api: { get: vi.fn(), post: vi.fn(), put: vi.fn(), delete: vi.fn() },
+  ws: { on: vi.fn(() => vi.fn()), send: vi.fn(), connected: vi.fn(() => true), close: vi.fn() },
 }));
 
-import { invoke } from "@tauri-apps/api/core";
-const mockInvoke = vi.mocked(invoke);
+import { api } from "../../services/api-client";
+const mockGet = vi.mocked(api.get);
 
 // Mock TaskDetailPanel to avoid pulling in react-markdown
 vi.mock("../TaskDetailPanel", () => ({
@@ -112,7 +113,7 @@ function makeTasksByStatus(overrides?: Partial<TasksByStatus>): TasksByStatus {
 describe("KanbanBoard drag-and-drop", () => {
   describe("draggable cards", () => {
     it("renders task cards with draggable attributes", async () => {
-      mockInvoke.mockResolvedValueOnce({
+      mockGet.mockResolvedValueOnce({
         backlog: [makeTaskResult(1, "Draggable task", "backlog")],
         pending: [],
         in_progress: [],
@@ -136,7 +137,7 @@ describe("KanbanBoard drag-and-drop", () => {
     });
 
     it("renders cards in multiple columns with drag support", async () => {
-      mockInvoke.mockResolvedValueOnce({
+      mockGet.mockResolvedValueOnce({
         backlog: [makeTaskResult(1, "Backlog card", "backlog")],
         pending: [makeTaskResult(2, "Pending card", "pending")],
         in_progress: [makeTaskResult(3, "Active card", "in_progress")],
@@ -161,7 +162,7 @@ describe("KanbanBoard drag-and-drop", () => {
 
   describe("droppable columns", () => {
     it("renders all 6 columns as drop targets", async () => {
-      mockInvoke.mockResolvedValueOnce({
+      mockGet.mockResolvedValueOnce({
         backlog: [makeTaskResult(1, "Test task", "backlog")],
         pending: [],
         in_progress: [],
@@ -249,7 +250,7 @@ describe("KanbanBoard drag-and-drop", () => {
 
   describe("keyboard accessibility", () => {
     it("cards are keyboard focusable", async () => {
-      mockInvoke.mockResolvedValueOnce({
+      mockGet.mockResolvedValueOnce({
         backlog: [makeTaskResult(1, "Keyboard task", "backlog")],
         pending: [],
         in_progress: [],
@@ -267,7 +268,7 @@ describe("KanbanBoard drag-and-drop", () => {
     });
 
     it("cards have accessible labels", async () => {
-      mockInvoke.mockResolvedValueOnce({
+      mockGet.mockResolvedValueOnce({
         backlog: [],
         pending: [makeTaskResult(1, "Accessible task", "pending")],
         in_progress: [],
@@ -301,7 +302,7 @@ describe("KanbanBoard drag-and-drop", () => {
 
   describe("board with derived state tasks", () => {
     it("correctly categorizes blocked and failed tasks for drag", async () => {
-      mockInvoke.mockResolvedValueOnce({
+      mockGet.mockResolvedValueOnce({
         backlog: [],
         pending: [
           makeTaskResult(1, "Normal task", "pending"),

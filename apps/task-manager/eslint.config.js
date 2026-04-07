@@ -14,6 +14,6 @@ export default tseslint.config(
     },
   },
   {
-    ignores: ["dist/", "src-tauri/"],
+    ignores: ["dist/", "dist-server/"],
   },
 );

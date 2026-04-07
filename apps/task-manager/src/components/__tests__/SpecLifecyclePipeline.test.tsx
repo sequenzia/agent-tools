@@ -3,18 +3,14 @@ import { render, screen, waitFor, cleanup, fireEvent } from "@testing-library/re
 import { SpecLifecyclePipeline } from "../SpecLifecyclePipeline";
 import type { SpecLifecycleInfo } from "../../services/spec-service";
 
-// Mock @tauri-apps/api/core
-vi.mock("@tauri-apps/api/core", () => ({
-  invoke: vi.fn(),
+// Mock api-client
+vi.mock("../../services/api-client", () => ({
+  api: { get: vi.fn(), post: vi.fn(), put: vi.fn(), delete: vi.fn() },
+  ws: { on: vi.fn(() => vi.fn()), send: vi.fn(), connected: vi.fn(() => true), close: vi.fn() },
 }));
 
-// Mock @tauri-apps/api/event
-vi.mock("@tauri-apps/api/event", () => ({
-  listen: vi.fn(() => Promise.resolve(() => {})),
-}));
-
-import { invoke } from "@tauri-apps/api/core";
-const mockInvoke = vi.mocked(invoke);
+import { api } from "../../services/api-client";
+const mockGet = vi.mocked(api.get);
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -26,8 +22,8 @@ afterEach(() => {
 });
 
 function mockLifecycleResponse(info: SpecLifecycleInfo) {
-  mockInvoke.mockImplementation(async (cmd: string) => {
-    if (cmd === "get_spec_lifecycle") {
+  mockGet.mockImplementation(async (url: string) => {
+    if (url === "/api/specs/lifecycle") {
       return info;
     }
     return undefined;
@@ -357,7 +353,7 @@ describe("SpecLifecyclePipeline", () => {
     });
 
     it("shows unknown state when IPC call fails", async () => {
-      mockInvoke.mockRejectedValue(new Error("IPC error"));
+      mockGet.mockRejectedValue(new Error("IPC error"));
 
       render(<SpecLifecyclePipeline {...BASE_PROPS} />);
 
@@ -412,7 +408,7 @@ describe("SpecLifecyclePipeline", () => {
   describe("loading state", () => {
     it("shows loading skeleton while fetching lifecycle data", () => {
       // Don't resolve the promise
-      mockInvoke.mockReturnValue(new Promise(() => {}));
+      mockGet.mockReturnValue(new Promise(() => {}));
 
       render(<SpecLifecyclePipeline {...BASE_PROPS} />);
 
@@ -443,7 +439,7 @@ describe("SpecLifecyclePipeline", () => {
         expect(screen.getByTestId("spec-lifecycle-pipeline")).toBeDefined();
       });
 
-      expect(mockInvoke).toHaveBeenCalledWith("get_spec_lifecycle", {
+      expect(mockGet).toHaveBeenCalledWith("/api/specs/lifecycle", {
         projectPath: "/project",
         specPath: "internal/specs/feature-SPEC.md",
         taskGroup: "my-feature",
@@ -467,10 +463,10 @@ describe("SpecLifecyclePipeline", () => {
         expect(screen.getByTestId("spec-lifecycle-pipeline")).toBeDefined();
       });
 
-      expect(mockInvoke).toHaveBeenCalledWith("get_spec_lifecycle", {
+      expect(mockGet).toHaveBeenCalledWith("/api/specs/lifecycle", {
         projectPath: "/project",
         specPath: "internal/specs/feature-SPEC.md",
-        taskGroup: null,
+        taskGroup: undefined,
       });
     });
   });

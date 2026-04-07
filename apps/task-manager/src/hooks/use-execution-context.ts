@@ -1,10 +1,7 @@
 import { useEffect, useRef, useCallback, useState } from "react";
-import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+import { ws } from "../services/api-client";
 import { useSessionStore } from "../stores/session-store";
 import type { SessionChangeEvent } from "../services/session-service";
-
-/** IPC event name emitted by the Rust session watcher. */
-const EVENT_SESSION_CHANGE = "session-change";
 
 /** Polling interval in ms for refreshing execution context when session is active. */
 const POLL_INTERVAL_MS = 3000;
@@ -91,7 +88,7 @@ export { computeNewLines as _computeNewLines };
 /**
  * Hook that tracks the execution_context.md file content during live sessions.
  *
- * Listens for session-change events from the Rust watcher. When a session
+ * Listens for session-change events from the WebSocket. When a session
  * is active, it polls execution_context.md via the session store's
  * fetchSessionFile, computing diffs to highlight new content.
  *
@@ -216,41 +213,31 @@ export function useExecutionContext(
     }
   }, []);
 
-  // Listen for session-change events from the Rust watcher.
+  // Listen for session-change events via WebSocket.
   useEffect(() => {
     if (!projectPath) return;
 
     mountedRef.current = true;
-    let unlisten: UnlistenFn | null = null;
 
-    const setup = async () => {
-      unlisten = await listen<SessionChangeEvent>(
-        EVENT_SESSION_CHANGE,
-        (event) => {
-          if (!mountedRef.current) return;
-          if (event.payload.project_path !== projectPath) return;
+    const unsub = ws.on<SessionChangeEvent>(
+      "session-change",
+      (payload) => {
+        if (!mountedRef.current) return;
+        if (payload.project_path !== projectPath) return;
 
-          const newStatus = event.payload.status;
-          updateSessionStatus(newStatus);
+        const newStatus = payload.status;
+        updateSessionStatus(newStatus);
 
-          // Session changed — trigger a refresh to pick up new content.
-          if (
-            newStatus === "active" ||
-            newStatus === "interrupted"
-          ) {
-            debouncedRefresh();
-          }
-        },
-      );
-    };
-
-    setup();
+        // Session changed — trigger a refresh to pick up new content.
+        if (newStatus === "active" || newStatus === "interrupted") {
+          debouncedRefresh();
+        }
+      },
+    );
 
     return () => {
       mountedRef.current = false;
-      if (unlisten) {
-        unlisten();
-      }
+      unsub();
     };
   }, [projectPath, updateSessionStatus, debouncedRefresh]);
 

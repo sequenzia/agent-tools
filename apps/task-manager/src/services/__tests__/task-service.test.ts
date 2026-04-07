@@ -10,13 +10,15 @@ import {
   STATUS_LABELS,
 } from "../task-service";
 
-// Mock @tauri-apps/api/core
-vi.mock("@tauri-apps/api/core", () => ({
-  invoke: vi.fn(),
+// Mock api-client
+vi.mock("../api-client", () => ({
+  api: { get: vi.fn(), post: vi.fn(), put: vi.fn(), delete: vi.fn() },
+  ws: { on: vi.fn(() => vi.fn()), send: vi.fn(), connected: vi.fn(() => true), close: vi.fn() },
 }));
 
-import { invoke } from "@tauri-apps/api/core";
-const mockInvoke = vi.mocked(invoke);
+import { api } from "../api-client";
+const mockGet = vi.mocked(api.get);
+const mockPost = vi.mocked(api.post);
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -24,7 +26,7 @@ beforeEach(() => {
 
 describe("loadTasks", () => {
   it("returns empty task groups when project has no tasks", async () => {
-    mockInvoke.mockResolvedValueOnce({
+    mockGet.mockResolvedValueOnce({
       backlog: [],
       pending: [],
       in_progress: [],
@@ -33,7 +35,7 @@ describe("loadTasks", () => {
 
     const result = await loadTasks("/test/project");
 
-    expect(mockInvoke).toHaveBeenCalledWith("read_tasks", {
+    expect(mockGet).toHaveBeenCalledWith("/api/tasks", {
       projectPath: "/test/project",
     });
     expect(result.backlog).toEqual([]);
@@ -44,7 +46,7 @@ describe("loadTasks", () => {
   });
 
   it("parses valid tasks and groups them by status", async () => {
-    mockInvoke.mockResolvedValueOnce({
+    mockGet.mockResolvedValueOnce({
       backlog: [],
       pending: [
         {
@@ -91,7 +93,7 @@ describe("loadTasks", () => {
   });
 
   it("collects Rust-side errors as parse errors", async () => {
-    mockInvoke.mockResolvedValueOnce({
+    mockGet.mockResolvedValueOnce({
       backlog: [],
       pending: [
         {
@@ -115,7 +117,7 @@ describe("loadTasks", () => {
   });
 
   it("collects Zod validation failures as parse errors", async () => {
-    mockInvoke.mockResolvedValueOnce({
+    mockGet.mockResolvedValueOnce({
       backlog: [],
       pending: [
         {
@@ -139,7 +141,7 @@ describe("loadTasks", () => {
   });
 
   it("handles tasks with missing optional fields", async () => {
-    mockInvoke.mockResolvedValueOnce({
+    mockGet.mockResolvedValueOnce({
       backlog: [
         {
           type: "ok",
@@ -167,7 +169,7 @@ describe("loadTasks", () => {
   });
 
   it("throws when IPC call fails", async () => {
-    mockInvoke.mockRejectedValueOnce("Backend not available");
+    mockGet.mockRejectedValueOnce("Backend not available");
 
     await expect(loadTasks("/test/project")).rejects.toBe(
       "Backend not available",
@@ -268,7 +270,7 @@ describe("STATUS_LABELS", () => {
 
 describe("moveTask", () => {
   it("calls move_task IPC with lastReadMtimeMs", async () => {
-    mockInvoke.mockResolvedValueOnce({
+    mockPost.mockResolvedValueOnce({
       task: { id: 1, title: "Moved", description: "D", status: "in_progress" },
       file_path: "/project/.agents/tasks/in-progress/group/task-001.json",
       mtime_ms: 1700000002000,
@@ -280,7 +282,7 @@ describe("moveTask", () => {
       1700000000000,
     );
 
-    expect(mockInvoke).toHaveBeenCalledWith("move_task", {
+    expect(mockPost).toHaveBeenCalledWith("/api/tasks/move", {
       filePath: "/project/.agents/tasks/pending/group/task-001.json",
       newStatus: "in_progress",
       lastReadMtimeMs: 1700000000000,
@@ -292,7 +294,7 @@ describe("moveTask", () => {
   });
 
   it("calls move_task with null when no mtime provided", async () => {
-    mockInvoke.mockResolvedValueOnce({
+    mockPost.mockResolvedValueOnce({
       task: { id: 1, title: "Moved", description: "D", status: "completed" },
       file_path: "/project/.agents/tasks/completed/group/task-001.json",
       mtime_ms: 1700000003000,
@@ -303,7 +305,7 @@ describe("moveTask", () => {
       "completed",
     );
 
-    expect(mockInvoke).toHaveBeenCalledWith("move_task", {
+    expect(mockPost).toHaveBeenCalledWith("/api/tasks/move", {
       filePath: "/project/.agents/tasks/pending/group/task-001.json",
       newStatus: "completed",
       lastReadMtimeMs: null,
@@ -311,7 +313,7 @@ describe("moveTask", () => {
   });
 
   it("throws ConflictError when file modified externally", async () => {
-    mockInvoke.mockRejectedValueOnce(
+    mockPost.mockRejectedValueOnce(
       "Conflict: file was modified externally since last read. Expected mtime 100 but found 200.",
     );
 
@@ -321,7 +323,7 @@ describe("moveTask", () => {
   });
 
   it("throws ConflictError when file deleted externally", async () => {
-    mockInvoke.mockRejectedValueOnce(
+    mockPost.mockRejectedValueOnce(
       "Conflict: task file was removed externally: /path/task.json",
     );
 
@@ -331,7 +333,7 @@ describe("moveTask", () => {
   });
 
   it("throws non-conflict errors normally", async () => {
-    mockInvoke.mockRejectedValueOnce("Permission denied");
+    mockPost.mockRejectedValueOnce("Permission denied");
 
     await expect(
       moveTask("/path/task.json", "in_progress"),
@@ -341,7 +343,7 @@ describe("moveTask", () => {
 
 describe("updateTaskFields", () => {
   it("calls update_task_fields IPC with lastReadMtimeMs", async () => {
-    mockInvoke.mockResolvedValueOnce({
+    mockPost.mockResolvedValueOnce({
       task: { id: 1, title: "Updated", description: "D", status: "pending" },
       mtime_ms: 1700000005000,
     });
@@ -352,7 +354,7 @@ describe("updateTaskFields", () => {
       1700000000000,
     );
 
-    expect(mockInvoke).toHaveBeenCalledWith("update_task_fields", {
+    expect(mockPost).toHaveBeenCalledWith("/api/tasks/update", {
       filePath: "/path/task.json",
       fields: { title: "Updated" },
       lastReadMtimeMs: 1700000000000,
@@ -361,7 +363,7 @@ describe("updateTaskFields", () => {
   });
 
   it("throws ConflictError when conflict detected", async () => {
-    mockInvoke.mockRejectedValueOnce(
+    mockPost.mockRejectedValueOnce(
       "Conflict: file was modified externally since last read.",
     );
 

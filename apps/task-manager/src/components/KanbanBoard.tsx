@@ -6,12 +6,17 @@ import {
   KeyboardSensor,
   useSensor,
   useSensors,
-  useDroppable,
   useDraggable,
   type DragStartEvent,
   type DragOverEvent,
   type DragEndEvent,
 } from "@dnd-kit/core";
+import {
+  SortableContext,
+  useSortable,
+  horizontalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { useTaskStore } from "../stores/task-store";
 import { useProjectStore } from "../stores/project-store";
 import { useToastStore } from "../stores/toast-store";
@@ -36,6 +41,7 @@ import {
 import { COLUMN_ICONS } from "./StatusIcon";
 import { useLiveAnnouncer } from "./LiveRegion";
 import { perfMonitor } from "../services/perf-monitor";
+import { useOrderedColumns } from "../hooks/use-ordered-columns";
 import type { TaskStatus } from "../types";
 
 // Lazy-loaded panels for code splitting
@@ -265,7 +271,7 @@ function BoardFilterBar({
 // --- Board Metrics Bar ---
 
 /** Bar showing task count metrics across all board columns. */
-function BoardMetricsBar({ boardTasks }: { boardTasks: BoardTasks }) {
+function BoardMetricsBar({ boardTasks, orderedColumns }: { boardTasks: BoardTasks; orderedColumns: BoardColumn[] }) {
   const total =
     boardTasks.backlog.length +
     boardTasks.pending.length +
@@ -279,14 +285,11 @@ function BoardMetricsBar({ boardTasks }: { boardTasks: BoardTasks }) {
   const completedCount = boardTasks.completed.length;
   const completionPct = Math.round((completedCount / total) * 100);
 
-  const metrics: { label: string; count: number; column: BoardColumn }[] = [
-    { label: "Backlog", count: boardTasks.backlog.length, column: "backlog" },
-    { label: "Pending", count: boardTasks.pending.length, column: "pending" },
-    { label: "Blocked", count: boardTasks.blocked.length, column: "blocked" },
-    { label: "In Progress", count: boardTasks.in_progress.length, column: "in_progress" },
-    { label: "Failed", count: boardTasks.failed.length, column: "failed" },
-    { label: "Completed", count: completedCount, column: "completed" },
-  ];
+  const metrics = orderedColumns.map((column) => ({
+    label: COLUMN_LABELS[column],
+    count: boardTasks[column].length,
+    column,
+  }));
 
   return (
     <div
@@ -498,7 +501,7 @@ function VirtualColumnCards({
   return (
     <div
       ref={containerRef}
-      className="flex-1 overflow-y-auto px-2 pb-2"
+      className="flex-1 overflow-y-auto scrollbar-hide px-2 pb-2"
       onScroll={handleScroll}
       data-testid={`column-cards-${column}`}
       data-virtual={vSlice.isVirtual ? "true" : undefined}
@@ -533,7 +536,7 @@ function VirtualColumnCards({
   );
 }
 
-// --- Droppable Column ---
+// --- Sortable + Droppable Column ---
 
 function KanbanColumn({
   column,
@@ -545,6 +548,7 @@ function KanbanColumn({
   rollingBackTaskIds,
   keyboardFocusedCardIndex,
   keyboardDndState,
+  isDraggingColumn,
 }: {
   column: BoardColumn;
   tasks: TaskWithPath[];
@@ -555,11 +559,25 @@ function KanbanColumn({
   rollingBackTaskIds: Set<string>;
   keyboardFocusedCardIndex: number;
   keyboardDndState: KeyboardDndState | null;
+  isDraggingColumn: boolean;
 }) {
-  const { setNodeRef } = useDroppable({
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    setActivatorNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({
     id: `column-${column}`,
-    data: { column },
+    data: { type: "column", column },
   });
+
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
 
   // Determine if this column is the keyboard DnD target
   const isKeyboardDndTarget =
@@ -569,22 +587,24 @@ function KanbanColumn({
   const keyboardDndRejected =
     isKeyboardDndTarget && !keyboardDndState.transitionResult.allowed;
 
-  // Determine drop target visual state
+  // Determine drop target visual state (only for card drags, not column drags)
   let dropStateClass = "";
-  if (isOver && transitionResult) {
-    if (transitionResult.allowed) {
+  if (!isDraggingColumn) {
+    if (isOver && transitionResult) {
+      if (transitionResult.allowed) {
+        dropStateClass =
+          "ring-2 ring-blue-400 bg-blue-50/50 dark:ring-blue-500 dark:bg-blue-900/20";
+      } else {
+        dropStateClass =
+          "ring-2 ring-red-400 bg-red-50/50 dark:ring-red-500 dark:bg-red-900/20";
+      }
+    } else if (keyboardDndAllowed) {
       dropStateClass =
         "ring-2 ring-blue-400 bg-blue-50/50 dark:ring-blue-500 dark:bg-blue-900/20";
-    } else {
+    } else if (keyboardDndRejected) {
       dropStateClass =
         "ring-2 ring-red-400 bg-red-50/50 dark:ring-red-500 dark:bg-red-900/20";
     }
-  } else if (keyboardDndAllowed) {
-    dropStateClass =
-      "ring-2 ring-blue-400 bg-blue-50/50 dark:ring-blue-500 dark:bg-blue-900/20";
-  } else if (keyboardDndRejected) {
-    dropStateClass =
-      "ring-2 ring-red-400 bg-red-50/50 dark:ring-red-500 dark:bg-red-900/20";
   }
 
   // Determine which task is being keyboard-dragged (for visual highlight on the card)
@@ -594,15 +614,30 @@ function KanbanColumn({
   return (
     <div
       ref={setNodeRef}
-      className={`flex h-full flex-1 min-w-[250px] flex-col rounded-lg border bg-gray-50 transition-all duration-150 dark:bg-gray-900 ${COLUMN_BORDER_COLORS[column]} ${dropStateClass}`}
+      style={style}
+      className={`flex h-full flex-1 min-w-[250px] flex-col rounded-lg border bg-gray-50 transition-all duration-150 dark:bg-gray-900 ${COLUMN_BORDER_COLORS[column]} ${dropStateClass} ${isDragging ? "opacity-50" : ""}`}
+      {...attributes}
       data-testid={`column-${column}`}
       data-keyboard-dnd-target={isKeyboardDndTarget ? "true" : undefined}
       role="region"
       aria-label={`${COLUMN_LABELS[column]} column, ${tasks.length} tasks`}
       aria-dropeffect={isOver ? "move" : "none"}
     >
-      {/* Column header with dual indicator (color dot + icon) */}
-      <div className="flex items-center gap-2 px-3 py-3">
+      {/* Column header — drag activator for column reordering */}
+      <div
+        ref={setActivatorNodeRef}
+        className="flex cursor-grab items-center gap-2 px-3 py-3 active:cursor-grabbing"
+        {...listeners}
+      >
+        {/* Drag handle grip */}
+        <svg className="h-4 w-4 shrink-0 text-gray-300 dark:text-gray-600" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+          <circle cx="5" cy="3" r="1.5" />
+          <circle cx="11" cy="3" r="1.5" />
+          <circle cx="5" cy="8" r="1.5" />
+          <circle cx="11" cy="8" r="1.5" />
+          <circle cx="5" cy="13" r="1.5" />
+          <circle cx="11" cy="13" r="1.5" />
+        </svg>
         <div
           className={`h-2.5 w-2.5 rounded-full ${COLUMN_HEADER_COLORS[column]}`}
           aria-hidden="true"
@@ -780,6 +815,7 @@ export function KanbanBoard({ projectPath }: KanbanBoardProps) {
   } = useTaskStore();
   const { activeTaskGroups, toggleTaskGroup, setActiveTaskGroups } =
     useProjectStore();
+  const { orderedColumns, reorderColumns } = useOrderedColumns();
   const { announce } = useLiveAnnouncer();
   const [selectedTask, setSelectedTask] = useState<TaskWithPath | null>(null);
 
@@ -795,6 +831,7 @@ export function KanbanBoard({ projectPath }: KanbanBoardProps) {
   const [overColumn, setOverColumn] = useState<BoardColumn | null>(null);
   const [overTransition, setOverTransition] =
     useState<TransitionResult | null>(null);
+  const [isDraggingColumn, setIsDraggingColumn] = useState(false);
 
   // Global toast store for error notifications
   const addToastGlobal = useToastStore((s) => s.addToast);
@@ -945,6 +982,7 @@ export function KanbanBoard({ projectPath }: KanbanBoardProps) {
   const [kbNavState, kbNavActions] = useKeyboardNavigation(
     boardTasks,
     tasks,
+    orderedColumns,
     {
       onOpenDetail: handleCardClick,
       onMoveTask: performKeyboardMove,
@@ -979,9 +1017,15 @@ export function KanbanBoard({ projectPath }: KanbanBoardProps) {
   const handleDragStart = useCallback((event: DragStartEvent) => {
     if (isDraggingRef.current) return;
     isDraggingRef.current = true;
-    perfMonitor.mark("dnd-feedback");
 
-    const { taskWithPath, column } = event.active.data.current as {
+    const data = event.active.data.current;
+    if (data?.type === "column") {
+      setIsDraggingColumn(true);
+      return;
+    }
+
+    perfMonitor.mark("dnd-feedback");
+    const { taskWithPath, column } = data as {
       taskWithPath: TaskWithPath;
       column: BoardColumn;
     };
@@ -991,6 +1035,9 @@ export function KanbanBoard({ projectPath }: KanbanBoardProps) {
 
   const handleDragOver = useCallback(
     (event: DragOverEvent) => {
+      // Column reordering is handled by SortableContext — skip
+      if (event.active.data.current?.type === "column") return;
+
       const { over } = event;
       if (!over || !activeTask || !activeColumn || !tasks) {
         setOverColumn(null);
@@ -1023,9 +1070,22 @@ export function KanbanBoard({ projectPath }: KanbanBoardProps) {
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
       isDraggingRef.current = false;
-      const { over } = event;
+      const { active, over } = event;
 
-      // Reset drag visual state
+      // Handle column reorder
+      if (active.data.current?.type === "column") {
+        setIsDraggingColumn(false);
+        if (over && active.id !== over.id) {
+          const activeCol = active.data.current.column as BoardColumn;
+          const overCol = over.data.current?.column as BoardColumn | undefined;
+          if (overCol) {
+            reorderColumns(activeCol, overCol);
+          }
+        }
+        return;
+      }
+
+      // Reset card drag visual state
       setActiveTask(null);
       setActiveColumn(null);
       setOverColumn(null);
@@ -1117,11 +1177,12 @@ export function KanbanBoard({ projectPath }: KanbanBoardProps) {
         }
       })();
     },
-    [tasks, moveTaskOptimistic, confirmMove, rollbackMove, isTaskLocked, addToast, announce],
+    [tasks, moveTaskOptimistic, confirmMove, rollbackMove, isTaskLocked, addToast, announce, reorderColumns],
   );
 
   const handleDragCancel = useCallback(() => {
     isDraggingRef.current = false;
+    setIsDraggingColumn(false);
     setActiveTask(null);
     setActiveColumn(null);
     setOverColumn(null);
@@ -1162,7 +1223,7 @@ export function KanbanBoard({ projectPath }: KanbanBoardProps) {
         />
 
         {/* Task metrics summary */}
-        {boardTasks && <BoardMetricsBar boardTasks={boardTasks} />}
+        {boardTasks && <BoardMetricsBar boardTasks={boardTasks} orderedColumns={orderedColumns} />}
 
         {/* Board area with horizontal scrolling */}
         <div
@@ -1173,26 +1234,32 @@ export function KanbanBoard({ projectPath }: KanbanBoardProps) {
           aria-label="Kanban board"
           data-testid="kanban-board-grid"
         >
-          {BOARD_COLUMNS.map((column, colIdx) => (
-            <KanbanColumn
-              key={column}
-              column={column}
-              tasks={boardTasks[column]}
-              onCardClick={handleCardClick}
-              isOver={overColumn === column}
-              transitionResult={
-                overColumn === column ? overTransition : null
-              }
-              lockedTaskIds={lockedTaskIds}
-              rollingBackTaskIds={rollingBackTaskIds}
-              keyboardFocusedCardIndex={
-                kbNavState.isActive && kbNavState.focusedColumnIndex === colIdx
-                  ? kbNavState.focusedCardIndex
-                  : -1
-              }
-              keyboardDndState={kbNavState.dndState}
-            />
-          ))}
+          <SortableContext
+            items={orderedColumns.map((c) => `column-${c}`)}
+            strategy={horizontalListSortingStrategy}
+          >
+            {orderedColumns.map((column, colIdx) => (
+              <KanbanColumn
+                key={column}
+                column={column}
+                tasks={boardTasks[column]}
+                onCardClick={handleCardClick}
+                isOver={overColumn === column}
+                transitionResult={
+                  overColumn === column ? overTransition : null
+                }
+                lockedTaskIds={lockedTaskIds}
+                rollingBackTaskIds={rollingBackTaskIds}
+                keyboardFocusedCardIndex={
+                  kbNavState.isActive && kbNavState.focusedColumnIndex === colIdx
+                    ? kbNavState.focusedCardIndex
+                    : -1
+                }
+                keyboardDndState={kbNavState.dndState}
+                isDraggingColumn={isDraggingColumn}
+              />
+            ))}
+          </SortableContext>
         </div>
 
         {/* Keyboard DnD mode status bar */}

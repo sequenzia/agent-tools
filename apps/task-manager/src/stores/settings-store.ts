@@ -4,11 +4,13 @@ import type {
   ColumnVisibility,
   ViewMode,
   CardDensity,
+  BoardColumnValue,
 } from "../types/settings";
 import {
   DEFAULT_APP_SETTINGS,
   DEFAULT_UI_PREFERENCES,
   DEFAULT_COLUMN_VISIBILITY,
+  DEFAULT_COLUMN_ORDER,
 } from "../types/settings";
 import {
   loadSettings,
@@ -46,6 +48,8 @@ interface SettingsState {
   toggleColumnVisibility: (column: keyof ColumnVisibility) => Promise<void>;
   /** Set the card density. */
   setCardDensity: (density: CardDensity) => Promise<void>;
+  /** Set the column display order. */
+  setColumnOrder: (order: BoardColumnValue[]) => Promise<void>;
 
   /** Reset all settings to defaults. */
   resetToDefaults: () => Promise<void>;
@@ -79,6 +83,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     uiPreferences: {
       ...DEFAULT_UI_PREFERENCES,
       columnVisibility: { ...DEFAULT_COLUMN_VISIBILITY },
+      columnOrder: [...DEFAULT_COLUMN_ORDER],
     },
   },
   isLoaded: false,
@@ -141,6 +146,15 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     const newSettings: AppSettings = {
       ...current,
       uiPreferences: { ...current.uiPreferences, cardDensity: density },
+    };
+    await persistSettings(newSettings, set);
+  },
+
+  setColumnOrder: async (order: BoardColumnValue[]) => {
+    const current = get().settings;
+    const newSettings: AppSettings = {
+      ...current,
+      uiPreferences: { ...current.uiPreferences, columnOrder: order },
     };
     await persistSettings(newSettings, set);
   },

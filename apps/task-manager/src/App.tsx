@@ -50,7 +50,6 @@ function App() {
   const {
     projects,
     activeProjectPath,
-    activeTaskGroups,
     addProject,
     setActiveProject,
   } = useProjectStore();

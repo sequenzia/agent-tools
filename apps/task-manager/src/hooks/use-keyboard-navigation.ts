@@ -4,7 +4,6 @@ import type { TaskWithPath, TasksByStatus } from "../services/task-service";
 import type { TransitionResult } from "../services/transition-validation";
 import { validateTransition } from "../services/transition-validation";
 import type { BoardTasks } from "../components/KanbanBoard";
-import { BOARD_COLUMNS } from "../components/KanbanBoard";
 
 /** State for keyboard drag-and-drop mode. */
 export interface KeyboardDndState {
@@ -57,6 +56,7 @@ export interface KeyboardNavActions {
 export function useKeyboardNavigation(
   boardTasks: BoardTasks | null,
   allTasks: TasksByStatus | null,
+  orderedColumns: BoardColumn[],
   callbacks: {
     onOpenDetail: (task: TaskWithPath) => void;
     onMoveTask: (task: TaskWithPath, fromColumn: BoardColumn, toColumn: BoardColumn) => void;
@@ -67,17 +67,19 @@ export function useKeyboardNavigation(
   const [isActive, setIsActive] = useState(false);
   const [dndState, setDndState] = useState<KeyboardDndState | null>(null);
 
-  // Keep a ref to boardTasks/allTasks so callbacks always have the latest
+  // Keep refs so callbacks always have the latest values
   const boardTasksRef = useRef(boardTasks);
   boardTasksRef.current = boardTasks;
   const allTasksRef = useRef(allTasks);
   allTasksRef.current = allTasks;
+  const columnsRef = useRef(orderedColumns);
+  columnsRef.current = orderedColumns;
 
   const getColumnTasks = useCallback(
     (colIdx: number): TaskWithPath[] => {
       const bt = boardTasksRef.current;
       if (!bt) return [];
-      return bt[BOARD_COLUMNS[colIdx]] ?? [];
+      return bt[columnsRef.current[colIdx]] ?? [];
     },
     [],
   );
@@ -91,7 +93,7 @@ export function useKeyboardNavigation(
   /** Find the next column with cards in a given direction, wrapping around. */
   const findNextColumnWithCards = useCallback(
     (startIdx: number, direction: 1 | -1): number => {
-      const len = BOARD_COLUMNS.length;
+      const len = columnsRef.current.length;
       let idx = (startIdx + direction + len) % len;
       let checked = 0;
       while (checked < len) {
@@ -132,10 +134,11 @@ export function useKeyboardNavigation(
           }
           case "ArrowLeft": {
             e.preventDefault();
-            const len = BOARD_COLUMNS.length;
+            const cols = columnsRef.current;
+            const len = cols.length;
             const newIdx =
-              (BOARD_COLUMNS.indexOf(dndState.targetColumn) - 1 + len) % len;
-            const newCol = BOARD_COLUMNS[newIdx];
+              (cols.indexOf(dndState.targetColumn) - 1 + len) % len;
+            const newCol = cols[newIdx];
             const result = validateTransition(
               dndState.task,
               dndState.fromColumn,
@@ -152,10 +155,11 @@ export function useKeyboardNavigation(
           }
           case "ArrowRight": {
             e.preventDefault();
-            const len = BOARD_COLUMNS.length;
+            const cols = columnsRef.current;
+            const len = cols.length;
             const newIdx =
-              (BOARD_COLUMNS.indexOf(dndState.targetColumn) + 1) % len;
-            const newCol = BOARD_COLUMNS[newIdx];
+              (cols.indexOf(dndState.targetColumn) + 1) % len;
+            const newCol = cols[newIdx];
             const result = validateTransition(
               dndState.task,
               dndState.fromColumn,
@@ -206,7 +210,7 @@ export function useKeyboardNavigation(
           e.preventDefault();
           if (!isActive) {
             setIsActive(true);
-            const lastCol = BOARD_COLUMNS.length - 1;
+            const lastCol = columnsRef.current.length - 1;
             setFocusedColumnIndex(lastCol);
             setFocusedCardIndex(clampCardIndex(lastCol, 0));
             return true;
@@ -257,7 +261,7 @@ export function useKeyboardNavigation(
           e.preventDefault();
           const task = getFocusedTask();
           if (!task || !at) return true;
-          const fromColumn = BOARD_COLUMNS[focusedColumnIndex];
+          const fromColumn = columnsRef.current[focusedColumnIndex];
           const result = validateTransition(task, fromColumn, fromColumn, at);
           setDndState({
             task,

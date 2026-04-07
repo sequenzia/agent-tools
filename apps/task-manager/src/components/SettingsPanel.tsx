@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSettingsStore } from "../stores/settings-store";
-import type { ColumnVisibility, ViewMode, CardDensity } from "../types/settings";
+import type { ColumnVisibility, ViewMode, CardDensity, BoardColumnValue } from "../types/settings";
+import { DEFAULT_COLUMN_ORDER } from "../types/settings";
 
 // --- Section Header ---
 
@@ -195,6 +196,91 @@ function ColumnVisibilitySection() {
   );
 }
 
+// --- Column Order Section ---
+
+const ORDER_COLUMN_LABELS: Record<BoardColumnValue, string> = {
+  backlog: "Backlog",
+  pending: "Pending",
+  in_progress: "In Progress",
+  completed: "Completed",
+  blocked: "Blocked",
+  failed: "Failed",
+};
+
+function ColumnOrderSection() {
+  const { settings, setColumnOrder } = useSettingsStore();
+  const columnOrder = useMemo(
+    () => (settings.uiPreferences.columnOrder ?? [...DEFAULT_COLUMN_ORDER]) as BoardColumnValue[],
+    [settings.uiPreferences.columnOrder],
+  );
+
+  const moveColumn = useCallback(
+    (index: number, direction: -1 | 1) => {
+      const newIndex = index + direction;
+      if (newIndex < 0 || newIndex >= columnOrder.length) return;
+      const newOrder = [...columnOrder];
+      const [moved] = newOrder.splice(index, 1);
+      newOrder.splice(newIndex, 0, moved);
+      void setColumnOrder(newOrder);
+    },
+    [columnOrder, setColumnOrder],
+  );
+
+  return (
+    <div className="mb-4">
+      <label className="mb-1.5 block text-xs font-medium text-gray-700 dark:text-gray-300">
+        Column Order
+      </label>
+      <div className="space-y-1" data-testid="column-order-list">
+        {columnOrder.map((col, idx) => (
+          <div
+            key={col}
+            className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-1.5 dark:border-gray-600 dark:bg-gray-800"
+            data-testid={`column-order-${col}`}
+          >
+            {/* Grip icon (decorative) */}
+            <svg className="h-3.5 w-3.5 shrink-0 text-gray-300 dark:text-gray-600" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+              <circle cx="5" cy="3" r="1.5" />
+              <circle cx="11" cy="3" r="1.5" />
+              <circle cx="5" cy="8" r="1.5" />
+              <circle cx="11" cy="8" r="1.5" />
+              <circle cx="5" cy="13" r="1.5" />
+              <circle cx="11" cy="13" r="1.5" />
+            </svg>
+            <span className="flex-1 text-sm text-gray-700 dark:text-gray-300">
+              {ORDER_COLUMN_LABELS[col]}
+            </span>
+            <button
+              type="button"
+              className="rounded p-0.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 disabled:opacity-30 dark:hover:bg-gray-700 dark:hover:text-gray-300"
+              onClick={() => moveColumn(idx, -1)}
+              disabled={idx === 0}
+              aria-label={`Move ${ORDER_COLUMN_LABELS[col]} up`}
+              data-testid={`column-order-up-${col}`}
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 15.75l7.5-7.5 7.5 7.5" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              className="rounded p-0.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 disabled:opacity-30 dark:hover:bg-gray-700 dark:hover:text-gray-300"
+              onClick={() => moveColumn(idx, 1)}
+              disabled={idx === columnOrder.length - 1}
+              aria-label={`Move ${ORDER_COLUMN_LABELS[col]} down`}
+              data-testid={`column-order-down-${col}`}
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+              </svg>
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // --- Card Density Selector ---
 
 function CardDensitySelector() {
@@ -242,6 +328,7 @@ function UIPreferencesSection() {
       <SectionHeader title="UI Preferences" />
       <ViewModeSelector />
       <ColumnVisibilitySection />
+      <ColumnOrderSection />
       <CardDensitySelector />
     </section>
   );

@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import { useKeyboardNavigation } from "../use-keyboard-navigation";
-import type { BoardTasks } from "../../components/KanbanBoard";
+import type { BoardTasks, BoardColumn } from "../../components/KanbanBoard";
+import { BOARD_COLUMNS } from "../../components/KanbanBoard";
 import type { TaskWithPath, TasksByStatus } from "../../services/task-service";
 
 // --- Test helpers ---
@@ -74,11 +75,11 @@ describe("useKeyboardNavigation", () => {
     onMoveTask = vi.fn();
   });
 
-  function renderNav(boardTasks: BoardTasks | null, allTasks: TasksByStatus | null = null) {
+  function renderNav(boardTasks: BoardTasks | null, allTasks: TasksByStatus | null = null, columns: BoardColumn[] = BOARD_COLUMNS) {
     return renderHook(
-      ({ bt, at }) =>
-        useKeyboardNavigation(bt, at, { onOpenDetail, onMoveTask }),
-      { initialProps: { bt: boardTasks, at: allTasks ?? makeTasksByStatus() } },
+      ({ bt, at, cols }) =>
+        useKeyboardNavigation(bt, at, cols, { onOpenDetail, onMoveTask }),
+      { initialProps: { bt: boardTasks, at: allTasks ?? makeTasksByStatus(), cols: columns } },
     );
   }
 

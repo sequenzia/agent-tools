@@ -10,6 +10,18 @@ export type ViewMode = z.infer<typeof ViewModeSchema>;
 export const CardDensitySchema = z.enum(["compact", "comfortable", "spacious"]);
 export type CardDensity = z.infer<typeof CardDensitySchema>;
 
+// --- Board Column ---
+
+export const BoardColumnSchema = z.enum([
+  "backlog",
+  "pending",
+  "blocked",
+  "in_progress",
+  "failed",
+  "completed",
+]);
+export type BoardColumnValue = z.infer<typeof BoardColumnSchema>;
+
 // --- Column Visibility ---
 
 export const ColumnVisibilitySchema = z
@@ -31,6 +43,7 @@ export const UIPreferencesSchema = z
     defaultView: ViewModeSchema,
     columnVisibility: ColumnVisibilitySchema,
     cardDensity: CardDensitySchema,
+    columnOrder: z.array(BoardColumnSchema).optional(),
   })
   .passthrough();
 export type UIPreferences = z.infer<typeof UIPreferencesSchema>;
@@ -58,10 +71,20 @@ export const DEFAULT_COLUMN_VISIBILITY: ColumnVisibility = {
   failed: true,
 };
 
+export const DEFAULT_COLUMN_ORDER: BoardColumnValue[] = [
+  "backlog",
+  "pending",
+  "blocked",
+  "in_progress",
+  "failed",
+  "completed",
+];
+
 export const DEFAULT_UI_PREFERENCES: UIPreferences = {
   defaultView: "kanban",
   columnVisibility: { ...DEFAULT_COLUMN_VISIBILITY },
   cardDensity: "comfortable",
+  columnOrder: [...DEFAULT_COLUMN_ORDER],
 };
 
 export const DEFAULT_APP_SETTINGS: AppSettings = {
@@ -82,7 +105,7 @@ export function parseSettings(json: unknown): {
     return { settings: result.data, usedDefaults: false };
   }
   return {
-    settings: { ...DEFAULT_APP_SETTINGS, uiPreferences: { ...DEFAULT_UI_PREFERENCES, columnVisibility: { ...DEFAULT_COLUMN_VISIBILITY } } },
+    settings: { ...DEFAULT_APP_SETTINGS, uiPreferences: { ...DEFAULT_UI_PREFERENCES, columnVisibility: { ...DEFAULT_COLUMN_VISIBILITY }, columnOrder: [...DEFAULT_COLUMN_ORDER] } },
     usedDefaults: true,
   };
 }

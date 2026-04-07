@@ -315,7 +315,7 @@ const KanbanCard = memo(function KanbanCard({
       {...attributes}
       className={`rounded-lg border border-gray-200 bg-white p-3 shadow-sm transition-all duration-300 hover:shadow-md dark:border-gray-700 dark:bg-gray-800 ${
         isDragging ? "opacity-30" : ""
-      } ${isLocked ? "cursor-not-allowed opacity-70" : "cursor-grab active:cursor-grabbing"} ${
+      } ${isLocked ? "cursor-not-allowed opacity-70" : "cursor-pointer active:cursor-grabbing"} ${
         isRollingBack ? "animate-pulse ring-2 ring-red-300 dark:ring-red-600" : ""
       } ${focusClasses} ${dndClasses}`}
       data-testid={`task-card-${taskId}`}
@@ -327,7 +327,7 @@ const KanbanCard = memo(function KanbanCard({
       aria-roledescription="draggable task card"
       aria-label={`Task ${taskWithPath.task.title}`}
       aria-grabbed={isKeyboardDragging ? true : undefined}
-      onClick={() => {
+      onPointerUp={() => {
         if (!isDragging) onClick(taskWithPath);
       }}
       onKeyDown={(e) => {
@@ -527,7 +527,7 @@ function KanbanColumn({
   return (
     <div
       ref={setNodeRef}
-      className={`flex h-full w-72 min-w-72 flex-col rounded-lg bg-gray-50 transition-all duration-150 dark:bg-gray-900 ${dropStateClass}`}
+      className={`flex h-full flex-1 min-w-[250px] flex-col rounded-lg bg-gray-50 transition-all duration-150 dark:bg-gray-900 ${dropStateClass}`}
       data-testid={`column-${column}`}
       data-keyboard-dnd-target={isKeyboardDndTarget ? "true" : undefined}
       role="region"

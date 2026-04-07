@@ -79,10 +79,35 @@ Tauri 2.x + React 19 + Vite + TypeScript desktop app for visualizing and managin
 - **Tooling**: Vite 7.x, vitest, ESLint 9 (pinned, not 10), Tailwind CSS v4
 - **Testing**: vitest + jsdom + @testing-library/react
 
+### Architecture
+- Two-tier: Rust backend (file I/O, watchers) + React frontend (visualization) via Tauri IPC
+- Filesystem is source of truth — `.agents/tasks/{status}/{group}/task-N.json`
+- 24 IPC commands across 6 Rust modules (lib, tasks, specs, session, watcher, discovery)
+- Dual file watcher threads (tasks + sessions) with 100ms debounce
+- Zustand v5 stores (8 total, no middleware) with selector pattern for re-render optimization
+- Optimistic concurrency control via mtime-based conflict detection
+
+### Key Patterns
+- **Dual validation**: Zod `.passthrough()` (frontend) + serde `#[serde(flatten)]` (backend) for forward compatibility
+- **Derived board columns**: "blocked" and "failed" computed from task metadata, not filesystem dirs
+- **Atomic writes**: temp file + rename in Rust prevents partial write corruption
+- **Batch mutations**: `task-store.applyBatch()` applies multiple file events in single state update
+- **Service layer**: all IPC wrapped in typed services — components should not call `invoke()` directly
+
 ### Project Structure
 - `src/` — React frontend (components, services, stores, hooks, types)
 - `src-tauri/` — Rust backend (tasks.rs, watcher.rs, specs.rs, session.rs, discovery.rs)
 - `src-tauri/capabilities/default.json` — Tauri plugin permissions
+- Tests in `__tests__/` dirs alongside source
+
+### Critical Files
+- `src/components/KanbanBoard.tsx` — Main view (1,196 LOC) — DnD, keyboard nav, lazy panels
+- `src/stores/task-store.ts` — Core state with optimistic updates, locking, batch mutations
+- `src-tauri/src/tasks.rs` — Task file I/O with conflict detection (~876 LOC)
+- `src-tauri/src/watcher.rs` — Dual-threaded file watcher (~830 LOC)
+- `src/services/task-service.ts` — IPC bridge with Zod validation
+- `src/types/task.ts` — Zod schemas as source of truth for task types
+- `src/services/transition-validation.ts` — Derived column logic (blocked/failed)
 
 ### Key Commands
 - `npm run tauri dev` — Development with HMR

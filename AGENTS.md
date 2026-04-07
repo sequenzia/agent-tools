@@ -51,3 +51,19 @@
 | mr-reviewer | Pure parallel batch | 3 fixed agents |
 | docs-manager | Sequential phases, parallel gen | N docs-writers |
 | execute-tasks | Wave-based parallel | N task-executors (up to max_parallel) |
+
+### Consumer Applications
+
+**Task Manager** (`apps/task-manager/`) — Tauri desktop app that visualizes agent output in real-time.
+
+| Agent/Skill Output | Files Written | Task Manager Consumer |
+|-------|--------------|----------------------|
+| task-executor (execute-tasks) | `.agents/tasks/{status}/{group}/task-N.json` | KanbanBoard, TaskDetailPanel, DependencyGraph |
+| execute-tasks orchestrator | `__live_session__/progress.md` | WaveProgress (via use-wave-progress hook) |
+| execute-tasks orchestrator | `__live_session__/execution_context.md` | ExecutionContextMonitor (via use-execution-context hook) |
+| execute-tasks orchestrator | `__live_session__/task_log.md` | SessionTimeline (via use-session-timeline hook) |
+| execute-tasks orchestrator | `__live_session__/result-*.md` | ResultPanel (via use-result-file-events hook) |
+| execute-tasks orchestrator | `__live_session__/session_summary.md` | SessionHistoryBrowser |
+| create-tasks | `.agents/tasks/_manifests/{group}.json` | ProjectSidebar (task group counts) |
+
+**Interface contract**: Agents write JSON/markdown files to `.agents/tasks/` and `.agents/sessions/`. The task-manager watches these directories via dual Rust file watcher threads (100ms debounce) and reconciles changes into the UI. No direct agent-to-app communication — the filesystem is the sole integration point.

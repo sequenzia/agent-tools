@@ -106,12 +106,14 @@ export const api = {
     }
   },
 
-  async delete<T>(path: string): Promise<T> {
+  async delete<T>(path: string, body?: unknown): Promise<T> {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS);
     try {
       const response = await fetch(path, {
         method: "DELETE",
+        headers: body != null ? { "Content-Type": "application/json" } : undefined,
+        body: body != null ? JSON.stringify(body) : undefined,
         signal: controller.signal,
       });
       return handleResponse<T>(response);

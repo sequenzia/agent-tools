@@ -202,6 +202,16 @@ export interface SavedProjectDirectory {
   has_tasks_dir: boolean;
 }
 
+export interface ProjectListResponse {
+  projects: string[];
+  activeProjectPath: string | null;
+}
+
+export interface AddProjectResponse {
+  ok: boolean;
+  has_tasks_dir: boolean;
+}
+
 export interface DirectoryEntry {
   name: string;
   path: string;

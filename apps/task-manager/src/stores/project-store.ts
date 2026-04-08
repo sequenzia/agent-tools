@@ -1,5 +1,12 @@
 import { create } from "zustand";
 import type { TasksByStatus, TaskWithPath } from "../services/task-service";
+import {
+  loadProjects,
+  addProjectPath,
+  removeProjectPath,
+  persistActiveProject,
+  validateProjectDirectory,
+} from "../services/project-directory";
 
 /** Summary counts for a project's tasks. */
 export interface TaskCountSummary {
@@ -36,18 +43,28 @@ interface ProjectState {
   activeProjectPath: string | null;
   /** Currently selected task group filters. Empty set means "all" (no filter). */
   activeTaskGroups: Set<string>;
+  /** Whether the store has been initialized from the backend. */
+  isInitialized: boolean;
+  /** Whether initialization is in progress. */
+  isLoading: boolean;
+  /** Initialization error, if any. */
+  initError: string | null;
 
+  /** Initialize from persisted backend data. Safe to call multiple times (no-op after first). */
+  initialize: () => Promise<void>;
+  /** Add a project by path — validates, persists, adds to store, sets active. */
+  addProjectFromPath: (path: string) => Promise<{ has_tasks_dir: boolean }>;
   /** Set the list of projects. */
   setProjects: (projects: ProjectEntry[]) => void;
-  /** Add a project to the list. */
+  /** Add a project entry to the in-memory list (no persistence). */
   addProject: (project: ProjectEntry) => void;
-  /** Remove a project by path. */
-  removeProject: (path: string) => void;
-  /** Set the active project. Clears group filter. */
-  setActiveProject: (path: string | null) => void;
-  /** Toggle a task group in the filter set. If already selected, remove it; otherwise add it. */
+  /** Remove a project by path — persists to backend. */
+  removeProject: (path: string) => Promise<void>;
+  /** Set the active project — persists to backend. Clears group filter. */
+  setActiveProject: (path: string | null) => Promise<void>;
+  /** Toggle a task group in the filter set. */
   toggleTaskGroup: (group: string) => void;
-  /** Set all active task groups at once. Pass empty set or null for "all". */
+  /** Set all active task groups at once. */
   setActiveTaskGroups: (groups: Set<string> | null) => void;
   /** Update a project's task data (counts and groups) from loaded tasks. */
   updateProjectTasks: (path: string, tasks: TasksByStatus) => void;
@@ -134,34 +151,133 @@ export function getDisplayName(project: ProjectEntry, allProjects: ProjectEntry[
   return project.path;
 }
 
-export const useProjectStore = create<ProjectState>((set) => ({
+const EMPTY_COUNTS: TaskCountSummary = { pending: 0, in_progress: 0, completed: 0, total: 0 };
+
+export const useProjectStore = create<ProjectState>((set, get) => ({
   projects: [],
   activeProjectPath: null,
   activeTaskGroups: new Set<string>(),
+  isInitialized: false,
+  isLoading: false,
+  initError: null,
+
+  initialize: async () => {
+    const state = get();
+    if (state.isInitialized || state.isLoading) return;
+
+    set({ isLoading: true, initError: null });
+    try {
+      const { projects: paths, activeProjectPath: savedActive } = await loadProjects();
+
+      // Build ProjectEntry objects, validating connectivity
+      const entries: ProjectEntry[] = await Promise.all(
+        paths.map(async (p) => {
+          try {
+            await validateProjectDirectory(p);
+            return {
+              path: p,
+              name: getDirectoryName(p),
+              connected: true,
+              counts: { ...EMPTY_COUNTS },
+              taskGroups: [],
+            };
+          } catch {
+            return {
+              path: p,
+              name: getDirectoryName(p),
+              connected: false,
+              counts: { ...EMPTY_COUNTS },
+              taskGroups: [],
+            };
+          }
+        }),
+      );
+
+      // Determine active project (always-active rule)
+      const savedIsValid = savedActive && entries.some((e) => e.path === savedActive && e.connected);
+      const activePath = savedIsValid
+        ? savedActive
+        : entries.find((e) => e.connected)?.path ?? null;
+
+      set({
+        projects: entries,
+        activeProjectPath: activePath,
+        isInitialized: true,
+        isLoading: false,
+      });
+
+      // Persist the resolved active project if it differs from what was saved
+      if (activePath !== savedActive) {
+        persistActiveProject(activePath).catch(() => {});
+      }
+    } catch (err) {
+      set({
+        isLoading: false,
+        initError: err instanceof Error ? err.message : String(err),
+      });
+    }
+  },
+
+  addProjectFromPath: async (path: string) => {
+    const result = await addProjectPath(path);
+
+    const entry: ProjectEntry = {
+      path,
+      name: getDirectoryName(path),
+      connected: true,
+      counts: { ...EMPTY_COUNTS },
+      taskGroups: [],
+    };
+
+    // Add to store if not already present
+    const state = get();
+    if (!state.projects.some((p) => p.path === path)) {
+      set({ projects: [...state.projects, entry] });
+    }
+
+    // Set as active (optimistic, then persist)
+    set({ activeProjectPath: path, activeTaskGroups: new Set<string>() });
+    persistActiveProject(path).catch(() => {});
+
+    return { has_tasks_dir: result.has_tasks_dir };
+  },
 
   setProjects: (projects) => set({ projects }),
 
   addProject: (project) =>
     set((state) => {
-      // Avoid duplicates
       if (state.projects.some((p) => p.path === project.path)) {
         return state;
       }
       return { projects: [...state.projects, project] };
     }),
 
-  removeProject: (path) =>
-    set((state) => {
-      const projects = state.projects.filter((p) => p.path !== path);
-      const activeProjectPath =
-        state.activeProjectPath === path ? null : state.activeProjectPath;
-      const activeTaskGroups =
-        state.activeProjectPath === path ? new Set<string>() : state.activeTaskGroups;
-      return { projects, activeProjectPath, activeTaskGroups };
-    }),
+  removeProject: async (path: string) => {
+    const state = get();
+    const projects = state.projects.filter((p) => p.path !== path);
 
-  setActiveProject: (path) =>
-    set({ activeProjectPath: path, activeTaskGroups: new Set<string>() }),
+    // Always-active rule: auto-select next connected project
+    let newActive = state.activeProjectPath;
+    let newGroups = state.activeTaskGroups;
+    if (state.activeProjectPath === path) {
+      newActive = projects.find((p) => p.connected)?.path ?? null;
+      newGroups = new Set<string>();
+    }
+
+    set({
+      projects,
+      activeProjectPath: newActive,
+      activeTaskGroups: newGroups,
+    });
+
+    // Persist removal (backend also handles always-active)
+    removeProjectPath(path).catch(() => {});
+  },
+
+  setActiveProject: async (path: string | null) => {
+    set({ activeProjectPath: path, activeTaskGroups: new Set<string>() });
+    persistActiveProject(path).catch(() => {});
+  },
 
   toggleTaskGroup: (group) =>
     set((state) => {
@@ -189,7 +305,7 @@ export const useProjectStore = create<ProjectState>((set) => ({
         };
       });
 
-      // If any selected groups no longer exist in the project, remove them from the filter
+      // Clean up stale group filters
       const activeProject = projects.find((p) => p.path === state.activeProjectPath);
       if (activeProject && state.activeTaskGroups.size > 0) {
         const validGroupNames = new Set(activeProject.taskGroups.map((g) => g.name));

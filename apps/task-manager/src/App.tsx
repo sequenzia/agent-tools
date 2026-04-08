@@ -1,9 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
-import { useProjectDirectory } from "./hooks/use-project-directory";
 import { KanbanBoard } from "./components/KanbanBoard";
 import { ProjectSidebar } from "./components/ProjectSidebar";
 import { SettingsPanel } from "./components/SettingsPanel";
-import { DirectoryBrowser } from "./components/DirectoryBrowser";
 import { AddProjectModal } from "./components/AddProjectModal";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { ToastContainer } from "./components/ToastContainer";
@@ -13,7 +11,6 @@ import { useSettingsStore } from "./stores/settings-store";
 import {
   useProjectStore,
   getDirectoryName,
-  type ProjectEntry,
 } from "./stores/project-store";
 
 /** Callback for ErrorBoundary errors — surfaces as toast for non-fatal awareness. */
@@ -28,48 +25,26 @@ function handleBoundaryError(error: Error, sectionName: string) {
 function App() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [showBrowser, setShowBrowser] = useState(false);
   const [showAddProject, setShowAddProject] = useState(false);
-  const [directoryInput, setDirectoryInput] = useState("");
 
   const settingsLoad = useSettingsStore((s) => s.load);
+  const initialize = useProjectStore((s) => s.initialize);
+  const activeProjectPath = useProjectStore((s) => s.activeProjectPath);
+  const isLoading = useProjectStore((s) => s.isLoading);
+  const initError = useProjectStore((s) => s.initError);
 
-  // Load settings on mount
+  // Initialize settings and project store on mount
   useEffect(() => {
     settingsLoad();
-  }, [settingsLoad]);
+    initialize();
+  }, [settingsLoad, initialize]);
 
-  const {
-    projectPath,
-    hasTasksDir,
-    isLoading,
-    error: projectError,
-    warning: projectWarning,
-    submitDirectoryPath,
-    clearProject,
-  } = useProjectDirectory();
-
-  const {
-    projects,
-    activeProjectPath,
-    addProject,
-    setActiveProject,
-  } = useProjectStore();
-
-  // Sync the legacy projectPath from the hook with the project store
+  // Show initialization errors as toasts
   useEffect(() => {
-    if (projectPath && !projects.some((p) => p.path === projectPath)) {
-      const entry: ProjectEntry = {
-        path: projectPath,
-        name: getDirectoryName(projectPath),
-        connected: true,
-        counts: { pending: 0, in_progress: 0, completed: 0, total: 0 },
-        taskGroups: [],
-      };
-      addProject(entry);
-      setActiveProject(projectPath);
+    if (initError) {
+      useToastStore.getState().addToast("error", "Initialization error", initError);
     }
-  }, [projectPath, projects, addProject, setActiveProject]);
+  }, [initError]);
 
   // Handle narrow window collapse
   useEffect(() => {
@@ -87,13 +62,16 @@ function App() {
 
   const handleAddProjectSubmit = useCallback(async (path: string) => {
     setShowAddProject(false);
-    await submitDirectoryPath(path);
-  }, [submitDirectoryPath]);
-
-  const handleBrowseSelect = useCallback(async (path: string) => {
-    setShowBrowser(false);
-    await submitDirectoryPath(path);
-  }, [submitDirectoryPath]);
+    try {
+      await useProjectStore.getState().addProjectFromPath(path);
+    } catch (err) {
+      useToastStore.getState().addToast(
+        "error",
+        "Failed to add project",
+        err instanceof Error ? err.message : String(err),
+      );
+    }
+  }, []);
 
   const handleOpenSettings = useCallback(() => {
     setShowSettings(true);
@@ -103,7 +81,8 @@ function App() {
     setShowSettings(false);
   }, []);
 
-  const currentProjectPath = activeProjectPath ?? projectPath;
+  // Derive display name for the active project
+  const activeDisplayName = activeProjectPath ? getDirectoryName(activeProjectPath) : null;
 
   return (
     <LiveRegionProvider>
@@ -136,78 +115,27 @@ function App() {
               <span className="text-sm text-gray-500 dark:text-gray-400">
                 Loading...
               </span>
-            ) : currentProjectPath ? (
-              <div className="flex items-center gap-3">
-                <span className="text-sm text-gray-500 dark:text-gray-400 truncate max-w-md">
-                  {currentProjectPath}
-                </span>
-                {hasTasksDir && (
-                  <span className="text-xs text-green-600 dark:text-green-400">
-                    connected
-                  </span>
-                )}
-                <button
-                  onClick={clearProject}
-                  className="rounded border border-gray-300 dark:border-gray-600 px-2.5 py-1 text-xs font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                >
-                  Clear
-                </button>
-              </div>
-            ) : (
-              <form
-                className="flex items-center gap-2"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  handleAddProject();
-                }}
+            ) : activeDisplayName ? (
+              <span
+                className="text-sm font-medium text-gray-600 dark:text-gray-300 truncate max-w-md"
+                title={activeProjectPath ?? undefined}
               >
-                <input
-                  className="w-72 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  value={directoryInput}
-                  onChange={(e) => setDirectoryInput(e.currentTarget.value)}
-                  placeholder="Enter project directory path..."
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowBrowser(true)}
-                  className="rounded border border-gray-300 dark:border-gray-600 px-2.5 py-1 text-xs font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                >
-                  Browse
-                </button>
-                <button
-                  type="submit"
-                  disabled={!directoryInput.trim()}
-                  className="rounded bg-blue-600 px-3 py-1 text-xs font-medium text-white hover:bg-blue-700 transition-colors disabled:opacity-50"
-                >
-                  Open
-                </button>
-              </form>
-            )}
+                {activeDisplayName}
+              </span>
+            ) : null}
           </div>
 
-          {projectWarning && (
-            <div className="border-b border-yellow-200 dark:border-yellow-800 bg-yellow-50 dark:bg-yellow-900/30 px-6 py-2 text-sm text-yellow-800 dark:text-yellow-300">
-              Warning: {projectWarning}
-            </div>
-          )}
-
-          {projectError && (
-            <div className="border-b border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/30 px-6 py-2 text-sm text-red-800 dark:text-red-300">
-              Error: {projectError}
-            </div>
-          )}
-
           {/* Kanban board — fills remaining space */}
-          {currentProjectPath ? (
+          {activeProjectPath ? (
             <div className="flex-1 overflow-hidden">
               <ErrorBoundary sectionName="Kanban Board" onError={handleBoundaryError}>
-                <KanbanBoard projectPath={currentProjectPath} />
+                <KanbanBoard projectPath={activeProjectPath} />
               </ErrorBoundary>
             </div>
           ) : (
             <div className="flex flex-1 items-center justify-center">
               <p className="text-gray-400 dark:text-gray-500">
-                Select a project directory to view tasks
+                Add a project from the sidebar to get started
               </p>
             </div>
           )}
@@ -219,14 +147,6 @@ function App() {
         <AddProjectModal
           onSubmit={handleAddProjectSubmit}
           onCancel={() => setShowAddProject(false)}
-        />
-      )}
-
-      {/* Directory browser modal */}
-      {showBrowser && (
-        <DirectoryBrowser
-          onSelect={handleBrowseSelect}
-          onCancel={() => setShowBrowser(false)}
         />
       )}
 

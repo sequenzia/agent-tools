@@ -30,7 +30,7 @@ interface WatcherState {
   debounceTimers: Map<string, ReturnType<typeof setTimeout>>;
 }
 
-let state: WatcherState = {
+const state: WatcherState = {
   taskWatchers: new Map(),
   sessionWatchers: new Map(),
   sessionStatusCache: new Map(),

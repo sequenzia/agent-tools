@@ -158,7 +158,7 @@ function ProjectItem({
       {/* Project header */}
       <button
         type="button"
-        className="flex w-full items-start gap-2 rounded-lg px-3 py-2 text-left"
+        className="flex w-full items-start gap-2 rounded-lg px-4 py-2 text-left"
         onClick={handleClick}
         data-testid={`project-btn-${project.name}`}
         aria-label={`Select project: ${displayName}${!project.connected ? " (disconnected)" : ""}`}
@@ -168,7 +168,7 @@ function ProjectItem({
         {/* Expand/collapse arrow */}
         {project.taskGroups.length > 0 && (
           <span
-            className="mt-0.5 shrink-0 text-gray-400 dark:text-gray-500 cursor-pointer select-none"
+            className="mt-0.5 shrink-0 text-gray-400 dark:text-gray-500 cursor-pointer select-none rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
             onClick={handleToggleExpand}
             data-testid={`expand-toggle-${project.name}`}
             role="button"
@@ -220,7 +220,7 @@ function ProjectItem({
 
       {/* Expandable task groups */}
       {showExpanded && project.taskGroups.length > 0 && (
-        <div className="px-3 pb-2 pl-7" data-testid={`groups-${project.name}`}>
+        <div className="px-4 pb-2 pl-8" data-testid={`groups-${project.name}`}>
           <div className="space-y-0.5">
             {project.taskGroups.map((group) => (
               <TaskGroupItem
@@ -239,7 +239,7 @@ function ProjectItem({
         project.connected &&
         project.taskGroups.length === 0 &&
         project.counts.total === 0 && (
-          <div className="px-3 pb-2 pl-7">
+          <div className="px-4 pb-2 pl-8">
             <p
               className="text-xs text-gray-400 dark:text-gray-500 italic"
               data-testid={`no-tasks-${project.name}`}
@@ -303,7 +303,7 @@ export function ProjectSidebar({
       >
         <button
           type="button"
-          className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
+          className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:text-gray-400 dark:hover:bg-gray-800"
           onClick={onAddProject}
           title="Add Project"
           aria-label="Add project"
@@ -311,27 +311,39 @@ export function ProjectSidebar({
         >
           +
         </button>
-        {projects.map((project) => (
-          <button
-            key={project.path}
-            type="button"
-            className={`mt-2 flex h-8 w-8 items-center justify-center rounded-lg text-xs font-bold ${
-              activeProjectPath === project.path
-                ? "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300"
-                : "text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
-            }`}
-            onClick={() => setActiveProject(project.path)}
-            title={project.path}
-            aria-label={`Select project: ${project.name}`}
-            aria-current={activeProjectPath === project.path ? "true" : undefined}
-          >
-            {project.name.charAt(0).toUpperCase()}
-          </button>
-        ))}
+        {projects.map((project) => {
+          const counts = project.counts;
+          const tooltip = project.connected
+            ? `${project.name}\n${counts.pending} pending, ${counts.in_progress} in progress, ${counts.completed} completed`
+            : `${project.name} (disconnected)`;
+          return (
+            <div key={project.path} className="relative mt-2">
+              <button
+                type="button"
+                className={`flex h-8 w-8 items-center justify-center rounded-lg text-xs font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
+                  activeProjectPath === project.path
+                    ? "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300"
+                    : `text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800 ${!project.connected ? "opacity-50" : ""}`
+                }`}
+                onClick={() => setActiveProject(project.path)}
+                title={tooltip}
+                aria-label={`Select project: ${project.name}${!project.connected ? " (disconnected)" : ""}`}
+                aria-current={activeProjectPath === project.path ? "true" : undefined}
+              >
+                {project.name.charAt(0).toUpperCase()}
+              </button>
+              {project.connected && counts.total > 0 && (
+                <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-blue-500 px-0.5 text-[9px] font-bold text-white dark:bg-blue-400 dark:text-gray-900">
+                  {counts.total > 99 ? "99+" : counts.total}
+                </span>
+              )}
+            </div>
+          );
+        })}
         {onOpenSettings && (
           <button
             type="button"
-            className="mt-auto flex h-8 w-8 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
+            className="mt-auto flex h-8 w-8 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:text-gray-400 dark:hover:bg-gray-800"
             onClick={onOpenSettings}
             title="Settings"
             aria-label="Open settings"
@@ -355,11 +367,11 @@ export function ProjectSidebar({
       aria-label="Project navigation"
     >
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3 dark:border-indigo-500/20 dark:bg-indigo-950/20">
+      <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3 dark:border-gray-700/50 dark:bg-gray-800/30">
         <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
           Projects
         </h2>
-        <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-medium text-blue-700 dark:bg-indigo-900/40 dark:text-indigo-300">
+        <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-medium text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
           {projects.length}
         </span>
       </div>
@@ -392,13 +404,14 @@ export function ProjectSidebar({
       </div>
 
       {/* Footer with Add Project button and Settings */}
-      <div className="border-t border-gray-200 px-3 py-3 dark:border-gray-700">
+      <div className="border-t border-gray-200 px-4 py-3 dark:border-gray-700">
         {projects.length > 0 && <AddProjectButton onClick={onAddProject} />}
         {onOpenSettings && (
           <button
             type="button"
-            className="mt-2 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-600 transition-colors hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700"
+            className="mt-2 flex w-full items-center gap-2 rounded-lg px-4 py-2 text-sm text-gray-600 transition-colors hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:text-gray-400 dark:hover:bg-gray-700"
             onClick={onOpenSettings}
+            title="Settings"
             data-testid="settings-btn"
             aria-label="Open settings"
           >

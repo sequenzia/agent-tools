@@ -76,6 +76,18 @@ app.get("/api/health", (_req, res) => {
 
 // --- Start server ---
 
+server.on("error", (err: NodeJS.ErrnoException) => {
+  if (err.code === "EADDRINUSE") {
+    console.error(
+      `\nError: Port ${PORT} is already in use.\n` +
+        `Kill the existing process: lsof -ti :${PORT} | xargs kill\n` +
+        `Or set a different port: PORT=3002 npm run dev:server\n`,
+    );
+    process.exit(1);
+  }
+  throw err;
+});
+
 server.listen(PORT, () => {
   console.log(`Task Manager server running on http://localhost:${PORT}`);
   console.log(`WebSocket available at ws://localhost:${PORT}/ws`);

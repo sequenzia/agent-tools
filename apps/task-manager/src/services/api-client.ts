@@ -140,6 +140,8 @@ class WsClient {
   private reconnectAttempts = 0;
   private maxReconnectDelay = 5000;
   private isClosing = false;
+  private pendingMessages: string[] = [];
+  private wasConnected = false;
 
   constructor() {
     this.connect();
@@ -157,7 +159,25 @@ class WsClient {
       this.socket = new WebSocket(this.getWsUrl());
 
       this.socket.onopen = () => {
+        const isReconnect = this.wasConnected;
+        this.wasConnected = true;
         this.reconnectAttempts = 0;
+
+        // Flush any messages queued while disconnected
+        for (const msg of this.pendingMessages) {
+          this.socket!.send(msg);
+        }
+        this.pendingMessages = [];
+
+        // Notify reconnect subscribers so they can re-establish server state
+        if (isReconnect) {
+          const reconnectHandlers = this.handlers.get("ws:reconnect");
+          if (reconnectHandlers) {
+            for (const handler of reconnectHandlers) {
+              handler(undefined);
+            }
+          }
+        }
       };
 
       this.socket.onmessage = (event) => {
@@ -226,10 +246,13 @@ class WsClient {
     };
   }
 
-  /** Send a message to the server via WebSocket. */
+  /** Send a message to the server via WebSocket. Queues if not yet connected. */
   send(event: string, payload?: unknown): void {
+    const msg = JSON.stringify({ event, payload });
     if (this.socket?.readyState === WebSocket.OPEN) {
-      this.socket.send(JSON.stringify({ event, payload }));
+      this.socket.send(msg);
+    } else {
+      this.pendingMessages.push(msg);
     }
   }
 
@@ -244,6 +267,7 @@ class WsClient {
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer);
     }
+    this.pendingMessages = [];
     this.socket?.close();
   }
 }

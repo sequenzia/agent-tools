@@ -118,7 +118,7 @@ describe("useTaskFileEvents", () => {
     it("cleans up listeners on unmount", async () => {
       const hookResult = await setupHook("/project");
 
-      expect(listeners.size).toBe(3);
+      expect(listeners.size).toBe(4);
 
       hookResult.unmount();
 

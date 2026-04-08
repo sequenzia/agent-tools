@@ -240,13 +240,21 @@ export function useTaskFileEvents(projectPath: string | null): TaskFileEventsSta
       },
     );
 
-    // Start watching this project
+    // Re-establish watchers on WebSocket reconnection (server may have restarted)
+    const unsubReconnect = ws.on("ws:reconnect", () => {
+      ws.send("watch:start", { projectPaths: [projectPath] });
+      setIsConnected(true);
+      setLastError(null);
+    });
+
+    // Start watching this project (queued if WS not yet open)
     ws.send("watch:start", { projectPaths: [projectPath] });
 
     return () => {
       unsubChange();
       unsubDisconnect();
       unsubError();
+      unsubReconnect();
       if (debounceTimerRef.current !== null) {
         clearTimeout(debounceTimerRef.current);
         debounceTimerRef.current = null;

@@ -215,7 +215,7 @@ Before creating new files, check if `.agents/sessions/__live_session__/` contain
      2. Read each task file
      3. If an archived `task_log.md` exists, cross-reference: only reset tasks that appear in the log (they were part of the interrupted session)
      4. If no `task_log.md` available in the archive, reset ALL `in_progress` tasks (conservative approach)
-     5. For each task to reset: Read the JSON, update `status` to `"pending"`, update `updated_at`, Write to `.agents/tasks/pending/{group}/task-{id}.json`, delete from `in-progress/{group}/`
+     5. For each task to reset: Read the JSON file and parse the full object. Modify only `status` (→ `"pending"`), `owner` (→ `null`), and `updated_at` on the parsed object — all other fields remain unchanged. Write the complete object to `.agents/tasks/pending/{group}/task-{id}.json`, delete from `in-progress/{group}/`.
      6. Log each reset: `Reset interrupted task [{id}] "{title}" from in_progress to pending`
      7. Log: `Recovered {n} interrupted tasks (reset to pending)`
 3. If `__live_session__/` is empty or doesn't exist, proceed normally
@@ -324,9 +324,9 @@ Read `.agents/sessions/__live_session__/execution_context.md` and hold it as the
 ### 7c: Launch Wave
 
 1. **Mark tasks in_progress**: For each task in the wave, move its file from `pending/{group}/` to `in-progress/{group}/`:
-   - Read the task JSON
-   - Update `status` to `"in_progress"`, set `owner` to `{task_execution_id}`, update `updated_at`
-   - Write to `.agents/tasks/in-progress/{group}/task-{id}.json` (create group subdirectory if needed)
+   - Read the task JSON file and parse the full object (fresh read — do not reuse a cached version)
+   - Modify only `status` (→ `"in_progress"`), `owner` (→ `{task_execution_id}`), and `updated_at` on the parsed object — all other fields remain unchanged. Do NOT reconstruct from memory.
+   - Write the complete object to `.agents/tasks/in-progress/{group}/task-{id}.json` (create group subdirectory if needed)
    - Delete `.agents/tasks/pending/{group}/task-{id}.json`
 
 2. Record `wave_start_time`

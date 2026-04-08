@@ -167,3 +167,42 @@ File content:  { "status": "in_progress", ... }
 2. Move the file to the matching status directory
 
 If you discover a mismatch, trust the directory location and update the `status` field to match it, since the directory move is the visible state change that other operations depend on.
+
+---
+
+## AP-09: Task Field Loss During Status Transitions
+
+**Description**: When moving a task file between status directories (e.g., `pending/` → `in-progress/` → `completed/`), reconstructing the JSON from memory instead of modifying the parsed read output, resulting in lost fields. This typically manifests as the first task in a session being moved correctly while subsequent tasks lose most fields because context window decay causes the agent to retain only core fields.
+
+```
+Original (pending/):
+{
+  "id": "task-003",
+  "title": "Add input validation",
+  "active_form": "Adding input validation",
+  "description": "Validate all user inputs for the registration form...",
+  "acceptance_criteria": {
+    "functional": ["All required fields validated", "Error messages shown"],
+    "edge_cases": ["Empty strings handled", "Unicode input accepted"],
+    "error_handling": ["Malformed email rejected"],
+    "performance": []
+  },
+  "testing_requirements": [{"type": "unit", "target": "Validation logic"}],
+  "status": "pending",
+  "blocked_by": ["task-001"],
+  "metadata": { "priority": "high", "task_uid": "...", "task_group": "auth", ... },
+  ...
+}
+
+After move to completed/ (WRONG — reconstructed from memory):
+{
+  "id": "task-003",
+  "title": "Add input validation",
+  "status": "completed",
+  "updated_at": "2026-04-07T10:00:00Z"
+}
+```
+
+**Why It's Problematic**: Task files are the single source of truth for task content. Lost fields break retry logic (no `acceptance_criteria` to verify against), session archival (incomplete records), merge mode (no `task_uid` to match on), progress UIs (no `active_form` to display), and downstream consumer context (no `produces_for` or `source_section`).
+
+**Correct Alternative**: Read the task file immediately before modifying it — not from a cached version earlier in the conversation. Modify only the changed fields (`status`, `updated_at`, `owner`) on the parsed object. Write the complete object. After writing, verify the file contains `acceptance_criteria`, `testing_requirements`, `metadata.task_uid`, and `active_form`. See the Task File Integrity Rule in `operations.md`.

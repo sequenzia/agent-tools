@@ -239,6 +239,10 @@ The dependency graph formed by `blocked_by` relationships must be acyclic. To de
 - Only `in_progress` tasks should transition to `completed`
 - `completed` tasks should not be modified
 
+### Field Preservation
+
+When updating or moving a task file, every field present in the original must be present in the written output. Only the explicitly updated fields (e.g., `status`, `updated_at`, `owner`) should differ. Post-write validation should confirm at minimum: `acceptance_criteria`, `testing_requirements`, `metadata.task_uid`, and `active_form`. See `operations.md` Task File Integrity Rule for the full procedure.
+
 ---
 
 ## Example: Minimal Task

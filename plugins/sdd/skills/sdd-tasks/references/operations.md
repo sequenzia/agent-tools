@@ -4,6 +4,19 @@ Detailed procedures for file-based CRUD operations on `.agents/tasks/` task file
 
 ---
 
+## Task File Integrity Rule
+
+When updating or moving a task file, preserve every field in the original JSON. Follow this exact procedure:
+
+1. **Read** the task file immediately before modifying it — do not rely on a previously cached version from earlier in the conversation
+2. **Modify only the named fields** (e.g., `status`, `updated_at`, `owner`) on the parsed JSON object
+3. **Write** the complete modified object — which still contains every original field — to the target path
+4. **Verify** by reading the written file back and confirming these structural markers exist: `acceptance_criteria`, `testing_requirements`, `metadata.task_uid`, and `active_form`. If any are missing, the write was corrupted — re-read the source and redo the operation.
+
+Do NOT reconstruct the task JSON from memory or from field summaries noted earlier in the conversation. Always work directly from the parsed output of the Read performed in step 1. If the source file cannot be read, abort the operation rather than writing a partial reconstruction.
+
+---
+
 ## Initialize Task Group
 
 Create the directory structure and manifest for a new task group.
@@ -77,7 +90,7 @@ Modify an existing task's fields.
 **Procedure:**
 
 1. Read the task file from its current location
-2. Modify only the specified fields — omitted fields remain unchanged
+2. Modify only the specified fields on the parsed JSON object — all other fields remain unchanged (see Task File Integrity Rule above)
 3. Update the `updated_at` timestamp
 4. If `status` was changed, perform a **Move** (see below) instead of writing back to the same location
 5. Write the updated task file
@@ -108,19 +121,21 @@ Transition a task's status by moving its file between status directories.
 **Procedure:**
 
 1. Validate the transition is allowed (see Status Lifecycle in SKILL.md)
-2. Read the task file from its current location
-3. Update the `status` field to the new status
-4. Update the `updated_at` timestamp
-5. Create the target group subdirectory if it doesn't exist:
+2. Read the task file from its current location and parse the full JSON object
+3. Modify only the fields listed below on the parsed object — all other fields remain unchanged (see Task File Integrity Rule above)
+4. Update the `status` field to the new status
+5. Update the `updated_at` timestamp
+6. Create the target group subdirectory if it doesn't exist:
    ```
    .agents/tasks/{new-status}/{group}/
    ```
-6. Write the task file to the new location:
+7. Write the complete object to the new location:
    ```
    .agents/tasks/{new-status}/{group}/task-NNN.json
    ```
-7. Delete the file from the old location
-8. Update the manifest's `updated_at` timestamp
+8. **Verify write integrity**: Read the written file back and confirm `acceptance_criteria`, `testing_requirements`, `metadata.task_uid`, and `active_form` are present. If any are missing, re-read the source file and redo the write.
+9. Delete the file from the old location (only after verification passes)
+10. Update the manifest's `updated_at` timestamp
 
 **Example — claiming a task:**
 ```

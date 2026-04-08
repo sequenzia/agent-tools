@@ -177,7 +177,7 @@ Verify implementation against the structured `acceptance_criteria`.
 Report results and share learnings.
 
 - Determine status (PASS/PARTIAL/FAIL) based on verification
-- If PASS: move task file from `in-progress/{group}/` to `completed/{group}/` (read JSON, update `status` to `"completed"`, update `updated_at`, write to new path, delete old file)
+- If PASS: move task file from `in-progress/{group}/` to `completed/{group}/` (read JSON fresh, modify only `status` and `updated_at` on the parsed object — all other fields unchanged, write complete object to new path, verify `acceptance_criteria` present, delete old file)
 - If PARTIAL or FAIL: leave in `in-progress/` for the orchestrator to decide on retry
 - Write learnings to `.agents/sessions/__live_session__/context-{id}.md`
 - Write compact result to `.agents/sessions/__live_session__/result-{id}.md` — this is the **last** file written and signals completion to the orchestrator

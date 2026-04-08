@@ -163,6 +163,7 @@ These rules prevent premature completion, which wastes execution resources on re
 - If errors or blockers are encountered, keep the task as `in_progress` and address them
 - Never mark completed if: tests are failing, implementation is partial, errors are unresolved, or dependencies are missing
 - Always read the latest task file state before updating (staleness check)
+- When moving task files between status directories, modify only the changed fields on the parsed JSON — never reconstruct from memory. Verify `acceptance_criteria` and `testing_requirements` survive the write. See `references/operations.md` Task File Integrity Rule and `references/anti-patterns.md` AP-09.
 
 ---
 

@@ -150,7 +150,7 @@ function ProjectItem({
     <div
       className={`rounded-lg transition-colors ${
         isActive
-          ? "bg-blue-50 dark:bg-blue-900/20"
+          ? "bg-blue-50 ring-1 ring-blue-500/20 dark:bg-blue-900/30 dark:ring-blue-400/20"
           : "hover:bg-gray-50 dark:hover:bg-gray-800/50"
       }`}
       data-testid={`project-${project.name}`}
@@ -191,10 +191,6 @@ function ProjectItem({
               {displayName}
             </span>
           </div>
-
-          <p className="truncate text-[11px] text-gray-400 dark:text-gray-500">
-            {project.path}
-          </p>
 
           {/* Task count summary badges */}
           {project.connected && project.counts.total > 0 && (
@@ -262,7 +258,7 @@ function AddProjectButton({ onClick }: { onClick: () => void }) {
   return (
     <button
       type="button"
-      className="flex w-full items-center gap-2 rounded-lg border border-dashed border-gray-300 px-3 py-2 text-sm text-gray-500 transition-colors hover:border-blue-400 hover:text-blue-600 dark:border-gray-600 dark:text-gray-400 dark:hover:border-blue-500 dark:hover:text-blue-400"
+      className="flex w-full items-center gap-2 rounded-lg border border-dashed border-gray-300 px-3 py-2.5 text-sm text-gray-500 transition-all hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50 dark:border-gray-600 dark:text-gray-400 dark:hover:border-blue-500 dark:hover:text-blue-400 dark:hover:bg-blue-950/30"
       onClick={onClick}
       data-testid="add-project-btn"
     >
@@ -300,7 +296,7 @@ export function ProjectSidebar({
   if (collapsed) {
     return (
       <aside
-        className="flex w-12 flex-col items-center border-r border-gray-200 bg-white py-4 dark:border-gray-700 dark:bg-gray-900"
+        className="flex w-12 flex-col items-center border-r border-gray-200 bg-white py-4 dark:border-gray-700/50 dark:bg-gradient-to-b dark:from-gray-900 dark:to-gray-950"
         data-testid="sidebar-collapsed"
         role="navigation"
         aria-label="Project navigation (collapsed)"
@@ -353,17 +349,17 @@ export function ProjectSidebar({
 
   return (
     <aside
-      className="flex w-64 flex-col border-r border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900"
+      className="flex w-64 flex-col border-r border-gray-200 bg-white dark:border-gray-700/50 dark:bg-gradient-to-b dark:from-gray-900 dark:to-gray-950"
       data-testid="sidebar"
       role="navigation"
       aria-label="Project navigation"
     >
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3 dark:border-gray-700">
+      <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3 dark:border-indigo-500/20 dark:bg-indigo-950/20">
         <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
           Projects
         </h2>
-        <span className="rounded-full bg-gray-200 px-2 py-0.5 text-[10px] font-medium text-gray-600 dark:bg-gray-700 dark:text-gray-400">
+        <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-medium text-blue-700 dark:bg-indigo-900/40 dark:text-indigo-300">
           {projects.length}
         </span>
       </div>

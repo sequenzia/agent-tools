@@ -815,6 +815,7 @@ export function KanbanBoard({ projectPath }: KanbanBoardProps) {
   } = useTaskStore();
   const { activeTaskGroups, toggleTaskGroup, setActiveTaskGroups } =
     useProjectStore();
+  const updateProjectTasks = useProjectStore((s) => s.updateProjectTasks);
   const { orderedColumns, reorderColumns } = useOrderedColumns();
   const { announce } = useLiveAnnouncer();
   const [selectedTask, setSelectedTask] = useState<TaskWithPath | null>(null);
@@ -891,6 +892,13 @@ export function KanbanBoard({ projectPath }: KanbanBoardProps) {
       perfMonitor.measure("fetch-tasks", { projectPath });
     });
   }, [projectPath, fetchTasks]);
+
+  // Sync task counts to the project store for sidebar display
+  useEffect(() => {
+    if (tasks) {
+      updateProjectTasks(projectPath, tasks);
+    }
+  }, [tasks, projectPath, updateProjectTasks]);
 
   const boardTasks = useMemo<BoardTasks | null>(() => {
     if (!tasks) return null;

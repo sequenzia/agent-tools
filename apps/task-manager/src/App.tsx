@@ -4,6 +4,7 @@ import { KanbanBoard } from "./components/KanbanBoard";
 import { ProjectSidebar } from "./components/ProjectSidebar";
 import { SettingsPanel } from "./components/SettingsPanel";
 import { DirectoryBrowser } from "./components/DirectoryBrowser";
+import { AddProjectModal } from "./components/AddProjectModal";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { ToastContainer } from "./components/ToastContainer";
 import { LiveRegionProvider } from "./components/LiveRegion";
@@ -28,6 +29,7 @@ function App() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showBrowser, setShowBrowser] = useState(false);
+  const [showAddProject, setShowAddProject] = useState(false);
   const [directoryInput, setDirectoryInput] = useState("");
 
   const settingsLoad = useSettingsStore((s) => s.load);
@@ -79,12 +81,14 @@ function App() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  const handleAddProject = useCallback(async () => {
-    if (directoryInput.trim()) {
-      await submitDirectoryPath(directoryInput.trim());
-      setDirectoryInput("");
-    }
-  }, [directoryInput, submitDirectoryPath]);
+  const handleAddProject = useCallback(() => {
+    setShowAddProject(true);
+  }, []);
+
+  const handleAddProjectSubmit = useCallback(async (path: string) => {
+    setShowAddProject(false);
+    await submitDirectoryPath(path);
+  }, [submitDirectoryPath]);
 
   const handleBrowseSelect = useCallback(async (path: string) => {
     setShowBrowser(false);
@@ -103,7 +107,7 @@ function App() {
 
   return (
     <LiveRegionProvider>
-    <div className="flex h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+    <div className="flex h-screen bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100">
       {/* Sidebar */}
       <ErrorBoundary sectionName="Sidebar" onError={handleBoundaryError}>
         <ProjectSidebar
@@ -125,8 +129,8 @@ function App() {
       ) : (
         <main className="flex flex-1 flex-col overflow-hidden">
           {/* Header bar */}
-          <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 px-6 py-3">
-            <h1 className="text-lg font-bold">Task Manager</h1>
+          <div className="flex items-center justify-between border-b border-gray-200 bg-white px-6 py-3.5 dark:border-gray-700/50 dark:bg-gray-900/80 backdrop-blur-sm">
+            <h1 className="text-lg font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent dark:from-blue-400 dark:to-indigo-400">Task Manager</h1>
 
             {isLoading ? (
               <span className="text-sm text-gray-500 dark:text-gray-400">
@@ -208,6 +212,14 @@ function App() {
             </div>
           )}
         </main>
+      )}
+
+      {/* Add project modal */}
+      {showAddProject && (
+        <AddProjectModal
+          onSubmit={handleAddProjectSubmit}
+          onCancel={() => setShowAddProject(false)}
+        />
       )}
 
       {/* Directory browser modal */}

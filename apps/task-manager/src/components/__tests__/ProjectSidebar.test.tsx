@@ -56,7 +56,7 @@ describe("ProjectSidebar", () => {
       expect(screen.getByText("Projects")).toBeDefined();
     });
 
-    it("renders project list with names and paths", () => {
+    it("renders project list with names", () => {
       useProjectStore.setState({
         projects: [
           makeProject("/Users/dev/alpha"),
@@ -68,8 +68,6 @@ describe("ProjectSidebar", () => {
 
       expect(screen.getByText("alpha")).toBeDefined();
       expect(screen.getByText("beta")).toBeDefined();
-      expect(screen.getByText("/Users/dev/alpha")).toBeDefined();
-      expect(screen.getByText("/Users/dev/beta")).toBeDefined();
     });
 
     it("shows project count in header", () => {

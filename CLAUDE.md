@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-This is a pure markdown/JSON skill and agent library — no compiled code, no tests, no build system. Skills are markdown instructions executed by AI agent platforms at runtime.
+A dual-domain project: a pure markdown/JSON skill and agent library (`plugins/`) plus a React + Node.js web app for SDD task visualization (`apps/task-manager/`). Skills are markdown instructions executed by AI agent platforms at runtime. The filesystem is the sole integration point — agents write task JSON files, the web app watches and renders them.
 
 ## Key Patterns
 
@@ -51,21 +51,20 @@ tools: [Read, Glob, Grep, Bash]
 
 ## Critical Files
 
-- `skills/manifest.json` — Authoritative skill registry
-- `skills/README.md` — Full architecture documentation
-- `skills/core/deep-analysis/SKILL.md` — Hub-and-spoke orchestration pattern
-- `skills/core/code-exploration/SKILL.md` — Canonical dispatcher pattern (5 consumers)
-- `skills/core/feature-dev/SKILL.md` — 7-phase feature development lifecycle
-- `skills/sdd/sdd-tasks/SKILL.md` — Task schema (file-based state machine)
-- `skills/sdd/execute-tasks/SKILL.md` — Wave-based parallel task execution (subagent dispatch)
-- `skills/sdd/execute-tasks-inline/SKILL.md` — Sequential inline task execution (no subagents)
-- `skills/sdd/create-spec/SKILL.md` — SDD pipeline entry point
+- `plugins/manifest.json` — Authoritative skill registry
+- `plugins/core/skills/deep-analysis/SKILL.md` — Hub-and-spoke orchestration pattern
+- `plugins/core/skills/code-exploration/SKILL.md` — Canonical dispatcher pattern (5 consumers)
+- `plugins/core/skills/feature-dev/SKILL.md` — 7-phase feature development lifecycle
+- `plugins/sdd/skills/sdd-tasks/SKILL.md` — Task schema (file-based state machine)
+- `plugins/sdd/skills/execute-tasks/SKILL.md` — Wave-based parallel task execution (subagent dispatch)
+- `plugins/sdd/skills/execute-tasks-inline/SKILL.md` — Sequential inline task execution (no subagents)
+- `plugins/sdd/skills/create-spec/SKILL.md` — SDD pipeline entry point
 
 ## Categories
 
-- `skills/core/` — 19 general-purpose skills (flattened at deployment)
-- `skills/sdd/` — 9 spec-driven development skills (7 pipeline + research dispatcher + inverted-spec)
-- `skills/meta/` — 2 skill-authoring skills
+- `plugins/core/skills/` — 20 general-purpose skills (flattened at deployment)
+- `plugins/sdd/skills/` — 8 spec-driven development skills (pipeline + research dispatcher + inverted-spec)
+- `plugins/meta/skills/` — 2 skill-authoring skills
 - `internal/reports/` — Architecture decision reports (not deployed)
 - `apps/task-manager/` — React + Vite + Node.js web app for SDD task management
 

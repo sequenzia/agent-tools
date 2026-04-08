@@ -197,12 +197,13 @@ Report results and share learnings.
 
 ### Move Task File (PASS only)
 
-If PASS, transition the task file:
+If PASS, transition the task file. Read the file fresh — do not rely on the task JSON from Phase 1, which may have been evicted from context.
 
-1. Read `.agents/tasks/in-progress/{group}/task-{id}.json`
-2. Update the JSON: set `status` to `"completed"`, update `updated_at` to current ISO 8601 timestamp
-3. Write to `.agents/tasks/completed/{group}/task-{id}.json` (create the group subdirectory if needed)
-4. Delete `.agents/tasks/in-progress/{group}/task-{id}.json`
+1. Read `.agents/tasks/in-progress/{group}/task-{id}.json` and parse the full JSON object
+2. Modify only two fields on the parsed object: set `status` to `"completed"` and `updated_at` to current ISO 8601 timestamp. All other fields (description, acceptance_criteria, testing_requirements, active_form, metadata, blocked_by, etc.) must remain exactly as read. Do NOT reconstruct the JSON from memory.
+3. Write the complete object to `.agents/tasks/completed/{group}/task-{id}.json` (create the group subdirectory if needed)
+4. Verify: Read the written file back and confirm `acceptance_criteria` and `testing_requirements` are present and non-empty. If either is missing, re-read from `in-progress/` and redo steps 2-3.
+5. Delete `.agents/tasks/in-progress/{group}/task-{id}.json`
 
 If PARTIAL or FAIL, leave the task file in `in-progress/`. The orchestrator will decide whether to retry.
 

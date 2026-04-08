@@ -13,7 +13,7 @@ Skills are organized into a 4-type taxonomy:
 | **Reference** | 9 | Knowledge bases loaded on demand by other skills |
 | **Utility** | 3 | Standalone single-purpose tools |
 
-Agents are nested inside their owning skills. When a second skill needs the same agent, it's promoted to a dispatcher skill. See `skills/README.md` for the full architecture docs.
+Agents are nested inside their owning skills. When a second skill needs the same agent, it's promoted to a dispatcher skill.
 
 ## Skills
 
@@ -33,7 +33,7 @@ Four-stage spec-driven development: `create-spec` → [`analyze-spec`] → `crea
 
 `analyze-spec` is an optional quality gate that scores specs across 4 dimensions before task decomposition.
 
-Supported by `sdd-specs` (templates) and `sdd-tasks` (task schema) reference skills. Supplemented by `inverted-spec` — a special-use-case skill that reverse-engineers specs from existing codebases. See [`skills/sdd/README.md`](skills/sdd/README.md) for the full pipeline developer guide.
+Supported by `sdd-specs` (templates) and `sdd-tasks` (task schema) reference skills. Supplemented by `inverted-spec` — a special-use-case skill that reverse-engineers specs from existing codebases.
 
 ### Meta (2 skills)
 
@@ -49,12 +49,13 @@ Supported by `sdd-specs` (templates) and `sdd-tasks` (task schema) reference ski
 ## Structure
 
 ```
-skills/
-├── core/              # 20 general-purpose skills
-├── meta/              # 2 skill-authoring skills
-├── sdd/               # 8 spec-driven development skills
-├── manifest.json      # Skill registry
-└── README.md          # Full architecture docs
+plugins/
+├── core/skills/       # 20 general-purpose skills
+├── meta/skills/       # 2 skill-authoring skills
+├── sdd/skills/        # 8 spec-driven development skills
+└── manifest.json      # Skill registry
+apps/
+└── task-manager/      # React + Node.js web app for SDD task management
 internal/
 ├── reports/           # Architecture decision reports
 └── docs/              # Analysis documents

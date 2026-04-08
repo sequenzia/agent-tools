@@ -54,7 +54,7 @@
 
 ### Consumer Applications
 
-**Task Manager** (`apps/task-manager/`) — Tauri desktop app that visualizes agent output in real-time.
+**Task Manager** (`apps/task-manager/`) — React + Node.js/Express web app that visualizes agent output in real-time.
 
 | Agent/Skill Output | Files Written | Task Manager Consumer |
 |-------|--------------|----------------------|
@@ -66,4 +66,4 @@
 | execute-tasks orchestrator | `__live_session__/session_summary.md` | SessionHistoryBrowser |
 | create-tasks | `.agents/tasks/_manifests/{group}.json` | ProjectSidebar (task group counts) |
 
-**Interface contract**: Agents write JSON/markdown files to `.agents/tasks/` and `.agents/sessions/`. The task-manager watches these directories via dual Rust file watcher threads (100ms debounce) and reconciles changes into the UI. No direct agent-to-app communication — the filesystem is the sole integration point.
+**Interface contract**: Agents write JSON/markdown files to `.agents/tasks/` and `.agents/sessions/`. The task-manager watches these directories via Node.js chokidar file watcher (100ms debounce) and broadcasts changes over WebSocket to the React frontend. No direct agent-to-app communication — the filesystem is the sole integration point.

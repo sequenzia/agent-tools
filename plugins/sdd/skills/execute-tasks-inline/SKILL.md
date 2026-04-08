@@ -180,7 +180,7 @@ Verify implementation against the structured `acceptance_criteria`.
 Report results and update context directly.
 
 - Determine status (PASS/PARTIAL/FAIL) based on verification
-- If PASS: move task file from `in-progress/{group}/` to `completed/{group}/` (read JSON, update `status` to `"completed"`, update `updated_at`, write to new path, delete old file)
+- If PASS: move task file from `in-progress/{group}/` to `completed/{group}/` (read JSON fresh, modify only `status` and `updated_at` on the parsed object — all other fields unchanged, write complete object to new path, verify `acceptance_criteria` present, delete old file)
 - If PARTIAL or FAIL: leave in `in-progress/` for the orchestrator to decide on retry
 - Write compact result to `.agents/sessions/__live_session__/result-{id}.md` for record-keeping (same format as subagent version)
 - Update `execution_context.md` directly: append Task History entry with learnings, update Project Patterns/Key Decisions/Known Issues/File Map as relevant

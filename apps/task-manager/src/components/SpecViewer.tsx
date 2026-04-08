@@ -9,7 +9,12 @@ import {
   generateAnchorId,
   type SpecContent,
 } from "../services/spec-service";
+import {
+  parseSourceSection,
+  generateSectionAnchors,
+} from "../services/section-linking";
 import { SpecLifecyclePipeline } from "./SpecLifecyclePipeline";
+import { MermaidDiagram } from "./MermaidDiagram";
 
 // --- Types ---
 
@@ -84,16 +89,7 @@ function CodeBlock({
   const code = String(children).replace(/\n$/, "");
 
   if (language === "mermaid") {
-    return (
-      <div className="my-4 rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-900/20">
-        <div className="mb-2 flex items-center gap-2 text-xs font-medium text-blue-600 dark:text-blue-400">
-          <span>Mermaid Diagram</span>
-        </div>
-        <pre className="overflow-x-auto text-sm text-blue-900 dark:text-blue-200">
-          <code>{code}</code>
-        </pre>
-      </div>
-    );
+    return <MermaidDiagram code={code} />;
   }
 
   return (
@@ -327,16 +323,46 @@ export function SpecViewer({
     (sectionText: string): boolean => {
       if (!contentRef.current) return false;
 
-      const anchorId = generateAnchorId(sectionText);
-      const escapedId =
-        typeof CSS !== "undefined" && CSS.escape
-          ? CSS.escape(anchorId)
-          : anchorId;
-      const element = contentRef.current.querySelector(`#${escapedId}`);
-      if (element) {
-        element.scrollIntoView({ behavior: "smooth", block: "start" });
-        return true;
+      const tryAnchor = (anchorId: string): boolean => {
+        const escapedId =
+          typeof CSS !== "undefined" && CSS.escape
+            ? CSS.escape(anchorId)
+            : anchorId;
+        const element = contentRef.current!.querySelector(`#${escapedId}`);
+        if (element) {
+          element.scrollIntoView({ behavior: "smooth", block: "start" });
+          return true;
+        }
+        return false;
+      };
+
+      // Tier 1: Direct match with raw text
+      if (tryAnchor(generateAnchorId(sectionText))) return true;
+
+      // Tier 2: Multi-candidate match via section-linking
+      const parsed = parseSourceSection(sectionText);
+      if (parsed) {
+        const candidates = generateSectionAnchors(parsed);
+        for (const candidate of candidates) {
+          if (tryAnchor(candidate)) return true;
+        }
+
+        // Tier 3: DOM fallback — scan headings for section number prefix
+        const headings = contentRef.current.querySelectorAll(
+          "h1, h2, h3, h4, h5, h6",
+        );
+        for (const heading of headings) {
+          const text = (heading.textContent ?? "").trim();
+          if (
+            text.startsWith(parsed.sectionNumber + " ") ||
+            text === parsed.sectionNumber
+          ) {
+            heading.scrollIntoView({ behavior: "smooth", block: "start" });
+            return true;
+          }
+        }
       }
+
       return false;
     },
     [],

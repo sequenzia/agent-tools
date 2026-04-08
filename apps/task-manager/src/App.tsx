@@ -130,7 +130,7 @@ function App() {
         <main className="flex flex-1 flex-col overflow-hidden">
           {/* Header bar */}
           <div className="flex items-center justify-between border-b border-gray-200 bg-white px-6 py-3.5 dark:border-gray-700/50 dark:bg-gray-900/80 backdrop-blur-sm">
-            <h1 className="text-lg font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent dark:from-blue-400 dark:to-indigo-400">Task Manager</h1>
+            <h1 className="text-lg font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent dark:from-blue-400 dark:to-indigo-400">Agent Task Manager</h1>
 
             {isLoading ? (
               <span className="text-sm text-gray-500 dark:text-gray-400">

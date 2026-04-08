@@ -8,6 +8,16 @@ vi.mock("../../services/api-client", () => ({
   ws: { on: vi.fn(() => vi.fn()), send: vi.fn(), connected: vi.fn(() => true), close: vi.fn() },
 }));
 
+// Mock mermaid — jsdom lacks SVG support needed for real rendering
+vi.mock("mermaid", () => ({
+  default: {
+    initialize: vi.fn(),
+    render: vi.fn((_id: string, code: string) =>
+      Promise.resolve({ svg: `<svg data-testid="mermaid-svg">${code}</svg>` }),
+    ),
+  },
+}));
+
 import { api } from "../../services/api-client";
 const mockGet = vi.mocked(api.get);
 
@@ -126,7 +136,7 @@ describe("SpecViewer", () => {
       });
     });
 
-    it("renders mermaid blocks as raw code with indicator", async () => {
+    it("renders mermaid blocks as diagrams", async () => {
       const md =
         "## Diagram\n\n```mermaid\ngraph TD\n  A-->B\n```\n";
       mockSpecResponse(md);
@@ -136,9 +146,8 @@ describe("SpecViewer", () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByText("Mermaid Diagram")).toBeDefined();
+        expect(screen.getByTestId("mermaid-svg")).toBeDefined();
       });
-      expect(screen.getByText(/graph TD/)).toBeDefined();
     });
   });
 

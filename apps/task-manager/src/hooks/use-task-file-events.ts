@@ -113,6 +113,8 @@ export function useTaskFileEvents(projectPath: string | null): TaskFileEventsSta
   const flushEvents = useCallback(async () => {
     const events = pendingEventsRef.current;
     pendingEventsRef.current = [];
+    // Clear dedup set each flush so repeated events for the same path are not dropped across windows
+    processedRef.current.clear();
 
     if (events.length === 0) return;
 
@@ -203,11 +205,6 @@ export function useTaskFileEvents(projectPath: string | null): TaskFileEventsSta
           processedRef.current.add(dedupKey);
 
           pendingEventsRef.current.push(fileEvent);
-        }
-
-        // Clear processed set periodically to avoid memory leak
-        if (processedRef.current.size > 1000) {
-          processedRef.current.clear();
         }
 
         scheduleFlush();

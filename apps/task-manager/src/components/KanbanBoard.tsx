@@ -42,6 +42,7 @@ import { COLUMN_ICONS } from "./StatusIcon";
 import { useLiveAnnouncer } from "./LiveRegion";
 import { perfMonitor } from "../services/perf-monitor";
 import { useOrderedColumns } from "../hooks/use-ordered-columns";
+import { useTaskFileEvents } from "../hooks/use-task-file-events";
 import type { TaskStatus } from "../types";
 
 // Lazy-loaded panels for code splitting
@@ -885,6 +886,9 @@ export function KanbanBoard({ projectPath }: KanbanBoardProps) {
   const handleCloseSpecViewer = useCallback(() => {
     setSpecViewerState(null);
   }, []);
+
+  // Subscribe to real-time file change events via WebSocket
+  useTaskFileEvents(projectPath);
 
   useEffect(() => {
     perfMonitor.mark("fetch-tasks");

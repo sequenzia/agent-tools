@@ -68,6 +68,43 @@ tools: [Read, Glob, Grep, Bash]
 - `internal/reports/` — Architecture decision reports (not deployed)
 - `apps/task-manager/` — React + Vite + Node.js web app for SDD task management
 
+## CLI Tool (`apps/cli/`)
+
+TypeScript CLI (`agt`) for managing apps in the `apps/` directory.
+
+### Tech Stack
+- **Runtime**: Node.js, TypeScript 5.8, Commander.js
+- **Tooling**: tsx (dev runner), tsc (build)
+
+### Commands
+- `agt start <app>` — Start app in dev mode (foreground, streams output + saves to log)
+- `agt stop <app>` — Send SIGTERM to running app
+- `agt kill <app>` — Send SIGKILL to running app
+- `agt status [app]` — Show status of all or specific app
+- `agt logs <app> [-n lines]` — Show recent log output (default 50 lines)
+- `agt list` — List discovered apps with running status
+
+### Runtime State
+- `.agt/pids/<app>.pid` — PID files for running apps
+- `.agt/logs/<app>.log` — Log files (truncated on each start)
+- `.agt/` is gitignored at repo root
+
+### Key Patterns
+- **Auto-discovery**: Scans `apps/` for subdirectories with `package.json` containing a `dev` script
+- **Tee logging**: Child process output streamed to both terminal and log file
+- **Stale PID detection**: Verifies process liveness via `process.kill(pid, 0)` before reporting status
+- **Signal cleanup**: SIGINT/SIGTERM handlers clean up PID files and propagate signals to children
+
+### Setup
+```bash
+cd apps/cli && npm install && npm run build && npm link
+```
+
+### Development
+```bash
+cd apps/cli && npx tsx src/index.ts <command>
+```
+
 ## Task Manager App (`apps/task-manager/`)
 
 React 19 + Vite + Node.js/Express + TypeScript web app for visualizing and managing SDD tasks.

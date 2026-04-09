@@ -23,9 +23,12 @@ function handleBoundaryError(error: Error, sectionName: string) {
 }
 
 function App() {
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [userCollapsed, setUserCollapsed] = useState(false);
+  const [windowNarrow, setWindowNarrow] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showAddProject, setShowAddProject] = useState(false);
+
+  const sidebarCollapsed = userCollapsed || windowNarrow;
 
   const settingsLoad = useSettingsStore((s) => s.load);
   const initialize = useProjectStore((s) => s.initialize);
@@ -46,14 +49,18 @@ function App() {
     }
   }, [initError]);
 
-  // Handle narrow window collapse
+  // Track narrow viewport for auto-collapse (user preference persists separately)
   useEffect(() => {
     function handleResize() {
-      setSidebarCollapsed(window.innerWidth < 768);
+      setWindowNarrow(window.innerWidth < 768);
     }
     handleResize();
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  const handleToggleSidebar = useCallback(() => {
+    setUserCollapsed((prev) => !prev);
   }, []);
 
   const handleAddProject = useCallback(() => {
@@ -93,6 +100,7 @@ function App() {
           onAddProject={handleAddProject}
           collapsed={sidebarCollapsed}
           onOpenSettings={handleOpenSettings}
+          onToggleCollapse={handleToggleSidebar}
         />
       </ErrorBoundary>
 

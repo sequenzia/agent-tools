@@ -14,6 +14,29 @@ The filesystem is the source of truth — tasks are JSON files in `.agents/tasks
 Filesystem → chokidar watcher → WebSocket broadcast → Service (Zod validate) → Zustand Store → React Component
 ```
 
+```mermaid
+flowchart TD
+    subgraph server["Express Backend (port 3001)"]
+        WATCH[watcher.ts]:::secondary -->|broadcasts| WSS[WebSocket server]:::secondary
+        ROUTES[routes/tasks.ts]:::secondary -->|atomic write| FS[(".agents/tasks/")]:::warning
+        FS -->|chokidar events| WATCH
+    end
+
+    subgraph frontend["React Frontend"]
+        HOOK[use-task-file-events]:::primary -->|applyBatch| STORE[task-store]:::primary
+        STORE --> KB[KanbanBoard]:::primary
+        KB -->|moveTask| SVC[task-service]:::neutral
+    end
+
+    WSS -->|task-file-change| HOOK
+    SVC -->|POST /api/tasks/move| ROUTES
+
+    classDef primary fill:#dbeafe,stroke:#2563eb,color:#000
+    classDef secondary fill:#f3e8ff,stroke:#7c3aed,color:#000
+    classDef warning fill:#fef3c7,stroke:#d97706,color:#000
+    classDef neutral fill:#f3f4f6,stroke:#6b7280,color:#000
+```
+
 ### Backend (Node.js/Express)
 
 6 route modules exposing REST endpoints:

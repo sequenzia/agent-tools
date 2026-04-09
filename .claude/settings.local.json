@@ -10,5 +10,12 @@
     "pyright-lsp@claude-plugins-official": true,
     "plugin-dev@claude-plugins-official": true,
     "chrome-devtools-mcp@claude-plugins-official": true
+  },
+  "permissions": {
+    "allow": [
+      "Bash(cp /Users/sequenzia/dev/repos/agent-tools/.claude/sessions/__da_live__/synthesis.md /Users/sequenzia/dev/repos/agent-tools/.claude/sessions/exploration-cache/synthesis.md)",
+      "Bash(cp /Users/sequenzia/dev/repos/agent-tools/.claude/sessions/__da_live__/recon_summary.md /Users/sequenzia/dev/repos/agent-tools/.claude/sessions/exploration-cache/recon_summary.md)",
+      "Bash(cp /Users/sequenzia/dev/repos/agent-tools/.claude/sessions/__da_live__/explorer-*-findings.md /Users/sequenzia/dev/repos/agent-tools/.claude/sessions/exploration-cache/)"
+    ]
   }
 }

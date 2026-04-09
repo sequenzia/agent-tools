@@ -12,6 +12,16 @@ A dual-domain project: a pure markdown/JSON skill and agent library (`plugins/`)
 - **Execution Strategy** section required in every skill with agents
 - **Progressive disclosure**: Keep SKILL.md under ~5000 tokens; move detail to references/
 
+## Integration Contract
+
+The plugin system and web app share a **filesystem contract** but no code. The task JSON schema is defined independently in two places:
+- Markdown: `plugins/sdd/skills/sdd-tasks/references/task-schema.md`
+- Zod: `apps/task-manager/src/types/task.ts`
+
+Both use `.passthrough()` for forward compatibility. There is no automated sync — changes to the schema must be applied in both places manually.
+
+Filesystem naming normalization: directory `in-progress` maps to JSON field `in_progress` via `normalizeStatus()`/`statusToDirName()` in `server/routes/tasks.ts`.
+
 ## Skill Types
 
 - `workflow`: Multi-phase orchestration with agents (e.g., feature-dev, deep-analysis)
@@ -59,6 +69,12 @@ tools: [Read, Glob, Grep, Bash]
 - `plugins/sdd/skills/execute-tasks/SKILL.md` — Wave-based parallel task execution (subagent dispatch)
 - `plugins/sdd/skills/execute-tasks-windsurf/SKILL.md` — Sequential task execution for Windsurf (script-based file ops)
 - `plugins/sdd/skills/create-spec/SKILL.md` — SDD pipeline entry point
+
+## Known Technical Debt
+
+- **Tauri migration artifacts**: The Task Manager was ported from Tauri to web. ~61 references to "IPC" remain across ~22 files (`IpcError`, `classifyIpcError`, `withIpcTimeout`). The actual transport is now HTTP/REST. Rename to `ApiError`/`classifyApiError`/`withApiTimeout` when touching these files.
+- **Zero backend test coverage**: `server/` has no test files. Frontend has 53 test files. Priority: `server/routes/tasks.ts` (atomic writes, conflict detection).
+- **KanbanBoard.tsx size**: 1,345 lines handling 5 responsibilities (DnD, keyboard nav, column reorder, lazy panels, optimistic moves). Target extraction into sub-components.
 
 ## Categories
 

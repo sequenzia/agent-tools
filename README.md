@@ -4,6 +4,40 @@ Reusable skills and agents for AI coding assistants — a harness-agnostic plugi
 
 ## Architecture
 
+The project is a three-domain system unified by the filesystem as the sole integration contract:
+
+```mermaid
+flowchart TD
+    subgraph plugins["Plugin Ecosystem (30 skills, 12 agents)"]
+        CS[create-spec]:::primary --> CT[create-tasks]:::primary
+        CT --> ET[execute-tasks]:::primary
+        ET --> TE[task-executor agents]:::secondary
+    end
+
+    subgraph filesystem["Filesystem Contract"]
+        TF[".agents/tasks/{status}/{group}/task-N.json"]:::warning
+    end
+
+    subgraph webapp["Task Manager Web App"]
+        W[chokidar watcher]:::success --> WS[WebSocket broadcast]:::success
+        WS --> KB[Kanban Board UI]:::success
+    end
+
+    subgraph cli["agt CLI"]
+        AGT[agt start/stop/status]:::neutral
+    end
+
+    TE -->|writes JSON| TF
+    TF -->|watches| W
+    AGT -.->|manages lifecycle| webapp
+
+    classDef primary fill:#dbeafe,stroke:#2563eb,color:#000
+    classDef secondary fill:#f3e8ff,stroke:#7c3aed,color:#000
+    classDef success fill:#dcfce7,stroke:#16a34a,color:#000
+    classDef warning fill:#fef3c7,stroke:#d97706,color:#000
+    classDef neutral fill:#f3f4f6,stroke:#6b7280,color:#000
+```
+
 Skills are organized into a 4-type taxonomy:
 
 | Type | Count | Purpose |
@@ -55,10 +89,12 @@ plugins/
 ├── sdd/skills/        # 8 spec-driven development skills
 └── manifest.json      # Skill registry
 apps/
-└── task-manager/      # React + Node.js web app for SDD task management
+├── task-manager/      # React + Node.js web app for SDD task management
+└── cli/               # agt CLI for app lifecycle management
 internal/
 ├── reports/           # Architecture decision reports
-└── docs/              # Analysis documents
+├── docs/              # Analysis documents
+└── specs/             # SDD spec inputs
 scripts/
 └── installers/        # Cross-platform install scripts
 ```

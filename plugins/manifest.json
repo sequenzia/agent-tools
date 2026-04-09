@@ -152,9 +152,9 @@
           "allowed_tools": ["Read", "Write", "Glob", "Grep", "Bash"]
         },
         {
-          "name": "execute-tasks-inline",
+          "name": "execute-tasks-windsurf",
           "type": "workflow",
-          "description": "Execute pending SDD tasks sequentially with direct context management, optimized for harnesses without subagent dispatch. Tasks execute inline through a 4-phase workflow with file-based external memory for cross-task knowledge sharing. Reads task files from .agents/tasks/ and manages execution sessions in .agents/sessions/. Supports task group filtering. Use when user says \"execute tasks\", \"run tasks\", \"start execution\", \"work on tasks\", or wants to execute generated tasks autonomously.",
+          "description": "Execute pending SDD tasks sequentially in Windsurf with script-based file operations to prevent data loss from context decay. Tasks execute inline through a 4-phase workflow with file-based external memory for cross-task knowledge sharing. Reads task files from .agents/tasks/ and manages execution sessions in .agents/sessions/. Supports task group filtering. Use when user says \"execute tasks\", \"run tasks\", \"start execution\", \"work on tasks\", or wants to execute generated tasks autonomously in Windsurf.",
           "allowed_tools": ["Read", "Write", "Glob", "Grep", "Bash"]
         },
         {

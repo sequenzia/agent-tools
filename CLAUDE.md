@@ -57,7 +57,7 @@ tools: [Read, Glob, Grep, Bash]
 - `plugins/core/skills/feature-dev/SKILL.md` — 7-phase feature development lifecycle
 - `plugins/sdd/skills/sdd-tasks/SKILL.md` — Task schema (file-based state machine)
 - `plugins/sdd/skills/execute-tasks/SKILL.md` — Wave-based parallel task execution (subagent dispatch)
-- `plugins/sdd/skills/execute-tasks-inline/SKILL.md` — Sequential inline task execution (no subagents)
+- `plugins/sdd/skills/execute-tasks-windsurf/SKILL.md` — Sequential task execution for Windsurf (script-based file ops)
 - `plugins/sdd/skills/create-spec/SKILL.md` — SDD pipeline entry point
 
 ## Categories

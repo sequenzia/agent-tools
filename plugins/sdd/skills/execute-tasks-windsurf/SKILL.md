@@ -1,14 +1,16 @@
 ---
-name: execute-tasks-inline
+name: execute-tasks-windsurf
 description: >-
-  Execute pending SDD tasks sequentially with direct context management,
-  optimized for harnesses without subagent dispatch. Tasks execute inline
-  through a 4-phase workflow (Understand, Implement, Verify, Complete) with
-  file-based external memory for cross-task knowledge sharing. Reads task
-  files from .agents/tasks/ and manages execution sessions in
+  Execute pending SDD tasks sequentially in Windsurf with direct context
+  management and script-based file operations. Optimized for Windsurf's
+  context behavior — uses deterministic Bash scripts for task file moves
+  and history updates to prevent data loss from context decay. Tasks
+  execute inline through a 4-phase workflow (Understand, Implement, Verify,
+  Complete) with file-based external memory for cross-task knowledge sharing.
+  Reads task files from .agents/tasks/ and manages execution sessions in
   .agents/sessions/. Supports task group filtering. Use when user says
   "execute tasks", "run tasks", "start execution", "work on tasks", or
-  wants to execute generated tasks autonomously.
+  wants to execute generated tasks autonomously in Windsurf.
 metadata:
   argument-hint: "[task-id] [--task-group <group>] [--retries <n>]"
   type: workflow
@@ -18,11 +20,11 @@ metadata:
 allowed-tools: Read Write Glob Grep Bash
 ---
 
-# Execute Tasks Inline
+# Execute Tasks (Windsurf)
 
 This skill orchestrates autonomous sequential execution of SDD tasks stored as JSON files in `.agents/tasks/`. It builds a dependency-aware execution plan, then executes each task inline through a 4-phase workflow (Understand, Implement, Verify, Complete), sharing learnings across tasks through a file-based external memory pattern.
 
-Unlike `execute-tasks` (which dispatches parallel subagent executors), this skill executes all tasks sequentially within a single context. It uses `execution_context.md` as external memory — re-reading it before each task and updating it directly after — to maintain cross-task knowledge without relying on subagent isolation.
+Optimized for Windsurf and similar harnesses without subagent dispatch. Unlike `execute-tasks` (which dispatches parallel subagent executors), this skill executes all tasks sequentially within a single context. It uses `execution_context.md` as external memory — re-reading it before each task and updating it directly after — to maintain cross-task knowledge without relying on subagent isolation.
 
 Tasks are managed entirely through file-based operations (Read, Write, Glob) on `.agents/tasks/` directories — no harness-specific task tools required.
 
@@ -42,6 +44,16 @@ Read: ../execute-tasks/references/verification-patterns.md
 ```
 
 > When following `execution-workflow.md`, skip Phase 1 Step 1 (Load Knowledge) — you already have the full context from this skill. For Phase 4, follow the inline-specific instructions in this skill instead of the shared reference's context/result file protocol.
+
+## Helper Scripts
+
+This skill includes Bash scripts (using python3) for file operations that must be atomic and reliable. These scripts prevent data loss even when Windsurf's context compression has evicted the detailed procedure from context.
+
+- **`scripts/move-task.sh`** — Move task files between status directories with full field preservation and integrity verification. The agent never touches JSON fields directly — the script handles fresh reads, field-level updates, and post-write verification.
+- **`scripts/append-task-history.sh`** — Append task history entries to `execution_context.md` via deterministic read-modify-write. Ensures every task's history is recorded regardless of context decay.
+- **`scripts/verify-task-file.sh`** — Verify task file integrity after writes. Safety net callable after any task file operation.
+
+See `references/orchestration.md` for full script invocation patterns.
 
 ## Core Principles
 
@@ -177,13 +189,14 @@ Verify implementation against the structured `acceptance_criteria`.
 
 ### Phase 4: Complete (Inline-Specific)
 
-Report results and update context directly.
+Report results and update context. Use the helper scripts for file operations — see the `task-checklist.md` in the session directory for exact invocation patterns.
 
 - Determine status (PASS/PARTIAL/FAIL) based on verification
-- If PASS: move task file from `in-progress/{group}/` to `completed/{group}/` (read JSON fresh, modify only `status` and `updated_at` on the parsed object — all other fields unchanged, write complete object to new path, verify `acceptance_criteria` present, delete old file)
+- If PASS: `bash {skill_path}/scripts/move-task.sh <in-progress-path> <completed-dir> --status completed`
 - If PARTIAL or FAIL: leave in `in-progress/` for the orchestrator to decide on retry
-- Write compact result to `.agents/sessions/__live_session__/result-{id}.md` for record-keeping (same format as subagent version)
-- Update `execution_context.md` directly: append Task History entry with learnings, update Project Patterns/Key Decisions/Known Issues/File Map as relevant
+- Record history: `bash {skill_path}/scripts/append-task-history.sh <execution-context-path> <<'ENTRY' ...`
+- Write compact result to `.agents/sessions/__live_session__/result-{id}.md` for record-keeping
+- Update `execution_context.md` sections (Project Patterns, Key Decisions, Known Issues, File Map) as relevant
 - Update `task_log.md` and `progress.md` immediately
 - Check for context compaction (every ~5 tasks)
 
@@ -191,8 +204,9 @@ Report results and update context directly.
 
 Tasks share learnings through `.agents/sessions/__live_session__/execution_context.md` using a "File as External Memory" strategy. This pattern ensures cross-task knowledge survives harness context compression by persisting it to disk and re-reading it before each task.
 
+- **Instruction refresh**: Before each task, re-read `task-checklist.md` from the session directory. This checklist contains the condensed post-task procedure with exact script commands. Re-reading it combats instruction decay from Windsurf's context compression.
 - **Context refresh**: Before each task, re-read `execution_context.md` in full. This places cross-task learnings at the top of the recency window, ensuring they remain available even if the harness has compressed earlier conversation turns.
-- **Direct writes**: After each task, update `execution_context.md` directly via read-modify-write. Append a Task History entry and update relevant sections (Project Patterns, Key Decisions, Known Issues, File Map). No per-task context files, no merge step.
+- **Script-based history updates**: After each task, use `scripts/append-task-history.sh` to record the task history entry deterministically. Also update other sections (Project Patterns, Key Decisions, Known Issues, File Map) via read-modify-write as relevant.
 - **Context compaction**: After every ~5 tasks (when the running task count is a multiple of 5), compact the Task History section: keep the last 5 entries in full, summarize all older entries into a brief "Prior Tasks Summary" paragraph at the top of Task History. Keep all other sections in full.
 - **Write pattern**: All writes to session artifacts (`execution_context.md`, `task_log.md`, `progress.md`) use Write (full file replacement) via read-modify-write, never Edit.
 - **Sections**: Project Patterns, Key Decisions, Known Issues, File Map, Task History
@@ -212,39 +226,41 @@ Tasks share learnings through `.agents/sessions/__live_session__/execution_conte
 - **Circular dependency detection**: If all remaining tasks block each other, break at the weakest link and log a warning.
 - **Single-session invariant**: Only one execution session can run at a time per project. A `.lock` file prevents concurrent invocations.
 - **Interrupted session recovery**: Stale sessions are detected and archived; tasks left `in_progress` are automatically reset to `pending` via file moves.
+- **Per-task instruction refresh**: Before each task, re-read `task-checklist.md` alongside `execution_context.md`. The checklist refreshes the post-task procedure; the context refreshes cross-task knowledge. This ensures both survive Windsurf's context compression.
+- **Script-based file operations**: Task file moves and history appends use deterministic Bash scripts (`scripts/move-task.sh`, `scripts/append-task-history.sh`) rather than inline read-modify-write. This prevents field loss even when the agent's context has decayed.
 
 ## Example Usage
 
 ### Execute all unblocked tasks
 ```
-/execute-tasks-inline
+/execute-tasks-windsurf
 ```
 
 ### Execute a specific task
 ```
-/execute-tasks-inline task-005
+/execute-tasks-windsurf task-005
 ```
 
 ### Execute tasks for a specific group
 ```
-/execute-tasks-inline --task-group user-authentication
+/execute-tasks-windsurf --task-group user-authentication
 ```
 
 ### Execute with custom retry limit
 ```
-/execute-tasks-inline --retries 1
+/execute-tasks-windsurf --retries 1
 ```
 
 ### Execute group with custom retries
 ```
-/execute-tasks-inline --task-group payments --retries 1
+/execute-tasks-windsurf --task-group payments --retries 1
 ```
 
 ## Execution Strategy
 
-Execute tasks sequentially in the orchestrator's own context. For each task in the current dependency level: re-read `execution_context.md`, then follow the 4-phase workflow inline (Understand, Implement, Verify, Complete). After completing each task, process its result immediately — write the result file, update execution context, update logs — before moving to the next task.
+Execute tasks sequentially in the orchestrator's own context. For each task in the current dependency level: re-read both `task-checklist.md` (instruction refresh) and `execution_context.md` (knowledge refresh), then follow the 4-phase workflow inline (Understand, Implement, Verify, Complete). After completing each task, use the helper scripts to move the task file and record history, then update logs — before moving to the next task.
 
-No agents are dispatched. No polling is needed. All execution happens in a single continuous context.
+No agents are dispatched. No polling is needed. All execution happens in a single continuous context. The helper scripts ensure that critical file operations (task moves, history recording) are deterministic and never lose data, even when context has been compressed.
 
 ## Reference Files
 

@@ -1,6 +1,6 @@
 # Orchestration Reference (Inline)
 
-This reference provides the detailed 9-step orchestration loop for executing SDD tasks sequentially in a single context. The execute-tasks-inline skill uses this procedure to manage the full execution session.
+This reference provides the detailed 9-step orchestration loop for executing SDD tasks sequentially in a single context. The execute-tasks-windsurf skill uses this procedure to manage the full execution session.
 
 All task management is file-based: tasks are JSON files in `.agents/tasks/` directories, managed via Read, Write, and Glob per `sdd-tasks/references/operations.md`.
 
@@ -13,6 +13,41 @@ All orchestrator writes to session artifacts (`execution_context.md`, `task_log.
 3. **Write** the complete updated file
 
 This ensures atomic, reliable updates regardless of file size or content changes.
+
+## Helper Scripts
+
+This skill includes Bash scripts (using python3 for JSON manipulation) that handle the most fragile file operations deterministically. These scripts prevent data loss from context decay — even if the agent forgets the detailed procedure, calling the script with the right arguments produces the correct result.
+
+**`scripts/move-task.sh`** — Atomically move a task JSON between status directories:
+```bash
+bash {skill_path}/scripts/move-task.sh <source-path> <dest-dir> --status <new-status> [--owner <owner>]
+```
+- Reads source JSON, updates only specified fields, writes to destination, verifies integrity, deletes source
+- Use `--owner null` to clear the owner field
+- Outputs `MOVE_RESULT: OK` or `MOVE_RESULT: FAIL` with details
+
+**`scripts/append-task-history.sh`** — Append a task history entry to execution_context.md:
+```bash
+bash {skill_path}/scripts/append-task-history.sh <execution-context-path> <<'ENTRY'
+task_id: {id}
+title: {title}
+status: {PASS/PARTIAL/FAIL}
+files_modified: {comma-separated list}
+learnings: {key discoveries}
+issues: {problems or "None"}
+ENTRY
+```
+- Reads the file, locates `## Task History`, appends formatted entry, writes complete file
+- Outputs `HISTORY_RESULT: OK` or `HISTORY_RESULT: FAIL`
+
+**`scripts/verify-task-file.sh`** — Verify task file integrity:
+```bash
+bash {skill_path}/scripts/verify-task-file.sh <task-file-path>
+```
+- Checks for `acceptance_criteria`, `testing_requirements`, `metadata.task_uid`, `active_form`
+- Outputs `VERIFY_RESULT: OK` or `VERIFY_RESULT: FAIL`
+
+> **Note on `{skill_path}`**: During initialization (Step 5.5), resolve the actual path to this skill's directory and use it in all script invocations. The path is also written into `task-checklist.md` so it's available for each task.
 
 ## Result File Protocol
 
@@ -204,7 +239,11 @@ Before creating new files, check if `.agents/sessions/__live_session__/` contain
      2. Read each task file
      3. If an archived `task_log.md` exists, cross-reference: only reset tasks that appear in the log (they were part of the interrupted session)
      4. If no `task_log.md` available in the archive, reset ALL `in_progress` tasks (conservative approach)
-     5. For each task to reset: Read the JSON file and parse the full object. Modify only `status` (→ `"pending"`), `owner` (→ `null`), and `updated_at` on the parsed object — all other fields remain unchanged. Write the complete object to `.agents/tasks/pending/{group}/task-{id}.json`, delete from `in-progress/{group}/`.
+     5. For each task to reset, use the move script:
+        ```bash
+        bash {skill_path}/scripts/move-task.sh .agents/tasks/in-progress/{group}/task-{id}.json \
+          .agents/tasks/pending/{group}/ --status pending --owner null
+        ```
      6. Log each reset: `Reset interrupted task [{id}] "{title}" from in_progress to pending`
      7. Log: `Recovered {n} interrupted tasks (reset to pending)`
 3. If `__live_session__/` is empty or doesn't exist, proceed normally
@@ -277,6 +316,61 @@ Create `.agents/sessions/__live_session__/` (and `.agents/sessions/` parent if n
 
    ## Completed This Session
    ```
+6. **`task-checklist.md`** — Write the per-task checklist with the resolved `{skill_path}`:
+   ```markdown
+   # Per-Task Checklist
+
+   Re-read this file before starting each task. It contains the critical
+   post-task steps that ensure results are recorded and task files are preserved.
+
+   ## Before Task
+   1. Read this checklist (you're doing it now)
+   2. Read .agents/sessions/__live_session__/execution_context.md for cross-task learnings
+   3. Read the task JSON from in-progress/{group}/task-{id}.json
+
+   ## Execute Task
+   4. Phase 1 (Understand): Review context, read task JSON, explore codebase
+   5. Phase 2 (Implement): Follow project patterns, write tests
+   6. Phase 3 (Verify): Walk acceptance_criteria categories, run tests
+   7. Determine status: PASS | PARTIAL | FAIL
+
+   ## After Task — CRITICAL (follow these steps exactly)
+
+   ### 8. Move task file (if PASS):
+   ```
+   bash {skill_path}/scripts/move-task.sh \
+     .agents/tasks/in-progress/{group}/task-{id}.json \
+     .agents/tasks/completed/{group}/ \
+     --status completed
+   ```
+   If PARTIAL or FAIL, leave the task in in-progress/ (do not move it).
+
+   ### 9. Record task history:
+   ```
+   bash {skill_path}/scripts/append-task-history.sh \
+     .agents/sessions/__live_session__/execution_context.md <<'ENTRY'
+   task_id: {id}
+   title: {title}
+   status: {PASS/PARTIAL/FAIL}
+   files_modified: {comma-separated list of files changed}
+   learnings: {key patterns, conventions, file locations discovered}
+   issues: {problems encountered or "None"}
+   ENTRY
+   ```
+
+   ### 10. Write result file
+   Write result-{id}.md to .agents/sessions/__live_session__/ with verification summary.
+
+   ### 11. Update session logs
+   - Append row to task_log.md (read-modify-write with Write tool)
+   - Update progress.md (move task from Active to Completed)
+
+   ### 12. Update execution_context.md sections (optional)
+   If the task revealed new Project Patterns, Key Decisions, Known Issues, or File Map
+   entries, also update those sections in execution_context.md (read-modify-write).
+
+   ## Then proceed to next task (go back to step 1)
+   ```
 
 ## Step 6: Initialize Execution Context
 
@@ -298,6 +392,14 @@ This prevents the execution context from growing unbounded across multiple execu
 
 Execute tasks sequentially through dependency levels. No user interaction between tasks. Track a running task count for context compaction.
 
+### Context Refresh Protocol
+
+Before each task, Read BOTH of these files:
+1. **`task-checklist.md`** — Refreshes the per-task procedure (combats instruction decay from context compression)
+2. **`execution_context.md`** — Refreshes cross-task knowledge (patterns, decisions, file map, history)
+
+This dual-refresh ensures the agent always has fresh instructions AND fresh context, even after Windsurf compresses earlier conversation turns.
+
 ### 7a: Initialize Dependency Level
 
 1. Find all unblocked tasks: Glob `.agents/tasks/pending/{group}/*.json` (or all groups if no filter), Read each, check `blocked_by` against the completed set (Glob `.agents/tasks/completed/{group}/*.json`, collect IDs from filenames)
@@ -309,11 +411,13 @@ Execute tasks sequentially through dependency levels. No user interaction betwee
 
 For each task in the current dependency level:
 
-1. **Mark task in_progress**: Move its file from `pending/{group}/` to `in-progress/{group}/`:
-   - Read the task JSON file and parse the full object (fresh read — do not reuse a cached version)
-   - Modify only `status` (→ `"in_progress"`), `owner` (→ `{task_execution_id}`), and `updated_at` on the parsed object — all other fields remain unchanged. Do NOT reconstruct from memory.
-   - Write the complete object to `.agents/tasks/in-progress/{group}/task-{id}.json` (create group subdirectory if needed)
-   - Delete `.agents/tasks/pending/{group}/task-{id}.json`
+1. **Mark task in_progress** using the move script:
+   ```bash
+   bash {skill_path}/scripts/move-task.sh \
+     .agents/tasks/pending/{group}/task-{id}.json \
+     .agents/tasks/in-progress/{group}/ \
+     --status in_progress --owner {task_execution_id}
+   ```
 
 2. **Update progress.md** using Write (read-modify-write pattern):
    ```markdown
@@ -330,9 +434,11 @@ For each task in the current dependency level:
    {accumulated completed tasks from prior levels}
    ```
 
-3. **Context refresh**: Re-read `.agents/sessions/__live_session__/execution_context.md` in full. This is the critical step that makes the "File as External Memory" pattern work — it places all cross-task learnings at the top of the recency window, ensuring they survive harness context compression.
+3. **Context refresh** (follow Context Refresh Protocol above):
+   - Re-read `.agents/sessions/__live_session__/task-checklist.md` — refreshes the per-task procedure
+   - Re-read `.agents/sessions/__live_session__/execution_context.md` — refreshes cross-task knowledge
 
-4. **Check for producer context**: If any of the task's `blocked_by` tasks have a `produces_for` array containing this task's ID, read the completed producer's result file (`result-{producer_id}.md`) from the session directory. Note the producer task's title and the "Files Modified" section to understand what artifacts were created upstream.
+4. **Check for producer context**: If any of the task's `blocked_by` tasks have a `produces_for` array containing this task's ID, read the completed producer's result file (`result-{producer_id}.md`) from the session directory.
 
 5. **Execute 4-phase workflow inline**:
 
@@ -360,21 +466,31 @@ For each task in the current dependency level:
 
    **Phase 4 — Complete (Inline-Specific):**
    - Determine status (PASS/PARTIAL/FAIL)
-   - If PASS: move task file from `in-progress/{group}/` to `completed/{group}/` — read the JSON file fresh and parse the full object, modify only `status` (→ `"completed"`) and `updated_at` on the parsed object (all other fields unchanged — do NOT reconstruct from memory), write the complete object to new path, verify `acceptance_criteria` and `testing_requirements` exist in written file, delete old file
+   - If PASS — move task file using the script:
+     ```bash
+     bash {skill_path}/scripts/move-task.sh \
+       .agents/tasks/in-progress/{group}/task-{id}.json \
+       .agents/tasks/completed/{group}/ \
+       --status completed
+     ```
    - If PARTIAL or FAIL: leave in `in-progress/`
 
-6. **Write result file**: Write `result-{id}.md` to `.agents/sessions/__live_session__/` using the standard format. This is for record-keeping and retry context.
+6. **Write result file**: Write `result-{id}.md` to `.agents/sessions/__live_session__/` using the standard format (see Result File Protocol above). This is for record-keeping and retry context.
 
-7. **Update execution_context.md directly**: Read the current file, then append to the `## Task History` section:
-
-   ```markdown
-   ### Task [{id}]: {title} - {PASS/PARTIAL/FAIL}
-   - Files modified: {list of files created or changed}
-   - Key learnings: {patterns discovered, conventions noted, useful file locations}
-   - Issues encountered: {problems hit, workarounds applied, things that didn't work}
+7. **Record task history** using the script:
+   ```bash
+   bash {skill_path}/scripts/append-task-history.sh \
+     .agents/sessions/__live_session__/execution_context.md <<'ENTRY'
+   task_id: {id}
+   title: {title}
+   status: {PASS/PARTIAL/FAIL}
+   files_modified: {comma-separated list of files created or changed}
+   learnings: {patterns discovered, conventions noted, useful file locations}
+   issues: {problems hit, workarounds applied, or "None"}
+   ENTRY
    ```
 
-   Also update Project Patterns, Key Decisions, Known Issues, and File Map sections as relevant. Write the complete updated file.
+   Also update Project Patterns, Key Decisions, Known Issues, and File Map sections in `execution_context.md` as relevant (read-modify-write with Write tool).
 
 8. **Update task_log.md**: Read the current file, append the task row, Write the complete file:
    ```markdown
@@ -403,7 +519,7 @@ After executing a task, if the result is FAIL and retries remain:
 
 1. Read the failure details from `result-{id}.md` (Issues section and Verification section)
 2. Delete the old `result-{id}.md`
-3. Re-read `execution_context.md` (context refresh)
+3. Follow the Context Refresh Protocol: re-read `task-checklist.md` and `execution_context.md`
 4. Re-execute the 4-phase workflow inline with retry context:
    - Phase 1 includes: read previous failure details, assess codebase state (run linter/tests to see what previous attempt left behind), decide whether to build on partial work or revert and try differently
 5. Process the retry result using steps 6-10 from 7b
@@ -500,4 +616,4 @@ If no meaningful project-wide changes occurred, skip this step.
 - The execution context file enables knowledge sharing across task boundaries via the "File as External Memory" pattern
 - Context compaction (every ~5 tasks) prevents the execution context from growing unbounded
 - Failed tasks remain as `in_progress` for manual review or re-execution
-- Run the execute-tasks-inline skill again to pick up where you left off — it will execute any remaining unblocked tasks
+- Run the execute-tasks-windsurf skill again to pick up where you left off — it will execute any remaining unblocked tasks

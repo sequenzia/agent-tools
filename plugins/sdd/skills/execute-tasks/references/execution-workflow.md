@@ -237,6 +237,8 @@ Based on verification results:
 4. Verify: Read the written file back and confirm `acceptance_criteria` and `testing_requirements` are present and non-empty. If either is missing, re-read from `in-progress/` and redo steps 2-3.
 5. Delete `.agents/tasks/in-progress/{group}/task-{id}.json`
 
+> **Windsurf execution note**: When executing via `execute-tasks-windsurf`, use `scripts/move-task.sh` for task file moves instead of the manual read-modify-write procedure above. The script handles fresh reads, field preservation, integrity verification, and atomic deletes — preventing data loss from context decay.
+
 **If PARTIAL or FAIL:**
 Leave task as `in_progress`. Do NOT move the file. The orchestrating skill will decide whether to retry.
 

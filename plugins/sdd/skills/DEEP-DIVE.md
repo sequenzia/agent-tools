@@ -30,7 +30,7 @@ A comprehensive architectural breakdown of the Spec-Driven Development pipeline 
 The SDD pipeline transforms natural-language requirements into executed code through four stages, each producing file-based artifacts consumed by the next:
 
 ```
-create-spec → [analyze-spec] → create-tasks → execute-tasks (or execute-tasks-inline)
+create-spec → [analyze-spec] → create-tasks → execute-tasks (or execute-tasks-windsurf)
 ```
 
 ```mermaid
@@ -39,7 +39,7 @@ flowchart LR
     AS -.->|"improved spec"| CT["3. create-tasks"]:::primary
     CS -->|".md spec"| CT
     CT -->|"task JSON files"| ET["4a. execute-tasks"]:::success
-    CT -->|"task JSON files"| ETI["4b. execute-tasks-inline"]:::success
+    CT -->|"task JSON files"| ETI["4b. execute-tasks-windsurf"]:::success
     IS["inverted-spec"]:::secondary -.->|".md spec"| AS
     IS -.->|".md spec"| CT
 
@@ -57,7 +57,7 @@ flowchart LR
 | `analyze-spec` | workflow | 5 phases | Quality gate — 4-dimension scoring |
 | `create-tasks` | workflow | 10 phases | Spec feature decomposition into JSON tasks |
 | `execute-tasks` | workflow | 9 steps | Wave-based parallel execution (subagent dispatch) |
-| `execute-tasks-inline` | workflow | 9 steps | Sequential inline execution (no subagents) |
+| `execute-tasks-windsurf` | workflow | 9 steps | Sequential inline execution (no subagents) |
 | `inverted-spec` | workflow | 5 phases | Reverse-engineer specs from existing code |
 | `sdd-specs` | reference | — | Spec templates, question banks, complexity signals |
 | `sdd-tasks` | reference | — | Task JSON schema, lifecycle, operations |
@@ -407,7 +407,7 @@ When re-running `create-tasks` against an existing task set:
 
 Two execution variants share the same task schema, verification patterns, and session management but differ in concurrency model:
 
-| Aspect | `execute-tasks` | `execute-tasks-inline` |
+| Aspect | `execute-tasks` | `execute-tasks-windsurf` |
 |--------|-----------------|----------------------|
 | Concurrency | Wave-based parallel (up to N agents) | Sequential (one at a time) |
 | Agent dispatch | Subagent dispatch (task-executor) | Inline in orchestrator context |
@@ -495,7 +495,7 @@ This is where the two variants diverge:
 7. Merge context from per-task `context-{id}.md` files, clean up
 8. Archive completed tasks, rescan for next wave
 
-**Inline variant (`execute-tasks-inline`)**:
+**Inline variant (`execute-tasks-windsurf`)**:
 1. Find next unblocked task by priority
 2. Re-read `execution_context.md` (context refresh — "file as external memory")
 3. Execute 4-phase workflow inline (Understand → Implement → Verify → Complete)
@@ -583,7 +583,7 @@ None
 | File | Purpose |
 |------|---------|
 | `execute-tasks/references/orchestration.md` | 9-step loop (subagent variant) |
-| `execute-tasks-inline/references/orchestration.md` | 9-step loop (inline variant) |
+| `execute-tasks-windsurf/references/orchestration.md` | 9-step loop (inline variant) |
 | `execute-tasks/references/execution-workflow.md` | 4-phase task workflow |
 | `execute-tasks/references/verification-patterns.md` | Pass/fail rules |
 | `execute-tasks/scripts/poll-for-results.sh` | Polling script for subagent results |
@@ -690,7 +690,7 @@ Two reference skills provide shared schemas and templates consumed by multiple w
 
 ### `sdd-tasks` (Task Knowledge)
 
-**Consumers**: `create-tasks`, `execute-tasks`, `execute-tasks-inline`
+**Consumers**: `create-tasks`, `execute-tasks`, `execute-tasks-windsurf`
 
 | Reference File | Content |
 |----------------|---------|
@@ -852,7 +852,7 @@ The execution context system allows cross-task knowledge sharing — patterns di
 3. **After wave**: Orchestrator merges all `context-{id}.md` files into `execution_context.md`, deletes individual files
 4. **No write contention**: Agents never write to the shared file simultaneously
 
-**Inline variant** (`execute-tasks-inline`):
+**Inline variant** (`execute-tasks-windsurf`):
 1. **Before each task**: Re-read `execution_context.md` (places learnings at top of recency window)
 2. **After each task**: Direct read-modify-write to `execution_context.md`
 3. **Every ~5 tasks**: Context compaction — keep last 5 Task History entries in full, summarize older entries
@@ -972,7 +972,7 @@ plugins/sdd/
     │   └── scripts/
     │       └── poll-for-results.sh
     │
-    ├── execute-tasks-inline/                        # Stage 4b: Sequential execution (9 steps)
+    ├── execute-tasks-windsurf/                        # Stage 4b: Sequential execution (9 steps)
     │   ├── SKILL.md
     │   └── references/
     │       └── orchestration.md

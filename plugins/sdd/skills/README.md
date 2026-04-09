@@ -7,7 +7,7 @@ A complete guide to the Spec-Driven Development pipeline — from requirements g
 The SDD pipeline transforms natural language requirements into executed code through four stages:
 
 ```
-create-spec → [analyze-spec] → create-tasks → execute-tasks (or execute-tasks-inline)
+create-spec → [analyze-spec] → create-tasks → execute-tasks (or execute-tasks-windsurf)
 ```
 
 Each stage produces file-based artifacts consumed by the next. Two reference skills (`sdd-specs` and `sdd-tasks`) provide shared schema definitions, templates, and patterns.
@@ -18,7 +18,7 @@ flowchart LR
     AS -.->|"improved spec"| CT["3. create-tasks"]:::primary
     CS -->|".md spec"| CT
     CT -->|".agents/tasks/ JSON"| ET["4a. execute-tasks"]:::primary
-    CT -->|".agents/tasks/ JSON"| ETI["4b. execute-tasks-inline"]:::primary
+    CT -->|".agents/tasks/ JSON"| ETI["4b. execute-tasks-windsurf"]:::primary
 
     classDef primary fill:#dbeafe,stroke:#2563eb,color:#000
     classDef warning fill:#fef3c7,stroke:#d97706,color:#000
@@ -30,7 +30,7 @@ flowchart LR
 | 2 | `analyze-spec` | workflow | Optional quality gate — scores spec across 4 dimensions |
 | 3 | `create-tasks` | workflow | Decomposes spec features into dependency-tracked JSON tasks |
 | 4a | `execute-tasks` | workflow | Wave-based parallel execution with subagent dispatch |
-| 4b | `execute-tasks-inline` | workflow | Sequential inline execution without subagents |
+| 4b | `execute-tasks-windsurf` | workflow | Sequential inline execution without subagents |
 | — | `sdd-specs` | reference | Spec templates, question banks, complexity signals |
 | — | `sdd-tasks` | reference | Task JSON schema, lifecycle, execution patterns |
 | — | `research` | dispatcher | Researcher agent for best practices and compliance research |
@@ -269,7 +269,7 @@ Requires a harness that supports subagent dispatch (e.g., Claude Code with Agent
 - `execute-tasks/references/execution-workflow.md` — 4-phase agent workflow (shared with inline variant)
 - `execute-tasks/references/verification-patterns.md` — Verification and pass/fail rules (shared with inline variant)
 
-### execute-tasks-inline (Sequential)
+### execute-tasks-windsurf (Sequential)
 
 Optimized for harnesses without subagent dispatch. Executes all tasks sequentially in the orchestrator's own context using a "File as External Memory" pattern for cross-task knowledge sharing.
 
@@ -293,7 +293,7 @@ Optimized for harnesses without subagent dispatch. Executes all tasks sequential
 - **Same session management** — Lock files, interrupted recovery, archival all identical
 
 **Key references:**
-- `execute-tasks-inline/references/orchestration.md` — Inline-specific 9-step procedure
+- `execute-tasks-windsurf/references/orchestration.md` — Inline-specific 9-step procedure
 - `execute-tasks/references/execution-workflow.md` — 4-phase workflow (shared)
 - `execute-tasks/references/verification-patterns.md` — Verification and pass/fail rules (shared)
 
@@ -458,7 +458,7 @@ backlog ──→ pending ──→ in_progress ──→ completed
 
 This eliminates write contention — agents never write to the same file.
 
-**Inline variant (`execute-tasks-inline`):**
+**Inline variant (`execute-tasks-windsurf`):**
 1. **Before each task:** Orchestrator re-reads `execution_context.md` (context refresh)
 2. **During task:** Orchestrator executes the 4-phase workflow inline
 3. **After each task:** Orchestrator updates `execution_context.md` directly (no merge step)
@@ -641,7 +641,7 @@ plugins/sdd/skills/
 │   │   └── verification-patterns.md       # Pass/fail rules (shared)
 │   └── scripts/
 │       └── poll-for-results.sh            # Polls for result files (45min timeout)
-├── execute-tasks-inline/
+├── execute-tasks-windsurf/
 │   ├── SKILL.md                           # 9-step orchestration (sequential inline)
 │   └── references/
 │       └── orchestration.md               # Inline orchestration loop

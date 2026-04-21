@@ -35,6 +35,7 @@ This makes skills portable across harnesses with different capabilities.
 | `create-tasks` | _(none)_ | sdd-tasks, sdd-specs | Spec-to-task decomposition with 6 layer patterns, dependency inference, and producer-consumer detection. Generates `.agents/tasks/` JSON files from `create-spec` output. |
 | `execute-tasks` | task-executor | sdd-tasks | Wave-based task execution with dependency resolution, structured verification, and shared execution context. Reads `.agents/tasks/` JSON files, manages sessions in `.agents/sessions/`. |
 | `inverted-spec` | _(none)_ | deep-analysis, research, sdd-specs | Reverse-engineers specs from existing codebases via deep analysis, feature curation, and gap-filling interview. Supplementary to the SDD pipeline — not a core pipeline stage. |
+| `interview-me` | interview-researcher | technical-diagrams | Adaptive multi-round interview on any topic (technical or not) with optional proactive research. Produces a detailed report, summary, or implementation plan. |
 
 ### Agent Skills (shared agent dispatch)
 
@@ -91,6 +92,7 @@ All agents live inside the skill that owns them:
 | `git-history` | `core/mr-reviewer/agents/` | No | mr-reviewer | Examines git history of changed files for regression risks, high-churn areas, and historical context. |
 | `changelog-manager` | `core/release-python-package/agents/` | No | release-python-package | Manages CHANGELOG.md entries following Keep a Changelog format. |
 | `task-executor` | `sdd/execute-tasks/agents/` | No | execute-tasks | Executes a single SDD task through a 4-phase workflow (Understand, Implement, Verify, Complete). Writes result files as completion signals. |
+| `interview-researcher` | `core/interview-me/agents/` | No | interview-me | Pulls accurate, current information on a specific topic during an interview. Returns a compact (≤400 word) interview-ready markdown block with summary, key points, sources, and confidence rating. |
 
 ### Agent Placement Rule
 
@@ -148,6 +150,17 @@ skills/
 │   │   ├── SKILL.md
 │   │   └── agents/
 │   │       └── changelog-manager.md
+│   ├── interview-me/
+│   │   ├── SKILL.md
+│   │   ├── agents/
+│   │   │   └── interview-researcher.md
+│   │   └── references/
+│   │       ├── question-bank.md
+│   │       ├── research-triggers.md
+│   │       └── templates/
+│   │           ├── report-detailed.md
+│   │           ├── report-summary.md
+│   │           └── implementation-plan.md
 │   ├── architecture-patterns/
 │   ├── changelog-format/
 │   ├── code-quality/

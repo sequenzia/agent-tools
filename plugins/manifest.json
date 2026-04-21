@@ -80,6 +80,12 @@
           "description": "Interact with GitLab through the glab CLI tool. Covers merge requests, issues, CI/CD pipelines, runners, pipeline schedules, repositories, releases, API requests, variables, labels, milestones, snippets, access tokens, deploy keys, incidents, and changelogs. Use when the user needs to create or manage merge requests, check CI pipeline status, manage runners or schedules, manage GitLab issues or incidents, create releases, generate changelogs, manage access tokens or deploy keys, query the GitLab API, or perform any GitLab operation from the command line. Trigger on mentions of glab, GitLab CLI, merge requests, MR workflows, CI pipelines, runners, pipeline schedules, access tokens, deploy keys, incidents, GitLab issues, or GitLab API."
         },
         {
+          "name": "interview-me",
+          "type": "workflow",
+          "description": "Conduct an adaptive interactive interview on any topic and produce a structured markdown report, summary, or implementation plan. Use when the user says \"interview me\", \"interview me about\", \"run an interview on\", \"help me think through\", or wants guided discovery on any subject. Also triggers on \"talk me through\", \"explore X with me\", \"help me plan Y\", or \"walk me through my thinking on Z\" when the user wants a guided conversation rather than a direct answer. Applies broadly — career decisions, project ideas, product direction, personal goals, research questions, team problems — not just technical topics.",
+          "allowed_tools": ["Read", "Write", "Glob", "Grep", "Bash"]
+        },
+        {
           "name": "language-patterns",
           "type": "reference",
           "description": "Provides language-specific patterns for TypeScript, Python, and React including idioms, best practices, and common patterns. Use when implementing features in these languages."

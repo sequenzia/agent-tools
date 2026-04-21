@@ -25,6 +25,7 @@ flowchart TB
         DM["docs-manager"]:::workflow
         MR["mr-reviewer"]:::workflow
         RP["release-python-package"]:::workflow
+        IM["interview-me"]:::workflow
     end
 
     subgraph Dispatchers
@@ -86,6 +87,7 @@ flowchart TB
 | `docs-manager` | workflow | `/docs-manager [action]` | MkDocs sites, markdown files, change summaries |
 | `mr-reviewer` | workflow | `/mr-reviewer <mr> [--deep]` | 3-agent parallel MR review with GitLab integration |
 | `release-python-package` | workflow | `/release-python-package [version]` | Python package release with uv and ruff |
+| `interview-me` | workflow | `/interview-me [topic-or-context]` | Adaptive interview on any topic — produces report, summary, or implementation plan |
 | `code-exploration` | dispatcher | _(invoked by skills)_ | Shared code-explorer agent (5 consumers) |
 | `code-architecture` | dispatcher | _(invoked by skills)_ | Shared code-architect agent (2 consumers) |
 | `language-patterns` | reference | _(loaded by skills)_ | TypeScript, Python, React patterns |
@@ -265,6 +267,22 @@ Automated merge request review that dispatches 3 parallel agents, merges their f
 
 **Agents owned:** changelog-manager
 
+#### interview-me
+
+Adaptive multi-round interview on any topic (technical decisions, career moves, project ideas, product direction, research questions) that produces a structured markdown artifact. Research is dispatched only when specific triggers fire — explicit request, user uncertainty about external facts, compliance keywords, named technologies, or complex trade-offs — and counts against a proactive budget to keep the interview flowing.
+
+| Phase | Purpose |
+|-------|---------|
+| 1. Initial Framing | Six questions — topic, goals, focus, depth, output type, save location |
+| 2. Adaptive Interview | Depth-aware rounds pulling from the question bank, rephrasing in the user's vocabulary |
+| 3. Research Dispatch | Interleaved calls to interview-researcher when triggers fire (budget-tracked) |
+| 4. Pre-Compilation Summary | Transparent review separating user-stated, research-derived, and inferred content |
+| 5. Compile Output | Detailed report, summary, implementation plan, or custom structure |
+
+**Agents owned:** interview-researcher
+**Skills invoked:** technical-diagrams (loaded in Phase 5 for detailed/deep-dive depths)
+**References:** references/question-bank.md, references/research-triggers.md, references/templates/*.md
+
 #### document-changes
 
 Generates a markdown report documenting codebase changes from the current session — files added, modified, deleted, and a summary of what was done. Uses git diff data as its source.
@@ -358,6 +376,7 @@ This makes skills portable across harnesses with different capabilities.
 | mr-code-quality | mr-reviewer | No | 1 | Read, Glob, Grep, Bash |
 | git-history | mr-reviewer | No | 1 | Bash, Read, Glob, Grep |
 | changelog-manager | release-python-package | No | 1 | Read, Edit, Bash |
+| interview-researcher | interview-me | No | 1 | Read, Glob, Grep, Bash |
 
 ---
 
@@ -461,6 +480,17 @@ skills/core/
 │       ├── repositories.md             # Repository operations
 │       ├── runners-schedules.md        # Runners and pipeline schedules
 │       └── tokens-keys.md             # Access tokens and deploy keys
+├── interview-me/
+│   ├── SKILL.md                          # 5-phase adaptive interview workflow
+│   ├── agents/
+│   │   └── interview-researcher.md       # Interview-ready topic researcher
+│   └── references/
+│       ├── question-bank.md              # Seed questions by category and depth
+│       ├── research-triggers.md          # When to dispatch the researcher
+│       └── templates/
+│           ├── implementation-plan.md    # Phased plan output template
+│           ├── report-detailed.md        # Detailed report output template
+│           └── report-summary.md         # One-page summary output template
 ├── language-patterns/
 │   └── SKILL.md                          # TypeScript, Python, React patterns
 ├── mr-reviewer/
